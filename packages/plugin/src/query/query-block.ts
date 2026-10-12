@@ -8,6 +8,8 @@ import { themeFrom } from '../render/theme';
 import { renderTable } from '../render/table';
 import { parseBlock, type ParsedBlock } from './block';
 import { planRender } from './plan';
+import { attachGraphControls } from '../view/graph-controls';
+import { showGraphMenu } from '../view/graph-menu';
 
 /**
  * One rendered `graph-query` block. Re-runs on vault changes while visible;
@@ -24,6 +26,8 @@ export class QueryBlock extends MarkdownRenderChild {
   private frame: number | null = null;
   private generation = 0;
   private retryTimer: number | null = null;
+  /** The `pin` option of the latest parse; read on every relayout so edits to it apply without a new renderer. */
+  private pin: string[] = [];
 
   constructor(
     containerEl: HTMLElement,
@@ -138,17 +142,22 @@ export class QueryBlock extends MarkdownRenderChild {
       // Block header styles win over schema notes and settings; bad values only warn.
       const header = styleSource('block header', null, parsed.styles.nodes, parsed.styles.edges, (n) => getIcon(n) !== null);
       const styler = this.plugin.makeStyler(header.source);
+      this.pin = parsed.options.pin;
       // Reuse the renderer across refreshes to avoid flicker and keep positions.
       if (!this.renderer) {
         el.empty();
         this.warnEl = el.createDiv({ cls: 'obsigraph-notice' });
         const host = el.createDiv();
-        this.renderer = new GraphRenderer(host, {
+        const renderer = new GraphRenderer(host, {
           height: parsed.options.height,
           styler,
           theme: () => themeFrom(host),
           onOpen: (path) => this.plugin.openNote(path, this.sourcePath),
+          onContextMenu: (ev) => showGraphMenu(renderer, ev, { open: (path) => this.plugin.openNote(path, this.sourcePath) }),
+          layout: { forces: parsed.options.forces, display: parsed.options.display, pins: () => this.resolvePins() },
         });
+        attachGraphControls(renderer, parsed.options.controls);
+        this.renderer = renderer;
       } else {
         this.renderer.setStyler(styler);
       }
@@ -163,6 +172,11 @@ export class QueryBlock extends MarkdownRenderChild {
     for (const n of [plan.notice, ...plan.notices]) if (n) frag.createDiv({ cls: 'obsigraph-notice', text: n });
     renderTable(frag, result, plan.indexes, (path) => this.plugin.openNote(path, this.sourcePath));
     el.replaceChildren(...Array.from(frag.childNodes));
+  }
+
+  /** `self` is the note holding the block; other entries resolve like wikilinks from it. Node ids are note paths. */
+  private resolvePins(): string[] {
+    return this.pin.map((p) => (p === 'self' ? this.sourcePath : (this.plugin.app.metadataCache.getFirstLinkpathDest(p, this.sourcePath)?.path ?? p)));
   }
 
   // @tg: implements:: [[openspec:graph-query-block#Errors shown in place]]

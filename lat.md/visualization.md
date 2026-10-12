@@ -54,3 +54,21 @@ The Graph view's details panel lists the selection's properties, with note prope
 
 [[packages/graph-ui/src/view-state.ts#nodeDetails]] and [[packages/graph-ui/src/view-state.ts#edgeDetails]] classify each row: a node's `labels`, `stub` and `path`, an edge's `sign`, `id`, declaring `note` and `heading`, every `style.*` row and any property the schema does not declare are technical; `type` and `types` always count as note properties, and with no schema every property is one. [[packages/graph-ui/src/view-state.ts#valueLines]] splits a value into text and link parts, one line per list item. The leaf in [[packages/plugin/src/view/graph-view.ts#GraphView]] adds a Technical toggle (off by default), a Links toggle (on by default) that falls back to the old plain text, links that open the note, and a drag handle between the graph and the panel. Width and toggles are device-local state in `app.saveLocalStorage`, not plugin settings, so changing them does not rebuild the index.
 
+## Forces and pinning
+
+Both surfaces lay nodes out with a live force simulation instead of a one-shot layout, and a gear button opens controls for forces, display, edge-type visibility and pinning.
+
+[[packages/graph-ui/src/simulation.ts#Simulation]] is pure (no Cytoscape, no DOM) and [[packages/graph-ui/src/graph-renderer.ts#GraphRenderer]] copies its positions into Cytoscape on every animation frame. The forces are Obsidian's: a pull to the centre, node-node repulsion and link springs with the d3 degree bias. Two more are added: a node lying across an edge is pushed off it (the edge's end nodes take the opposite push), and overlapping node and edge label boxes are pushed apart by a position correction that is not drowned out by the springs and runs once more, at full strength, when the layout stops moving. Label overlap is best effort: a node's label and its own edge labels cannot be separated by moving that node.
+
+Pinned nodes are held fixed and the rest spread around them. Dragging a node pins it where it is dropped (`pinOnDrag`), shift-click toggles a pin, and pinned nodes get an accent border. [[packages/graph-ui/src/simulation.ts#Simulation#autoPin]] pins a list of ids: the first at the origin, which is the canvas centre, the others on a ring; it does nothing for an unchanged list, so unpinning sticks. A block pins the note that holds it by default and the Graph view pins the note it follows. A mostly new graph is settled at once and fitted around the origin; otherwise existing nodes keep their place and new ones ease in next to a neighbour. The view follows the layout until the user pans or zooms.
+
+The panel is [[packages/plugin/src/view/graph-controls.ts#attachGraphControls]]: Display (arrows, edge labels, text fade threshold, node size, link thickness), Edge types (a toggle per type, with counts), Forces (centre, repel, link force, link distance, node-edge repel, label repel, pin on drag) and Pins, plus reset and "Copy as block options". Hiding an edge type is only visual; it does not change the layout. Right-click opens [[packages/plugin/src/view/graph-menu.ts#showGraphMenu]] with the pin actions, open, and (in the Graph view) expand; hosts without a menu, such as the VS Code webview, keep right-click as expand. The Graph view remembers panel values in `app.saveLocalStorage`; a block does not write back to its note.
+
+A block sets its starting values in header lines, parsed by [[packages/graph-ui/src/layout-options.ts#parseForces]] and its siblings:
+
+- `forces: center=0.3, repel=19.7, link=0.68, distance=235, edgeRepel=0.44, labelRepel=0.83, pinOnDrag=true` (ranges: center 0-1, repel 0-20, link 0-1, distance 30-500, edgeRepel 0-1, labelRepel 0-1; 0 turns node-edge or label repulsion off)
+- `display: arrows=true, edgeLabels=true, fade=0.12, nodeSize=0.75, linkSize=0.5, hide=requirement|feature` (`hide` lists edge types separated by `|`; a negative edge is named with its minus)
+- `pin: self` (default), `none`, or note names resolved like wikilinks; the first goes to the centre
+- `controls: show` (default), `open` or `hide`
+
+Any subset may be given; the values above are the defaults.

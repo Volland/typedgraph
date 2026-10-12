@@ -1,4 +1,5 @@
 import type { QueryResult } from '@obsigraph/core';
+import { parseControls, parseDisplay, parseForces, parsePin, type ControlsMode, type DisplaySettings, type ForceSettings } from '@obsigraph/graph-ui';
 
 export type ViewMode = 'auto' | 'table' | 'graph';
 
@@ -12,6 +13,14 @@ export interface BlockOptions {
   backend: 'builtin' | 'ladybug' | null;
   /** `hide` removes code nodes from the graph; the code layer itself is a plugin setting. */
   code: 'show' | 'hide';
+  /** Initial force settings from the `forces:` header line; unset values keep the defaults. */
+  forces: Partial<ForceSettings>;
+  /** Initial display settings from the `display:` header line. */
+  display: Partial<DisplaySettings>;
+  /** Nodes to pin: `self` is the note holding the block, anything else a note name. The first sits at the canvas centre. */
+  pin: string[];
+  /** Graph controls button: `show`, `open` (panel expanded) or `hide`. */
+  controls: ControlsMode;
 }
 
 export interface HeaderError {
@@ -35,9 +44,9 @@ export interface ParsedBlock {
 }
 
 const HEADER_LINE = /^\s*([A-Za-z][\w-]*(?:\.[\p{L}\p{N}_-]+)?)\s*:\s*(.*?)\s*$/u;
-const KNOWN = new Set(['view', 'columns', 'height', 'backend', 'code']);
+const KNOWN = new Set(['view', 'columns', 'height', 'backend', 'code', 'forces', 'display', 'pin', 'controls']);
 
-export const DEFAULT_OPTIONS: BlockOptions = { view: 'auto', columns: null, height: 360, backend: null, code: 'show' };
+export const DEFAULT_OPTIONS: BlockOptions = { view: 'auto', columns: null, height: 360, backend: null, code: 'show', forces: {}, display: {}, pin: ['self'], controls: 'show' };
 
 /**
  * Split a `graph-query` block into its `key: value` header and Cypher body.
@@ -49,9 +58,10 @@ export const DEFAULT_OPTIONS: BlockOptions = { view: 'auto', columns: null, heig
 // @tg: implements:: [[openspec:graph-query-block#View override and columns]]
 // @tg: implements:: [[openspec:ladybug-backend#Backend selection]]
 // @tg: implements:: [[openspec:visualization-config#Block header style entries]]
+// @tg: implements:: [[openspec:graph-query-block#Layout header options]]
 export function parseBlock(source: string): ParsedBlock {
   const lines = source.split(/\r?\n/);
-  const options: BlockOptions = { ...DEFAULT_OPTIONS };
+  const options: BlockOptions = { ...DEFAULT_OPTIONS, forces: {}, display: {}, pin: [...DEFAULT_OPTIONS.pin] };
   const errors: HeaderError[] = [];
   const styles: HeaderStyles = { nodes: {}, edges: {} };
   let i = 0;
@@ -71,7 +81,7 @@ export function parseBlock(source: string): ParsedBlock {
       continue;
     }
     if (!KNOWN.has(key)) {
-      errors.push({ line: i, message: `Unknown option '${m[1]}' (expected view, columns, height, backend, code, node.<Type> or edge.<type>)` });
+      errors.push({ line: i, message: `Unknown option '${m[1]}' (expected view, columns, height, backend, code, forces, display, pin, controls, node.<Type> or edge.<type>)` });
       continue;
     }
     if (key === 'view') {
@@ -92,6 +102,17 @@ export function parseBlock(source: string): ParsedBlock {
       const c = value.toLowerCase();
       if (c === 'show' || c === 'hide') options.code = c;
       else errors.push({ line: i, message: `Invalid code '${value}' (expected show or hide)` });
+    } else if (key === 'forces' || key === 'display') {
+      // @lat: [[visualization#Forces and pinning]]
+      const r = key === 'forces' ? parseForces(value) : parseDisplay(value);
+      for (const message of r.errors) errors.push({ line: i, message });
+      Object.assign(key === 'forces' ? options.forces : options.display, r.value);
+    } else if (key === 'pin') {
+      options.pin = parsePin(value);
+    } else if (key === 'controls') {
+      const c = parseControls(value);
+      if (c) options.controls = c;
+      else errors.push({ line: i, message: `Invalid controls '${value}' (expected show, open or hide)` });
     } else if (key === 'height') {
       const h = Number(value.replace(/px$/, ''));
       if (!Number.isFinite(h) || h < 100 || h > 4000) errors.push({ line: i, message: `Invalid height '${value}' (100-4000)` });

@@ -4,13 +4,16 @@ import type ObsigraphPlugin from '../main';
 import { DEFAULT_OPTIONS } from '../query/block';
 import { planRender } from '../query/plan';
 import type { GraphElements } from '../render/elements';
-import { GraphRenderer } from '../render/graph-renderer';
+import { DEFAULT_DISPLAY, DEFAULT_FORCES, GraphRenderer, type DisplaySettings, type ForceSettings, type LayoutSettings } from '../render/graph-renderer';
+import { attachGraphControls } from './graph-controls';
+import { showGraphMenu } from './graph-menu';
 import { themeFrom } from '../render/theme';
 import { renderTable } from '../render/table';
 import { TG_ICON } from '../icon';
 import { edgeDetails, mergeElements, neighborhood, nodeDetails, valueLines, type Details } from './view-state';
 
 export const VIEW_TYPE_GRAPH = 'obsigraph-graph-view';
+const LAYOUT_KEY = 'obsigraph-graph-layout';
 
 // Device-local view state: how wide the details pane is and which rows it shows.
 const WIDTH_KEY = 'obsigraph:details-width';
@@ -20,7 +23,7 @@ const MIN_DETAILS_WIDTH = 160;
 
 /**
  * Full-pane exploratory graph. With an empty query it shows the active note's
- * neighborhood; right-click or long-press expands a node in place.
+ * neighborhood; a node expands in place from the right-click menu or a long-press.
  */
 // @tg: implements:: [[visualization#Surfaces]] {since: "2026-10-03"}
 // @lat: [[visualization#Surfaces]]
@@ -162,20 +165,55 @@ export class GraphView extends ItemView {
     if (this.renderer) return this.renderer;
     this.body.empty();
     const host = this.body.createDiv();
-    this.renderer = new GraphRenderer(host, {
+    const expand = (id: string) => {
+      this.expanded.add(id);
+      this.renderer?.addElements(neighborhood(this.plugin.index.graph, id));
+    };
+    const renderer = new GraphRenderer(host, {
       height: 600,
       styler: this.plugin.makeStyler(),
       theme: () => themeFrom(host),
       onOpen: (path) => this.openNote(path),
-      onExpand: (id) => {
-        this.expanded.add(id);
-        this.renderer?.addElements(neighborhood(this.plugin.index.graph, id));
-      },
+      onExpand: expand,
+      onContextMenu: (ev) => showGraphMenu(renderer, ev, { open: (path) => this.openNote(path), expand }),
       onSelect: (sel) => this.showDetails(sel),
+      // The note being followed sits pinned at the centre; with a query there is no such note.
+      layout: { pins: () => (this.query || !this.focus ? [] : [this.focus]) },
+      onSettingsChange: (s) => this.saveLayout(s),
     });
+    this.renderer = renderer;
+    const saved = this.loadLayout();
+    if (saved) renderer.updateSettings(saved);
+    attachGraphControls(renderer, 'show');
     host.setCssStyles({ height: '100%', minHeight: '320px' });
     this.renderer.cy.resize();
     return this.renderer;
+  }
+
+  /** Panel settings are device-local state, like the details panel's toggles, not plugin settings. */
+  private saveLayout(s: LayoutSettings): void {
+    this.app.saveLocalStorage(LAYOUT_KEY, JSON.stringify(s));
+  }
+
+  private loadLayout(): { forces: Partial<ForceSettings>; display: Partial<DisplaySettings> } | null {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(String(this.app.loadLocalStorage(LAYOUT_KEY) ?? 'null'));
+    } catch {
+      return null;
+    }
+    if (typeof raw !== 'object' || raw === null) return null;
+    const pick = <T extends object>(src: unknown, defaults: T): Partial<T> => {
+      const out: Record<string, unknown> = {};
+      if (typeof src !== 'object' || src === null) return out as Partial<T>;
+      for (const [k, d] of Object.entries(defaults)) {
+        const v = (src as Record<string, unknown>)[k];
+        if (Array.isArray(d) ? Array.isArray(v) && v.every((x) => typeof x === 'string') : typeof v === typeof d) out[k] = v;
+      }
+      return out as Partial<T>;
+    };
+    const o = raw as { forces?: unknown; display?: unknown };
+    return { forces: pick(o.forces, DEFAULT_FORCES), display: pick(o.display, DEFAULT_DISPLAY) };
   }
 
   // @tg: implements:: [[openspec:graph-view#Details panel]]

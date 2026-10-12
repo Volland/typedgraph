@@ -2,6 +2,17 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+### Added
+
+- **Forces, pinning and controls for graphs.** Inline blocks and the Graph view now use a live force simulation with Obsidian's forces (centre, repel, link force, link distance) plus node-edge repulsion (a node lying across an edge is pushed off it) and label repulsion. Drag a node to pin it, shift-click toggles a pin, and the note holding a block (or followed by the Graph view) is pinned at the canvas centre. A gear button opens Display, Edge types (show or hide each type), Forces and Pins controls, and right-click opens a menu with pin, unpin, open, expand and re-center. Block headers take `forces:`, `display:`, `pin:` and `controls:` for initial values; "Copy as block options" turns the panel into those lines.
+- Graph UI: `Simulation`, `parseForces`, `parseDisplay`, `parsePin`, `formatLayoutOptions` and the default settings are exported; `GraphRenderer` gains `layout`, `onContextMenu` and `onSettingsChange` options and pin, settings and edge-type methods; `buildStylesheet` takes optional display settings.
+
+### Changed
+
+- Graphs are no longer laid out once with `cose`: nodes keep moving until the layout cools, and default node size, link thickness and label fade are smaller. Right-click in the plugin opens the menu instead of expanding a node (use the menu or long-press); the VS Code webview still expands on right-click.
+
 ## 0.20.0 — 2026-10-16
 
 ### Added

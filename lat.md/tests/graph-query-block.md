@@ -42,3 +42,15 @@ The style sheet labels edges with their type, dashes negative edges, colors node
 ## Type style settings validated
 
 User-entered type styles are parsed as JSON and rejected with a clear message when the shape is unknown or the structure is wrong.
+
+## Layout header options
+
+The `forces`, `display`, `pin` and `controls` header lines fill the block's layout options and leave the query untouched.
+
+## Layout header defaults
+
+Without those lines the block pins its own note, shows the controls button and sets no initial forces or display values, and options never leak from one parse to the next.
+
+## Layout header errors
+
+Invalid layout values are reported with their line while valid entries are kept, and the unknown-option message lists the new options.
