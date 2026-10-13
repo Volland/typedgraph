@@ -42,3 +42,15 @@ The style sheet labels edges with their type, dashes negative edges, colors node
 ## Type style settings validated
 
 User-entered type styles are parsed as JSON and rejected with a clear message when the shape is unknown or the structure is wrong.
+
+## Note variables become literals
+
+`{{path}}`, `{{title}}`, `{{name}}`, `{{folder}}`, `{{extension}}` and frontmatter values such as `{{fm.status}}` are replaced by Cypher literals of the note holding the block: strings quoted, numbers and booleans plain, lists of those as lists.
+
+## Unknown variables are null
+
+A name that resolves to nothing, or to a value that is not a literal, becomes `null`. Only identifier chains are substituted and nothing is evaluated, so expressions and calls stay in the text for the parser to reject.
+
+## Variables substituted before parsing
+
+A query such as `MATCH (w {path: {{path}}})` runs against the note it sits in, because substitution happens before the Cypher text is parsed and keeps the block's line numbers.

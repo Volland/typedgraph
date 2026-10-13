@@ -33,4 +33,6 @@ A `graph-query` fenced block holds a header of options followed by the Cypher te
 
 Header options are `view` (`auto`, `table` or `graph`), `columns` (comma-separated names to show), `height` (graph height in pixels, 100 to 4000, default 360), `backend` (`builtin` or `ladybug`, overriding the plugin default), `code` (`show` or `hide` source-code nodes of the code layer in graph results) and `node.<Type>` or `edge.<type>` styling. An unknown option or invalid value is reported with its line.
 
+The query may refer to the note holding the block with `{{name}}` variables, replaced by Cypher literals before parsing: `path`, `name`, `title`, `folder`, `extension` and frontmatter as `fm.<property>`. Unresolved names become `null`; nothing is evaluated. See [[packages/plugin/src/query/variables.ts#substituteVariables]].
+
 The result shape picks the renderer unless the header overrides it: nodes, relationships or paths render as a graph, scalars as a table. Blocks re-run live on note changes, debounced. See [[visualization]].

@@ -8,6 +8,7 @@ import { themeFrom } from '../render/theme';
 import { renderTable } from '../render/table';
 import { parseBlock, type ParsedBlock } from './block';
 import { planRender } from './plan';
+import { noteContext, substituteVariables } from './variables';
 
 /**
  * One rendered `graph-query` block. Re-runs on vault changes while visible;
@@ -85,6 +86,10 @@ export class QueryBlock extends MarkdownRenderChild {
     if (parsed.errors.length > 0) {
       return this.showErrors(parsed.errors.map((e) => `Line ${e.line + 1}: ${e.message}`));
     }
+
+    // Note variables ({{path}}, {{fm.status}}, ...) become literals before the query is parsed.
+    const note = noteContext(this.sourcePath, this.plugin.app.metadataCache.getCache(this.sourcePath)?.frontmatter);
+    parsed.query = substituteVariables(parsed.query, note);
 
     const backend = parsed.options.backend ?? this.plugin.settings.defaultBackend;
     if (backend === 'ladybug') {

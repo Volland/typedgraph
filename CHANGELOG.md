@@ -2,6 +2,12 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+### Added
+
+- **Note variables in `graph-query` blocks.** `{{path}}`, `{{title}}`, `{{name}}`, `{{folder}}`, `{{extension}}` and frontmatter values such as `{{fm.status}}` in the query are replaced by Cypher literals of the note holding the block, so `MATCH (w {path: {{path}}})` works in any note. Plain lookup only, nothing is evaluated; a name that resolves to nothing becomes `null`.
+
 ## 0.20.0 — 2026-10-16
 
 ### Added
