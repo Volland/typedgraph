@@ -224,7 +224,7 @@ describe('force simulation', () => {
 
     const rules = buildStylesheet(THEME, resolveSettings({}, { arrows: false, edgeLabels: false, nodeSize: 2, fade: 0.5 }).display);
     const text = JSON.stringify(rules);
-    expect(rules.find((r) => r.selector === 'edge.type-hidden')?.style).toEqual({ display: 'none' });
+    expect(rules.find((r) => r.selector === 'edge.type-hidden, node.type-hidden')?.style).toEqual({ display: 'none' });
     expect(text).toContain('"target-arrow-shape":"none"');
     expect(text).toContain('"width":48');
     expect(text).toContain('"min-zoomed-font-size":7');

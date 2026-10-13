@@ -6,6 +6,7 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 
 ### Added
 
+- **Hiding an edge type hides orphaned nodes.** In the graph controls, unchecking an edge type now also hides the nodes that were connected only by hidden types. Nodes without edges and pinned nodes stay; the layout is unchanged.
 - **Forces, pinning and controls for graphs.** Inline blocks and the Graph view now use a live force simulation with Obsidian's forces (centre, repel, link force, link distance) plus node-edge repulsion (a node lying across an edge is pushed off it) and label repulsion. Drag a node to pin it, shift-click toggles a pin, and the note holding a block (or followed by the Graph view) is pinned at the canvas centre. A gear button opens Display, Edge types (show or hide each type), Forces and Pins controls, and right-click opens a menu with pin, unpin, open, expand and re-center. Block headers take `forces:`, `display:`, `pin:` and `controls:` for initial values; "Copy as block options" turns the panel into those lines.
 - Graph UI: `Simulation`, `parseForces`, `parseDisplay`, `parsePin`, `formatLayoutOptions` and the default settings are exported; `GraphRenderer` gains `layout`, `onContextMenu` and `onSettingsChange` options and pin, settings and edge-type methods; `buildStylesheet` takes optional display settings.
 

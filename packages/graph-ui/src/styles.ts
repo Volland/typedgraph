@@ -70,7 +70,7 @@ export function buildStylesheet(theme: Theme, display?: DisplaySettings): StyleR
   return display ? [...base, ...displayRules(theme, display)] : base;
 }
 
-/** Style overrides for the display settings; `edge.type-hidden` is toggled by the renderer. */
+/** Style overrides for the display settings; `.type-hidden` is toggled by the renderer. */
 // @tg: implements:: [[openspec:graph-ui#Forces, pinning and controls]]
 function displayRules(theme: Theme, d: DisplaySettings): StyleRule[] {
   const fade = d.fade * 14;
@@ -81,7 +81,7 @@ function displayRules(theme: Theme, d: DisplaySettings): StyleRule[] {
   if (!d.arrows) rules.push({ selector: 'edge', style: { 'target-arrow-shape': 'none' } }, { selector: 'edge.negative', style: { 'target-arrow-shape': 'none' } });
   if (!d.edgeLabels) rules.push({ selector: 'edge', style: { label: '' } });
   rules.push(
-    { selector: 'edge.type-hidden', style: { display: 'none' } },
+    { selector: 'edge.type-hidden, node.type-hidden', style: { display: 'none' } },
     { selector: 'node.pinned', style: { 'border-width': 2, 'border-style': 'solid', 'border-color': theme.accent ?? '#e0a030' } },
   );
   return rules;

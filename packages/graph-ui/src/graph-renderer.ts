@@ -278,6 +278,12 @@ export class GraphRenderer {
       this.cy.edges().forEach((e) => {
         e.toggleClass('type-hidden', hide.has(String(e.data('type'))));
       });
+      // A node whose edges are all of hidden types goes with them; unconnected and pinned nodes stay.
+      this.cy.nodes().forEach((n) => {
+        const edges = n.connectedEdges();
+        const orphaned = edges.nonempty() && edges.filter('.type-hidden').length === edges.length && !this.isPinned(n.id());
+        n.toggleClass('type-hidden', orphaned);
+      });
     });
   }
 
