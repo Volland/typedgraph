@@ -309,6 +309,16 @@ export class ObsigraphSettingTab extends PluginSettingTab {
         heading: 'Types and styles',
         items: [
           { name: 'Schema folder', desc: 'Each note directly in this folder declares the schema for the type named by its title.', control: { type: 'folder', key: 'schemaFolder' } },
+          {
+            name: 'Frontmatter links as edges',
+            desc: 'Read wikilinks in note properties as edges typed by the property name, so `requirement: "[[Login]]"` is the edge `requirement:: [[Login]]`. Tags, aliases, cssclasses and type are skipped. Re-indexes the vault when changed.',
+            control: { type: 'toggle', key: 'frontmatterEdges' },
+          },
+          {
+            name: 'Plain links as links_to edges',
+            desc: 'Read ordinary wikilinks and markdown links in note text as untyped `links_to` edges, the way OKF consumers do. Typed edge lines such as `knows:: [[Bob]]` are unaffected. Re-indexes the vault when changed.',
+            control: { type: 'toggle', key: 'linkEdges' },
+          },
           { name: 'Show diagnostics', desc: 'Show the number of parse and schema issues in the status bar.', control: { type: 'toggle', key: 'showDiagnostics' } },
           {
             name: 'Type styles',
@@ -336,6 +346,8 @@ export class ObsigraphSettingTab extends PluginSettingTab {
     settings[key] = key === 'schemaFolder' && typeof value === 'string' && !value.trim() ? DEFAULT_SCHEMA_FOLDER : value;
     if (key === 'schemaFolder') this.plugin.index.invalidate();
     await this.plugin.saveSettings();
+    // The edge options are read when a note is indexed, so existing notes need another pass.
+    if (key === 'frontmatterEdges' || key === 'linkEdges') await this.plugin.index.reindex();
   }
 
   /** JSON style editor with inline validation, shared by both style settings. */

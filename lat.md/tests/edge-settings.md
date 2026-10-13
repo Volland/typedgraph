@@ -17,3 +17,12 @@ With neither setting on, plain prose links and frontmatter links produce no edge
 ## Changes apply on re-index
 
 The options are read when a note is indexed, so a changed setting takes effect for notes indexed afterwards and the settings tab re-indexes the vault.
+
+## Toggles in the settings tab
+
+Both options appear as toggles, off by default, in the declarative settings that Obsidian 1.13+ renders; the legacy `display()` tab lists them too and is verified manually.
+
+## Changing a toggle re-indexes
+
+Changing either edge option re-indexes the vault so existing notes pick it up; changing any other setting does not.
+
