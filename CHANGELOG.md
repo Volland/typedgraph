@@ -105,6 +105,7 @@ Thanks again to [@ma-be](https://github.com/ma-be) (Martin Bergner), who contrib
 
 - **Frontmatter links as edges.** With the new `frontmatterEdges` graph option, a wikilink or markdown link in a frontmatter property becomes an edge typed by the property name, so `requirement: "[[Login]]"` reads as `requirement:: [[Login]]` and schema `edgeTypes` check it. Text, numbers, `[[]]` placeholders and `tags`, `aliases`, `cssclasses`, `type` and `types` give no edges. Off by default; the plugin has a "Frontmatter links as edges" setting that re-indexes the vault, and `tg validate --frontmatter-edges` applies it to validation. ([#5](https://github.com/Volland/typedgraph/pull/5), by @ma-be)
 - Core: `frontmatterEdges()`, `FRONTMATTER_EDGE_SKIP`, `ParseOptions.frontmatterEdges` and `ValidateOptions.frontmatterEdges` are exported.
+- **Plugin setting "Plain links as links_to edges".** Turns on the existing `linkEdges` option from the settings tab, so ordinary links in note text become untyped `links_to` edges. Off by default; changing it re-indexes the vault, like "Frontmatter links as edges".
 
 ### Fixed
 

@@ -1,0 +1,19 @@
+---
+lat:
+  require-code-mention: true
+---
+# Edge Settings Tests
+
+Test specifications for the plugin settings that switch on [[graph-model#Plain link edges]] and [[edge-syntax#Frontmatter edges]]; the settings tab itself is verified manually.
+
+## Both off by default
+
+With neither setting on, plain prose links and frontmatter links produce no edges, so existing vaults read as before.
+
+## Each setting adds its own edges
+
+`linkEdges` adds untyped `links_to` edges for prose links and `frontmatterEdges` adds edges typed by the property name; the two work independently and together.
+
+## Changes apply on re-index
+
+The options are read when a note is indexed, so a changed setting takes effect for notes indexed afterwards and the settings tab re-indexes the vault.

@@ -29,6 +29,8 @@ export interface ObsigraphSettings {
   frontmatterEdges: boolean;
   /** Index `.adoc` files as notes beside Markdown. */
   asciidoc: boolean;
+  /** Read plain links in prose as untyped `links_to` edges. */
+  linkEdges: boolean;
   /** Derived code layer: off, annotated symbols only, or every symbol. */
   codeMode: CodeMode;
   /** Vault folder scanned for source files; empty means the whole vault. */
@@ -49,6 +51,7 @@ export const DEFAULT_SETTINGS: ObsigraphSettings = {
   sidecarToken: '',
   frontmatterEdges: false,
   asciidoc: true,
+  linkEdges: false,
   codeMode: 'off',
   codeRoot: '',
 };
@@ -197,6 +200,17 @@ export class ObsigraphSettingTab extends PluginSettingTab {
       .addToggle((t) =>
         t.setValue(this.plugin.settings.asciidoc).onChange(async (v) => {
           this.plugin.settings.asciidoc = v;
+          await this.plugin.saveSettings();
+          await this.plugin.index.reindex();
+        }),
+      );
+
+    new Setting(containerEl)
+      .setName('Plain links as links_to edges')
+      .setDesc('Read ordinary wikilinks and markdown links in note text as untyped `links_to` edges, the way OKF consumers do. Typed edge lines such as `knows:: [[Bob]]` are unaffected. Re-indexes the vault when changed.')
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.linkEdges).onChange(async (v) => {
+          this.plugin.settings.linkEdges = v;
           await this.plugin.saveSettings();
           await this.plugin.index.reindex();
         }),
