@@ -6,9 +6,15 @@ const { ObsigraphSettingTab, DEFAULT_SETTINGS } = await import('../src/settings'
 
 function tab() {
   const reindex = vi.fn(async () => {});
-  const plugin = { settings: { ...DEFAULT_SETTINGS }, saveSettings: vi.fn(async () => {}), index: { reindex, invalidate: vi.fn() } };
+  const refresh = vi.fn(async () => {});
+  const plugin = {
+    settings: { ...DEFAULT_SETTINGS },
+    saveSettings: vi.fn(async () => {}),
+    setCodeMode: vi.fn(async () => {}),
+    index: { reindex, invalidate: vi.fn(), code: { refresh } },
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { t: new ObsigraphSettingTab({} as any, plugin as any), plugin, reindex };
+  return { t: new ObsigraphSettingTab({} as any, plugin as any), plugin, reindex, refresh };
 }
 
 describe('settings tab', () => {
@@ -32,5 +38,31 @@ describe('settings tab', () => {
     expect(reindex).toHaveBeenCalledTimes(2);
     await t.setControlValue('showDiagnostics', false);
     expect(reindex).toHaveBeenCalledTimes(2);
+  });
+
+  // @lat: [[tests/edge-settings#Declarative settings match the legacy tab]]
+  it('lists every legacy setting in the declarative settings', () => {
+    const { t } = tab();
+    const keys = t
+      .getSettingDefinitions()
+      .flatMap((g) => ('items' in g ? (g.items ?? []) : [g]))
+      .flatMap((i) => (i && 'control' in i && i.control ? [i.control.key] : []));
+    expect(keys).toEqual(
+      expect.arrayContaining(['defaultBackend', 'maxElements', 'maxPathDepth', 'refreshDebounceMs', 'codeMode', 'codeRoot', 'sidecarUrl', 'schemaFolder', 'schemaBaseIri', 'frontmatterEdges', 'linkEdges', 'showDiagnostics']),
+    );
+  });
+
+  it('applies the legacy side effects: code mode, code folder and base IRI', async () => {
+    const { t, plugin, refresh } = tab();
+    await t.setControlValue('codeMode', 'all');
+    await t.setControlValue('codeMode', 'bogus');
+    expect(plugin.setCodeMode.mock.calls).toEqual([['all'], ['off']]);
+    await t.setControlValue('codeRoot', '  src/app ');
+    expect(plugin.settings.codeRoot).toBe('src/app');
+    expect(refresh).toHaveBeenCalledTimes(1);
+    await t.setControlValue('schemaBaseIri', '   ');
+    expect(plugin.settings.schemaBaseIri).toBe(DEFAULT_SETTINGS.schemaBaseIri);
+    await t.setControlValue('schemaBaseIri', ' urn:x: ');
+    expect(plugin.settings.schemaBaseIri).toBe('urn:x:');
   });
 });

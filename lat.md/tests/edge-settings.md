@@ -26,3 +26,6 @@ Both options appear as toggles, off by default, in the declarative settings that
 
 Changing either edge option re-indexes the vault so existing notes pick it up; changing any other setting does not.
 
+## Declarative settings match the legacy tab
+
+Every setting the legacy tab offers, including the code layer mode and folder and the schema base IRI, is also in the declarative settings, and each keeps its side effects: the code layer refreshes, empty values fall back to defaults.

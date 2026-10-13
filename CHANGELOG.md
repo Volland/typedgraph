@@ -2,6 +2,16 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+### Added
+
+- **Plugin setting "Plain links as links_to edges".** Turns on the existing `linkEdges` option from the settings tab, so ordinary links in note text become untyped `links_to` edges. Off by default; changing it re-indexes the vault, like "Frontmatter links as edges".
+
+### Fixed
+
+- **Settings missing in Obsidian 1.13+.** The settings page Obsidian 1.13+ builds from `getSettingDefinitions()` lacked "Code in the graph", "Code folder" and "Schema base IRI", and the two link-edge toggles; all are there now with the same effects as in the legacy tab (the code layer refreshes, the vault re-indexes).
+
 ## 0.20.0 — 2026-10-16
 
 ### Added
@@ -105,7 +115,6 @@ Thanks again to [@ma-be](https://github.com/ma-be) (Martin Bergner), who contrib
 
 - **Frontmatter links as edges.** With the new `frontmatterEdges` graph option, a wikilink or markdown link in a frontmatter property becomes an edge typed by the property name, so `requirement: "[[Login]]"` reads as `requirement:: [[Login]]` and schema `edgeTypes` check it. Text, numbers, `[[]]` placeholders and `tags`, `aliases`, `cssclasses`, `type` and `types` give no edges. Off by default; the plugin has a "Frontmatter links as edges" setting that re-indexes the vault, and `tg validate --frontmatter-edges` applies it to validation. ([#5](https://github.com/Volland/typedgraph/pull/5), by @ma-be)
 - Core: `frontmatterEdges()`, `FRONTMATTER_EDGE_SKIP`, `ParseOptions.frontmatterEdges` and `ValidateOptions.frontmatterEdges` are exported.
-- **Plugin setting "Plain links as links_to edges".** Turns on the existing `linkEdges` option from the settings tab, so ordinary links in note text become untyped `links_to` edges. Off by default; changing it re-indexes the vault, like "Frontmatter links as edges".
 
 ### Fixed
 

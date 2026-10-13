@@ -289,6 +289,18 @@ export class ObsigraphSettingTab extends PluginSettingTab {
       },
       {
         type: 'group',
+        heading: 'Code',
+        items: [
+          {
+            name: 'Code in the graph',
+            desc: 'Show source code as derived nodes. Annotated adds symbols carrying @lat or @tg comments and what they point at; all adds every symbol. Files are only read, never changed.',
+            control: { type: 'dropdown', key: 'codeMode', options: { off: 'Off', annotated: 'Annotated symbols', all: 'All symbols' } },
+          },
+          { name: 'Code folder', desc: 'Vault folder to scan for source files. Leave empty to scan the whole vault.', control: { type: 'text', key: 'codeRoot', placeholder: 'src' } },
+        ],
+      },
+      {
+        type: 'group',
         heading: 'Sidecar',
         items: [
           { name: 'Sidecar URL', desc: 'Address and port of the sidecar, used by sidecar-backed queries.', control: { type: 'text', key: 'sidecarUrl' } },
@@ -309,6 +321,7 @@ export class ObsigraphSettingTab extends PluginSettingTab {
         heading: 'Types and styles',
         items: [
           { name: 'Schema folder', desc: 'Each note directly in this folder declares the schema for the type named by its title.', control: { type: 'folder', key: 'schemaFolder' } },
+          { name: 'Schema base IRI', desc: 'Names types, properties and edge types without a `uri` when exporting to or importing from SHACL.', control: { type: 'text', key: 'schemaBaseIri', placeholder: DEFAULT_BASE_IRI } },
           {
             name: 'Frontmatter links as edges',
             desc: 'Read wikilinks in note properties as edges typed by the property name, so `requirement: "[[Login]]"` is the edge `requirement:: [[Login]]`. Tags, aliases, cssclasses and type are skipped. Re-indexes the vault when changed.',
@@ -342,10 +355,20 @@ export class ObsigraphSettingTab extends PluginSettingTab {
 
   /** Persist through the plugin so caches refresh and open views restyle. */
   async setControlValue(key: string, value: unknown): Promise<void> {
+    // Same effects as the legacy display() controls.
+    if (key === 'codeMode') {
+      await this.plugin.setCodeMode(value === 'all' ? 'all' : value === 'annotated' ? 'annotated' : 'off');
+      return;
+    }
     const settings = this.plugin.settings as unknown as Record<string, unknown>;
-    settings[key] = key === 'schemaFolder' && typeof value === 'string' && !value.trim() ? DEFAULT_SCHEMA_FOLDER : value;
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (key === 'schemaFolder') settings[key] = text ? value : DEFAULT_SCHEMA_FOLDER;
+    else if (key === 'schemaBaseIri') settings[key] = text || DEFAULT_BASE_IRI;
+    else if (key === 'codeRoot') settings[key] = text;
+    else settings[key] = value;
     if (key === 'schemaFolder') this.plugin.index.invalidate();
     await this.plugin.saveSettings();
+    if (key === 'codeRoot') await this.plugin.index.code.refresh();
     // The edge options are read when a note is indexed, so existing notes need another pass.
     if (key === 'frontmatterEdges' || key === 'linkEdges') await this.plugin.index.reindex();
   }
