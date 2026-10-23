@@ -10,6 +10,7 @@ export type NoteContext = Record<string, unknown>;
 
 const VARIABLE = /\{\{\s*([A-Za-z_][\w-]*(?:\.[\w-]+)*)\s*\}\}/g;
 
+// @tg: implements:: [[openspec:graph-query-block#Note variables in queries]]
 /** The variables of the note at `path`: `path`, `name`, `title` (name without extension), `folder`, `extension` and `fm`. */
 export function noteContext(path: string, frontmatter?: Record<string, unknown> | null): NoteContext {
   const slash = path.lastIndexOf('/');
@@ -45,6 +46,7 @@ function literal(value: unknown): string {
   return 'null';
 }
 
+// @tg: implements:: [[openspec:graph-query-block#Note variables in queries]]
 /** Replace each `{{name}}` with the value's Cypher literal; a name that resolves to nothing becomes `null`. Text without `{{` is returned as is. */
 export function substituteVariables(query: string, ctx: NoteContext): string {
   return query.replace(VARIABLE, (_m, ref: string) => literal(lookup(ctx, ref)));

@@ -6,6 +6,8 @@ import { noteContext, substituteVariables } from '../src/query/variables';
 const ctx = noteContext('Cust/Proj/PM/WBS Activities/Build.md', { status: 'Active', points: 5, done: false, tags: ['a', 'b'], 'data-domain': '[[Customer]]', nested: { deep: 'x' } });
 
 describe('note variables', () => {
+  // @tg: verifies:: [[tests/graph-query-block#Note variables become literals]] {since: "2026-10-13", level: unit}
+  // @tg: verifies:: [[openspec:graph-query-block#Note variables in queries#Query about the current note]]
   // @lat: [[tests/graph-query-block#Note variables become literals]]
   it('replaces variables with Cypher literals', () => {
     expect(substituteVariables('{path: {{path}}}', ctx)).toBe('{path: "Cust/Proj/PM/WBS Activities/Build.md"}');
@@ -13,6 +15,9 @@ describe('note variables', () => {
     expect(substituteVariables('{{fm.status}} {{frontmatter.points}} {{fm.done}} {{fm.tags}} {{fm.data-domain}} {{fm.nested.deep}}', ctx)).toBe('"Active" 5 false ["a", "b"] "[[Customer]]" "x"');
   });
 
+  // @tg: verifies:: [[tests/graph-query-block#Unknown variables are null]] {since: "2026-10-13", level: unit}
+  // @tg: verifies:: [[openspec:graph-query-block#Note variables in queries#Unknown variable]]
+  // @tg: verifies:: [[openspec:graph-query-block#Note variables in queries#Not a variable]]
   // @lat: [[tests/graph-query-block#Unknown variables are null]]
   it('turns unresolved names and non-literal values into null and never evaluates code', () => {
     expect(substituteVariables('{{missing}} {{fm.nope}} {{fm.nested}} {{path.length}}', ctx)).toBe('null null null null');
@@ -21,6 +26,8 @@ describe('note variables', () => {
     expect(substituteVariables('{{ 1 + 1 }} {{path.toString()}} {a: {b: 1}}', ctx)).toBe('{{ 1 + 1 }} {{path.toString()}} {a: {b: 1}}');
   });
 
+  // @tg: verifies:: [[tests/graph-query-block#Variables substituted before parsing]] {since: "2026-10-13", level: unit}
+  // @tg: verifies:: [[openspec:graph-query-block#Note variables in queries#Query about the current note]]
   // @lat: [[tests/graph-query-block#Variables substituted before parsing]]
   it('lets a block query use the note it sits in', () => {
     const notes: Record<string, string> = { 'A.md': 'parent_activity:: [[B]]', 'B.md': 'parent_activity:: [[C]]', 'C.md': '' };
