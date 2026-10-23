@@ -18,28 +18,36 @@ function tab() {
 }
 
 describe('settings tab', () => {
+  // @tg: verifies:: [[tests/edge-settings#Toggles in the settings tab]] {since: "2026-10-13", level: unit}
   // @lat: [[tests/edge-settings#Toggles in the settings tab]]
-  it('offers both edge options as toggles in the declarative settings, off by default', () => {
+  // @tg: verifies:: [[openspec:graph-model#Edge options as plugin settings#Defaults]]
+  it('offers the edge options as toggles, off by default, and the AsciiDoc option, in the declarative settings', () => {
     const { t, plugin } = tab();
     const items = t.getSettingDefinitions().flatMap((g) => ('items' in g ? g.items : [g]));
     const toggle = (name: string) => items.find((i) => i !== undefined && 'name' in i && i.name === name);
     expect(toggle('Frontmatter links as edges')).toMatchObject({ control: { type: 'toggle', key: 'frontmatterEdges' } });
     expect(toggle('Plain links as links_to edges')).toMatchObject({ control: { type: 'toggle', key: 'linkEdges' } });
+    expect(toggle('AsciiDoc notes')).toMatchObject({ control: { type: 'toggle', key: 'asciidoc' } });
     expect(plugin.settings.frontmatterEdges).toBe(false);
     expect(plugin.settings.linkEdges).toBe(false);
   });
 
+  // @tg: verifies:: [[tests/edge-settings#Changing a toggle re-indexes]] {since: "2026-10-13", level: unit}
   // @lat: [[tests/edge-settings#Changing a toggle re-indexes]]
-  it('re-indexes the vault when an edge option changes, and only then', async () => {
+  // @tg: verifies:: [[openspec:graph-model#Edge options as plugin settings]]
+  it('re-indexes the vault when an edge or AsciiDoc option changes, and only then', async () => {
     const { t, plugin, reindex } = tab();
     await t.setControlValue('linkEdges', true);
     expect(plugin.settings.linkEdges).toBe(true);
     await t.setControlValue('frontmatterEdges', true);
     expect(reindex).toHaveBeenCalledTimes(2);
+    await t.setControlValue('asciidoc', false);
+    expect(reindex).toHaveBeenCalledTimes(3);
     await t.setControlValue('showDiagnostics', false);
-    expect(reindex).toHaveBeenCalledTimes(2);
+    expect(reindex).toHaveBeenCalledTimes(3);
   });
 
+  // @tg: verifies:: [[tests/edge-settings#Declarative settings match the legacy tab]] {since: "2026-10-13", level: unit}
   // @lat: [[tests/edge-settings#Declarative settings match the legacy tab]]
   it('lists every legacy setting in the declarative settings', () => {
     const { t } = tab();
@@ -48,7 +56,7 @@ describe('settings tab', () => {
       .flatMap((g) => ('items' in g ? (g.items ?? []) : [g]))
       .flatMap((i) => (i && 'control' in i && i.control ? [i.control.key] : []));
     expect(keys).toEqual(
-      expect.arrayContaining(['defaultBackend', 'maxElements', 'maxPathDepth', 'refreshDebounceMs', 'codeMode', 'codeRoot', 'sidecarUrl', 'schemaFolder', 'schemaBaseIri', 'frontmatterEdges', 'linkEdges', 'showDiagnostics']),
+      expect.arrayContaining(['defaultBackend', 'maxElements', 'maxPathDepth', 'refreshDebounceMs', 'codeMode', 'codeRoot', 'sidecarUrl', 'schemaFolder', 'schemaBaseIri', 'frontmatterEdges', 'linkEdges', 'asciidoc', 'showDiagnostics']),
     );
   });
 

@@ -56,6 +56,7 @@ export const DEFAULT_SETTINGS: ObsigraphSettings = {
   codeRoot: '',
 };
 
+// @tg: implements:: [[openspec:graph-model#Edge options as plugin settings]] {since: "2026-10-13"}
 export class ObsigraphSettingTab extends PluginSettingTab {
   constructor(
     app: App,
@@ -328,6 +329,11 @@ export class ObsigraphSettingTab extends PluginSettingTab {
             control: { type: 'toggle', key: 'frontmatterEdges' },
           },
           {
+            name: 'AsciiDoc notes',
+            desc: 'Index `.adoc` files as notes: properties from a leading `////` comment block and `:tg-*:` attributes, edges from `// @tg:` comments. The files are only read; this plugin does not open or edit them. Re-indexes the vault when changed.',
+            control: { type: 'toggle', key: 'asciidoc' },
+          },
+          {
             name: 'Plain links as links_to edges',
             desc: 'Read ordinary wikilinks and markdown links in note text as untyped `links_to` edges, the way OKF consumers do. Typed edge lines such as `knows:: [[Bob]]` are unaffected. Re-indexes the vault when changed.',
             control: { type: 'toggle', key: 'linkEdges' },
@@ -370,7 +376,7 @@ export class ObsigraphSettingTab extends PluginSettingTab {
     await this.plugin.saveSettings();
     if (key === 'codeRoot') await this.plugin.index.code.refresh();
     // The edge options are read when a note is indexed, so existing notes need another pass.
-    if (key === 'frontmatterEdges' || key === 'linkEdges') await this.plugin.index.reindex();
+    if (key === 'frontmatterEdges' || key === 'linkEdges' || key === 'asciidoc') await this.plugin.index.reindex();
   }
 
   /** JSON style editor with inline validation, shared by both style settings. */

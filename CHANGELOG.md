@@ -10,7 +10,7 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 
 ### Fixed
 
-- **Settings missing in Obsidian 1.13+.** The settings page Obsidian 1.13+ builds from `getSettingDefinitions()` lacked "Code in the graph", "Code folder" and "Schema base IRI", and the two link-edge toggles; all are there now with the same effects as in the legacy tab (the code layer refreshes, the vault re-indexes).
+- **Settings missing in Obsidian 1.13+.** The settings page Obsidian 1.13+ builds from `getSettingDefinitions()` lacked "Code in the graph", "Code folder", "Schema base IRI", "AsciiDoc notes" and the two link-edge toggles; all are there now with the same effects as in the legacy tab (the code layer refreshes, the vault re-indexes).
 
 ## 0.20.0 — 2026-10-16
 
