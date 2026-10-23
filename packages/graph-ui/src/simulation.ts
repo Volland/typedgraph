@@ -64,6 +64,7 @@ export function edgeLabelWidth(type: string): number {
  * with the d3 degree bias. On top of those, a node lying across an edge is pushed off it, and label
  * boxes that overlap are pushed apart by moving their nodes.
  */
+// @tg: implements:: [[visualization#Forces and pinning]] {since: "2026-10-12"}
 // @lat: [[visualization#Forces and pinning]]
 // @tg: implements:: [[openspec:graph-ui#Forces, pinning and controls]]
 export class Simulation {

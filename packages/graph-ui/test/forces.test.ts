@@ -55,6 +55,7 @@ function segmentDistance(p: { x: number; y: number }, s: { x: number; y: number 
 }
 
 describe('layout header options', () => {
+  // @tg: verifies:: [[tests/graph-ui#Layout options parsed]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Layout options parsed]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Initial values from the header]]
   it('parses forces and display with validation and keeps the valid entries', () => {
@@ -73,6 +74,7 @@ describe('layout header options', () => {
     expect(parseForces('pinOnDrag=maybe').errors).toEqual(["Invalid pinOnDrag 'maybe' (expected true or false)"]);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Pin and controls options]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Pin and controls options]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Initial values from the header]]
   it('parses pin and controls', () => {
@@ -84,6 +86,7 @@ describe('layout header options', () => {
     expect(parseControls('sideways')).toBeNull();
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Settings defaults and round trip]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Settings defaults and round trip]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Default settings]]
   it('has the documented defaults and formats settings the header can read back', () => {
@@ -100,6 +103,7 @@ describe('layout header options', () => {
 });
 
 describe('force simulation', () => {
+  // @tg: verifies:: [[tests/graph-ui#Pins hold and centre at origin]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Pins hold and centre at origin]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Pinned nodes stay put]]
   it('keeps pinned nodes fixed, puts the first at the origin and spreads the rest around it', () => {
@@ -124,6 +128,7 @@ describe('force simulation', () => {
     expect(Math.hypot(leaf.x - s.nodes.get('n3')!.x, leaf.y - s.nodes.get('n3')!.y)).toBeGreaterThan(100);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Auto pins applied once]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Auto pins applied once]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Pinned nodes stay put]]
   it('places extra pins on a ring and does not re-pin the same list after the user unpins', () => {
@@ -142,6 +147,7 @@ describe('force simulation', () => {
     expect(s.nodes.get('n3')!.pinned).toBe(true);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Relayout keeps positions]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Relayout keeps positions]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Relayout keeps nodes in place]]
   it('keeps positions and pins of existing nodes when the graph grows, and flags a new graph as fresh', () => {
@@ -160,6 +166,7 @@ describe('force simulation', () => {
     expect(s.sync({ nodes: Array.from({ length: 12 }, (_, i) => ({ id: `z${i}`, labelWidth: 0 })), links: [] }).fresh).toBe(true);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Node lying on an edge is pushed off]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Node lying on an edge is pushed off]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Edges repel nodes]]
   it('pushes a node that lies on an edge off the edge line', () => {
@@ -181,6 +188,7 @@ describe('force simulation', () => {
     expect(run(1)).toBeGreaterThan(20);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Labels pushed apart]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Labels pushed apart]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Labels repel each other]]
   it('leaves fewer overlapping labels with label repulsion on', () => {
@@ -204,6 +212,7 @@ describe('force simulation', () => {
     expect(total(1)).toBeLessThan(total(0));
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Hidden types and label sizes]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Hidden types and label sizes]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Edge type visibility]]
   it('ignores the labels of hidden edge types and builds display rules from the settings', () => {
@@ -233,6 +242,7 @@ describe('force simulation', () => {
     expect(buildStylesheet(THEME).some((r) => r.selector === 'node.pinned')).toBe(false);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Fit centres on origin]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Fit centres on origin]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Pinned nodes stay put]]
   it('fits the view symmetrically around the origin', () => {

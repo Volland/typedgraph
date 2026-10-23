@@ -150,6 +150,7 @@ describe('graph-query block', () => {
 });
 
 describe('layout header options', () => {
+  // @tg: verifies:: [[tests/graph-query-block#Layout header options]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-query-block#Layout header options]]
   // @tg: verifies:: [[openspec:graph-query-block#Layout header options#Valid layout header]]
   it('reads forces, display, pin and controls from the header', () => {
@@ -164,6 +165,7 @@ describe('layout header options', () => {
     expect(none.options.pin).toEqual([]);
   });
 
+  // @tg: verifies:: [[tests/graph-query-block#Layout header defaults]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-query-block#Layout header defaults]]
   // @tg: verifies:: [[openspec:graph-query-block#Layout header options#Defaults]]
   it('defaults to pinning the note holding the block, with the controls button shown', () => {
@@ -178,6 +180,7 @@ describe('layout header options', () => {
     expect(parseBlock('MATCH (n) RETURN n').options.pin).toEqual(['self']);
   });
 
+  // @tg: verifies:: [[tests/graph-query-block#Layout header errors]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-query-block#Layout header errors]]
   // @tg: verifies:: [[openspec:graph-query-block#Layout header options#Invalid layout header]]
   it('reports invalid layout values with their line and keeps valid entries', () => {

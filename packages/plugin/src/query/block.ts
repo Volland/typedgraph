@@ -103,6 +103,7 @@ export function parseBlock(source: string): ParsedBlock {
       if (c === 'show' || c === 'hide') options.code = c;
       else errors.push({ line: i, message: `Invalid code '${value}' (expected show or hide)` });
     } else if (key === 'forces' || key === 'display') {
+      // @tg: implements:: [[visualization#Forces and pinning]] {since: "2026-10-12"}
       // @lat: [[visualization#Forces and pinning]]
       const r = key === 'forces' ? parseForces(value) : parseDisplay(value);
       for (const message of r.errors) errors.push({ line: i, message });

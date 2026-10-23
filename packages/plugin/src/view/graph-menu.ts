@@ -11,6 +11,7 @@ export interface GraphMenuActions {
  * Right-click menu over a graph: pin actions for the node under the pointer (or the whole selection when it
  * is part of one), open and expand for notes, and graph-wide unpin and re-center.
  */
+// @tg: implements:: [[visualization#Forces and pinning]] {since: "2026-10-12"}
 // @lat: [[visualization#Forces and pinning]]
 // @tg: implements:: [[openspec:graph-ui#Forces, pinning and controls]]
 export function showGraphMenu(renderer: GraphRenderer, ev: GraphContextEvent, actions: GraphMenuActions): void {

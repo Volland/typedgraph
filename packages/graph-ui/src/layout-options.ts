@@ -78,6 +78,7 @@ export interface OptionResult<T> {
 }
 
 /** Parse `center=0.5, repel=12` (also `;`-separated) for the `forces:` header line; valid entries are kept next to the errors. */
+// @tg: implements:: [[visualization#Forces and pinning]] {since: "2026-10-12"}
 // @lat: [[visualization#Forces and pinning]]
 // @tg: implements:: [[openspec:graph-ui#Forces, pinning and controls]]
 export function parseForces(value: string): OptionResult<Partial<ForceSettings>> {

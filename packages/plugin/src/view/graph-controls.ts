@@ -6,6 +6,7 @@ import { DISPLAY_RANGES, FORCE_RANGES, formatLayoutOptions, type ControlsMode, t
  * Forces and Pins. It only drives the renderer's public settings and pin methods, so it works for inline
  * blocks and the Graph view alike. `hide` adds nothing.
  */
+// @tg: implements:: [[visualization#Forces and pinning]] {since: "2026-10-12"}
 // @lat: [[visualization#Forces and pinning]]
 // @tg: implements:: [[openspec:graph-ui#Forces, pinning and controls]]
 export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode): void {
