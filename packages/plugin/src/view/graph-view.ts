@@ -43,6 +43,8 @@ export class GraphView extends ItemView {
   private resizer!: HTMLElement;
   /** Show the type's schema in the details pane instead of the property values. */
   private schemaView = false;
+  /** Schema info sections the user folded; kept while the view is open. */
+  private readonly schemaFolded = new Set<string>();
   /** Heights the user dragged property text boxes to; kept in memory only. */
   private readonly fieldHeights = new Map<string, number>();
   private selection: { kind: 'node' | 'edge'; id: string } | null = null;
@@ -361,7 +363,9 @@ export class GraphView extends ItemView {
       for (const p of schema.properties) if (!rows.some((r) => r[0] === p.name)) rows.push([p.name, '']);
     }
     // Note properties first, graph bookkeeping after.
-    rows.sort((a, b) => Number(d.technical.has(a[0])) - Number(d.technical.has(b[0])));
+    // The note's type leads, whatever the order of its frontmatter.
+    const rank = (k: string) => (k === 'type' ? 0 : d.technical.has(k) ? 2 : 1);
+    rows.sort((a, b) => rank(a[0]) - rank(b[0]));
     for (const [k, text] of rows) {
       // The schema view keeps the note's type row as it is and replaces the rest.
       if (schemaView && k !== 'type') continue;
@@ -410,14 +414,28 @@ export class GraphView extends ItemView {
   private renderSchemaInfo(table: HTMLElement, schema: TypeSchema, set: SchemaSet): void {
     const info = schemaInfo(schema, set.schemas.values(), set.edgeTypes.values());
     const section = (title: string, empty: string, rows: { name: string; lines: string[] }[]) => {
-      table.createEl('tr', { cls: 'obsigraph-schema-heading' }).createEl('th', { text: title, attr: { colspan: '2' } });
-      if (rows.length === 0) table.createEl('tr').createEl('td', { cls: 'obsigraph-muted', text: empty, attr: { colspan: '2' } });
+      const folded = this.schemaFolded.has(title);
+      const body: HTMLElement[] = [];
+      const head = table.createEl('tr', { cls: `obsigraph-schema-heading${folded ? ' is-folded' : ''}` }).createEl('th', { attr: { colspan: '2' } });
+      head.createSpan({ cls: 'obsigraph-schema-fold', text: folded ? '▶' : '▼' });
+      head.appendText(` ${title}`);
+      head.addEventListener('click', () => {
+        const hide = !this.schemaFolded.delete(title);
+        if (hide) this.schemaFolded.add(title);
+        head.parentElement?.toggleClass('is-folded', hide);
+        head.firstElementChild?.setText(hide ? '▶' : '▼');
+        for (const tr of body) tr.toggleClass('obsigraph-hidden', hide);
+      });
+      if (rows.length === 0) body.push(table.createEl('tr'));
+      if (rows.length === 0) body[0]!.createEl('td', { cls: 'obsigraph-muted', text: empty, attr: { colspan: '2' } });
       for (const r of rows) {
         const tr = table.createEl('tr');
+        body.push(tr);
         tr.createEl('th', { text: r.name });
         const area = tr.createEl('td').createEl('textarea', { attr: { rows: String(r.lines.length), readonly: '' } });
         area.value = r.lines.join('\n');
       }
+      for (const tr of body) tr.toggleClass('obsigraph-hidden', folded);
     };
     section(
       'Note properties',

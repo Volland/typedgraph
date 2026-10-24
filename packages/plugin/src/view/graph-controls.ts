@@ -15,9 +15,21 @@ export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode,
   if (mode === 'hide') return;
   const root = renderer.container.createDiv({ cls: 'obsigraph-controls' });
   // Keep pointer and wheel input on the panel from reaching the graph underneath.
-  for (const ev of ['pointerdown', 'mousedown', 'touchstart', 'wheel', 'click', 'dblclick', 'contextmenu']) {
+  for (const ev of ['pointerdown', 'mousedown', 'touchstart', 'click', 'dblclick', 'contextmenu']) {
     root.addEventListener(ev, (e) => e.stopPropagation());
   }
+  // The wheel scrolls the panel itself and never reaches the graph, which would pan or zoom; this listens
+  // in the capture phase so a listener of the graph on the way down cannot take it first.
+  root.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey) return;
+      e.stopPropagation();
+      e.preventDefault();
+      panel.scrollTop += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    },
+    { capture: true, passive: false },
+  );
   const iconRow = root.createDiv({ cls: 'obsigraph-controls-buttons-row' });
   const button = iconRow.createEl('button', { cls: 'obsigraph-controls-button clickable-icon', attr: { 'aria-label': 'Graph controls' } });
   setIcon(button, 'settings');

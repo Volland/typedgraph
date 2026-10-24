@@ -235,7 +235,9 @@
 .obsigraph-type-info { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; padding: 0; color: var(--text-muted); }
 .obsigraph-type-info.is-active { color: var(--interactive-accent); }
 .obsigraph-details td textarea.obsigraph-fixed { resize: none; overflow: hidden; white-space: nowrap; }
-.obsigraph-schema-heading th { padding-top: 10px; color: var(--text-muted); font-weight: var(--font-semibold); }
+.obsigraph-schema-heading th { padding-top: 10px; color: var(--text-accent); font-weight: var(--font-semibold); cursor: pointer; user-select: none; }
+.obsigraph-schema-fold { display: inline-block; width: 1em; font-size: 0.8em; }
+.obsigraph-details tr.obsigraph-hidden { display: none; }
 .obsigraph-schema-heading + tr td.obsigraph-muted { padding: 2px 0; }
 /* Details pane switched off from the controls */
 .obsigraph-details-off .obsigraph-details, .obsigraph-details-off .obsigraph-resizer { display: none; }
