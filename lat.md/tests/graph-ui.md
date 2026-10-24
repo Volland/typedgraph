@@ -62,3 +62,40 @@ Labels of hidden edge types, and all edge labels when they are off, are not coun
 ## Fit centres on origin
 
 The fit puts the origin at the centre of the canvas, zooms to the farthest node and returns nothing for an empty graph or a zero-size canvas.
+
+## Previous pin released
+
+When another node takes the centre as the auto-pinned one, the node pinned before is released and nudged off the origin, and nodes the user pinned stay pinned.
+
+## Collapse neighbors
+
+Collapsing a node picks the neighbors that have no other neighbor in the view; neighbors that also reach other nodes stay.
+
+## Remove from view
+
+Removing a node takes out the node and the nodes joined only to it, together with every edge at them.
+
+## Hidden node types
+
+A hidden type removes its nodes and the edges that lose an end, and unhiding it brings them back; nodes without a label count as the type `(no type)`.
+
+## Property value filters
+
+Checked values of a property are alternatives, a list value passes on any accepted item, empty and missing values are one choice, every filtered property of a type has to pass, and other types are unaffected.
+
+## Offered filter values
+
+A type's properties are listed with their values and counts, a node without the property counting as empty, and properties with only empty values are left out.
+
+## Editor chosen by schema
+
+A property the schema declares with allowed values is an enum dropdown, or checkboxes for a list property; the schema kind picks number, date, boolean and list inputs.
+
+## Editor chosen by value
+
+Without a declaration the current value's type picks the input: number, boolean, list, short or long text.
+
+## Edited values written back
+
+Entries become frontmatter values: numbers parsed with a named error for bad ones, lists split on commas, enum members keeping their schema type, empty entries stored as empty.
+

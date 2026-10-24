@@ -147,6 +147,25 @@ describe('force simulation', () => {
     expect(s.nodes.get('n3')!.pinned).toBe(true);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Previous pin released]] {since: "2026-10-24", level: unit}
+  // @lat: [[tests/graph-ui#Previous pin released]]
+  // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Followed note changes]]
+  it('releases the node an earlier autoPin held when another one takes the centre, but keeps pins the user made', () => {
+    const s = sim(tree());
+    s.autoPin(['h']);
+    s.setPinned('n0', true);
+    s.autoPin(['n3']);
+    const h = s.nodes.get('h')!;
+    expect(h.pinned).toBe(false);
+    expect(Math.hypot(h.x, h.y)).toBeGreaterThan(0);
+    expect(s.nodes.get('n3')).toMatchObject({ pinned: true, x: 0, y: 0 });
+    expect(s.nodes.get('n0')!.pinned).toBe(true);
+    // A node the user pinned is not released later, even if it was once an automatic pin.
+    s.setPinned('n3', true);
+    s.autoPin(['n4']);
+    expect(s.nodes.get('n3')!.pinned).toBe(true);
+  });
+
   // @tg: verifies:: [[tests/graph-ui#Relayout keeps positions]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Relayout keeps positions]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Relayout keeps nodes in place]]

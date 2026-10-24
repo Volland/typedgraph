@@ -74,6 +74,8 @@ export class Simulation {
   alpha = 0;
   private arr: SimNode[] = [];
   private lastAuto = '';
+  /** Nodes pinned by `autoPin` and not touched by the user since. */
+  private auto = new Set<string>();
 
   constructor(
     public forces: ForceSettings,
@@ -149,13 +151,25 @@ export class Simulation {
 
   /**
    * Pin these nodes: the first at the origin, the others on a ring around it. Does nothing while the
-   * list is the same as last time, so a user's later unpinning sticks across refreshes.
+   * list is the same as last time, so a user's later unpinning sticks across refreshes. Nodes an
+   * earlier call pinned and this list leaves out are released and nudged off the origin, so the note
+   * that was followed before does not stay pinned under the new one.
    */
   autoPin(ids: string[]): void {
     const present = ids.filter((id) => this.nodes.has(id));
+    if (ids.length > 0 && present.length === 0) return;
     const key = present.join('\n');
     if (key === this.lastAuto) return;
     this.lastAuto = key;
+    const next = new Set(present);
+    for (const id of this.auto) {
+      const s = this.nodes.get(id);
+      if (!s || next.has(id)) continue;
+      s.pinned = false;
+      s.x += (this.random() - 0.5) * this.forces.distance;
+      s.y += (this.random() - 0.5) * this.forces.distance;
+    }
+    this.auto = next;
     present.forEach((id, i) => {
       const s = this.nodes.get(id)!;
       const a = (TAU * (i - 1)) / Math.max(1, present.length - 1);
@@ -164,6 +178,20 @@ export class Simulation {
       s.x = i ? Math.cos(a) * this.forces.distance * 1.5 : 0;
       s.y = i ? Math.sin(a) * this.forces.distance * 1.5 : 0;
     });
+  }
+
+  /** Pin or unpin a node by the user's choice; it is no longer an automatic pin. */
+  setPinned(id: string, pinned: boolean): void {
+    const s = this.nodes.get(id);
+    if (!s) return;
+    s.pinned = pinned;
+    this.auto.delete(id);
+  }
+
+  /** Release every pin. */
+  unpinAll(): void {
+    for (const s of this.arr) s.pinned = false;
+    this.auto.clear();
   }
 
   reheat(alpha: number): void {

@@ -1,11 +1,13 @@
-import { CypherError, mergeSchemas } from '@obsigraph/core';
-import { ItemView, type WorkspaceLeaf } from 'obsidian';
+import { CypherError, mergeSchemas, type PropertySchema } from '@obsigraph/core';
+import { applyFilters, chosenOptions, coerceInput, collapseTargets, fieldSpec, formatInput, isEmptyValue, nodeElement, removalTargets, typesOf, ViewFilters, type FieldSpec } from '@obsigraph/graph-ui';
+import { ItemView, Notice, TFile, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type ObsigraphPlugin from '../main';
 import { DEFAULT_OPTIONS } from '../query/block';
 import { planRender } from '../query/plan';
 import type { GraphElements } from '../render/elements';
 import { DEFAULT_DISPLAY, DEFAULT_FORCES, GraphRenderer, type DisplaySettings, type ForceSettings, type LayoutSettings } from '../render/graph-renderer';
 import { attachGraphControls } from './graph-controls';
+import { showValueMenu, type FilterHost } from './graph-filters';
 import { showGraphMenu } from './graph-menu';
 import { themeFrom } from '../render/theme';
 import { renderTable } from '../render/table';
@@ -19,6 +21,8 @@ const LAYOUT_KEY = 'obsigraph-graph-layout';
 const WIDTH_KEY = 'obsigraph:details-width';
 const TECHNICAL_KEY = 'obsigraph:details-technical';
 const LINKS_KEY = 'obsigraph:details-links';
+const NONEMPTY_KEY = 'obsigraph:details-nonempty';
+const EDIT_KEY = 'obsigraph:details-edit';
 const MIN_DETAILS_WIDTH = 160;
 
 /**
@@ -40,6 +44,15 @@ export class GraphView extends ItemView {
   private query = '';
   private focus: string | null = null;
   private readonly expanded = new Set<string>();
+  /** Nodes the user took out with "Remove from view" or "Collapse neighbors"; reset when the followed note or query changes. */
+  private readonly removed = new Set<string>();
+  /** Node types and property values the user filtered out. */
+  private readonly filters = new ViewFilters();
+  /** The elements the filters choose from (everything not removed by hand), and what is drawn. */
+  private candidates: GraphElements = { nodes: [], edges: [] };
+  private shown: GraphElements = { nodes: [], edges: [] };
+  /** Path of a note just opened in the background, whose file-open event must not move this view. */
+  private pendingBackground: string | null = null;
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -93,9 +106,14 @@ export class GraphView extends ItemView {
     this.register(this.plugin.onStylesChanged(() => this.refresh()));
     this.registerEvent(
       this.app.workspace.on('file-open', (file) => {
+        if (file && file.path === this.pendingBackground) {
+          this.pendingBackground = null;
+          return;
+        }
         if (this.query || !file || file.extension !== 'md') return;
         this.focus = file.path;
         this.expanded.clear();
+        this.removed.clear();
         this.refresh();
       }),
     );
@@ -111,6 +129,7 @@ export class GraphView extends ItemView {
   private submit(): void {
     this.query = this.input.value.trim();
     this.expanded.clear();
+    this.removed.clear();
     if (!this.query) this.focus = this.app.workspace.getActiveFile()?.path ?? this.focus;
     this.refresh();
   }
@@ -154,10 +173,25 @@ export class GraphView extends ItemView {
       return;
     }
 
-    const elements = mergeElements(base, ...[...this.expanded].map((id) => neighborhood(graph, id)));
+    const merged = mergeElements(base, ...[...this.expanded].map((id) => neighborhood(graph, id)));
+    this.candidates = applyFilters(merged, new ViewFilters(), this.removed);
+    this.shown = applyFilters(merged, this.filters, this.removed);
+    const selected = this.selection;
     const renderer = this.ensureRenderer();
     renderer.setStyler(this.plugin.makeStyler());
-    renderer.setElements(elements);
+    renderer.setElements(this.shown);
+    this.keepSelection(renderer, selected);
+  }
+
+  /** After a redraw: keep the selected element selected and its details current, or clear them if it is gone. */
+  private keepSelection(renderer: GraphRenderer, sel: { kind: 'node' | 'edge'; id: string } | null): void {
+    if (!sel) return;
+    const present = sel.kind === 'node' ? this.shown.nodes.some((n) => n.id === sel.id) : this.shown.edges.some((e) => e.id === sel.id);
+    if (!present) return this.showDetails(null);
+    // Do not rebuild the pane under someone who is typing in it.
+    if (this.details.contains(activeDocument.activeElement)) return;
+    renderer.select(sel.id);
+    this.showDetails(sel);
   }
 
   // @tg: implements:: [[openspec:graph-view#Click to expand]]
@@ -167,15 +201,19 @@ export class GraphView extends ItemView {
     const host = this.body.createDiv();
     const expand = (id: string) => {
       this.expanded.add(id);
-      this.renderer?.addElements(neighborhood(this.plugin.index.graph, id));
+      // Expanding brings back neighbors taken out earlier.
+      for (const n of neighborhood(this.plugin.index.graph, id).nodes) this.removed.delete(n.id);
+      this.refresh();
     };
+    const collapse = (id: string) => this.take(collapseTargets(this.shown, id));
+    const remove = (id: string) => this.take(removalTargets(this.shown, id));
     const renderer = new GraphRenderer(host, {
       height: 600,
       styler: this.plugin.makeStyler(),
       theme: () => themeFrom(host),
       onOpen: (path) => this.openNote(path),
       onExpand: expand,
-      onContextMenu: (ev) => showGraphMenu(renderer, ev, { open: (path) => this.openNote(path), expand }),
+      onContextMenu: (ev) => showGraphMenu(renderer, ev, { open: (path) => this.openNote(path), expand, collapse, remove }),
       onSelect: (sel) => this.showDetails(sel),
       // The note being followed sits pinned at the centre; with a query there is no such note.
       layout: { pins: () => (this.query || !this.focus ? [] : [this.focus]) },
@@ -184,10 +222,31 @@ export class GraphView extends ItemView {
     this.renderer = renderer;
     const saved = this.loadLayout();
     if (saved) renderer.updateSettings(saved);
-    attachGraphControls(renderer, 'show');
+    attachGraphControls(renderer, 'show', this.filterHost());
     host.setCssStyles({ height: '100%', minHeight: '320px' });
     this.renderer.cy.resize();
     return this.renderer;
+  }
+
+  /** Take nodes out of the view until the followed note or the query changes. */
+  // @tg: implements:: [[openspec:graph-view#Remove and collapse]] {since: "2026-10-24"}
+  private take(ids: string[]): void {
+    for (const id of ids) this.removed.add(id);
+    this.refresh();
+  }
+
+  // @tg: implements:: [[openspec:graph-view#Graph view filters]] {since: "2026-10-24"}
+  private filterHost(): FilterHost {
+    return {
+      filters: this.filters,
+      candidates: () => this.candidates,
+      removedCount: () => this.removed.size,
+      restoreRemoved: () => {
+        this.removed.clear();
+        this.refresh();
+      },
+      changed: () => this.refresh(),
+    };
   }
 
   /** Panel settings are device-local state, like the details panel's toggles, not plugin settings. */
@@ -225,11 +284,11 @@ export class GraphView extends ItemView {
     let d: Details | null = null;
     const styler = this.plugin.makeStyler();
     const schemas = this.plugin.index.schemas();
-    if (sel.kind === 'node') {
-      const n = graph.node(sel.id);
-      const schema = n ? mergeSchemas(n.labels, schemas.schemas) : null;
-      if (n) d = nodeDetails(n, styler.resolveNode(n.labels), schema ? new Set(schema.properties.map((p) => p.name)) : undefined);
-    } else {
+    const node = sel.kind === 'node' ? graph.node(sel.id) : undefined;
+    const schema = node ? mergeSchemas(node.labels, schemas.schemas) : null;
+    if (node) {
+      d = nodeDetails(node, styler.resolveNode(node.labels), schema ? new Set(schema.properties.map((p) => p.name)) : undefined);
+    } else if (sel.kind === 'edge') {
       const e = graph.edge(sel.id);
       const declared = e ? schemas.edgeTypes.get(e.type) : undefined;
       if (e) d = edgeDetails(e, graph, styler.resolveEdge(e.type, e.sign), declared ? new Set(declared.properties.map((p) => p.name)) : undefined);
@@ -237,6 +296,11 @@ export class GraphView extends ItemView {
     if (!d) return;
     const technical = this.app.loadLocalStorage(TECHNICAL_KEY) === '1';
     const links = this.app.loadLocalStorage(LINKS_KEY) !== '0';
+    const withValues = this.app.loadLocalStorage(NONEMPTY_KEY) === '1';
+    // Only a Markdown note in the vault has frontmatter to write to.
+    const file = node && !node.stub ? this.app.vault.getAbstractFileByPath(node.id) : null;
+    const editable = file instanceof TFile && file.extension === 'md' ? file : null;
+    const edit = !!editable && this.app.loadLocalStorage(EDIT_KEY) === '1';
     const bar = this.details.createDiv({ cls: 'obsigraph-details-bar' });
     this.toggle(bar, 'Technical', 'Show graph bookkeeping and properties the schema does not declare', technical, (on) => {
       this.app.saveLocalStorage(TECHNICAL_KEY, on ? '1' : '0');
@@ -246,18 +310,149 @@ export class GraphView extends ItemView {
       this.app.saveLocalStorage(LINKS_KEY, on ? '1' : '0');
       this.showDetails(this.selection);
     });
+    this.toggle(bar, 'Only with values', 'List only the properties that have a value', withValues, (on) => {
+      this.app.saveLocalStorage(NONEMPTY_KEY, on ? '1' : '0');
+      this.showDetails(this.selection);
+    });
+    if (editable) {
+      this.toggle(bar, 'Edit', "Edit the note's properties here; a property with allowed values in its type's schema is a dropdown", edit, (on) => {
+        this.app.saveLocalStorage(EDIT_KEY, on ? '1' : '0');
+        this.showDetails(this.selection);
+      });
+    }
     this.details.toggleClass('obsigraph-hide-technical', !technical);
     this.details.createEl('h4', { text: d.title });
+    if (node && !node.stub) {
+      const actions = this.details.createDiv({ cls: 'obsigraph-details-actions' });
+      const open = actions.createEl('button', { text: 'Open note', attr: { title: 'Open the note in a new tab without leaving this view' } });
+      open.addEventListener('click', () => this.openInBackground(node.id));
+    }
     const table = this.details.createEl('table');
+    const rows = [...d.rows];
+    // Editing can fill in a property the schema declares but the note does not have yet.
+    if (edit && !withValues && schema) {
+      for (const p of schema.properties) if (!rows.some((r) => r[0] === p.name)) rows.push([p.name, '']);
+    }
     // Note properties first, graph bookkeeping after.
-    const rows = [...d.rows].sort((a, b) => Number(d.technical.has(a[0])) - Number(d.technical.has(b[0])));
+    rows.sort((a, b) => Number(d.technical.has(a[0])) - Number(d.technical.has(b[0])));
     for (const [k, text] of rows) {
+      const value = k in d.values ? d.values[k] : text;
+      if (withValues && (k in d.values ? isEmptyValue(value) : text.trim() === '' || text === '—')) continue;
       const tr = table.createEl('tr');
       if (d.technical.has(k)) tr.addClass('obsigraph-technical');
-      tr.createEl('th', { text: k });
+      const th = tr.createEl('th', { text: k });
+      if (node && k in d.values) this.addFilterButton(th, node, k);
       const td = tr.createEl('td');
-      if (links && k in d.values) this.renderValue(td, d.values[k], d.source);
+      const declared = schema?.properties.find((p) => p.name === k);
+      if (edit && editable && (k in d.values || declared)) this.renderEditor(td, editable, k, k in d.values ? d.values[k] : null, declared);
+      else if (links && k in d.values) this.renderValue(td, d.values[k], d.source);
       else td.setText(text);
+    }
+  }
+
+  /** A filter icon next to a property: opens the values of that property among the nodes of the same type. */
+  // @tg: implements:: [[openspec:graph-view#Graph view filters]] {since: "2026-10-24"}
+  private addFilterButton(th: HTMLElement, node: { id: string; labels: string[] }, prop: string): void {
+    const active = typesOf(node).some((t) => this.filters.filteredProperties(t).includes(prop));
+    const button = th.createEl('button', { cls: `obsigraph-prop-filter clickable-icon${active ? ' is-active' : ''}`, attr: { 'aria-label': `Filter nodes by ${prop}` } });
+    setIcon(button, 'filter');
+    button.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const n = this.plugin.index.graph.node(node.id);
+      if (!n) return;
+      showValueMenu({ x: ev.clientX, y: ev.clientY }, this.filterHost(), nodeElement(n), prop, () => this.showDetails(this.selection));
+    });
+  }
+
+  /** Open a note in a new tab behind this one, so the focus stays on the graph. */
+  // @tg: implements:: [[openspec:graph-view#Details pane shortcuts]] {since: "2026-10-24"}
+  private openInBackground(path: string): void {
+    this.pendingBackground = path;
+    window.setTimeout(() => {
+      if (this.pendingBackground === path) this.pendingBackground = null;
+    }, 1500);
+    void this.app.workspace.openLinkText(path, '', 'tab', { active: false });
+  }
+
+  /** An input for one property, chosen from the schema (dropdown for enum values) or the value's type; it writes back on change. */
+  // @tg: implements:: [[openspec:graph-view#Editable details]] {since: "2026-10-24"}
+  // @lat: [[visualization#Editable details]]
+  private renderEditor(td: HTMLElement, file: TFile, key: string, value: unknown, declared?: PropertySchema): void {
+    const spec = fieldSpec(value, declared);
+    const error = td.createDiv({ cls: 'obsigraph-edit-error' });
+    const commit = (raw: string | boolean | string[], control?: HTMLElement) => {
+      const c = coerceInput(spec, raw);
+      control?.toggleClass('is-invalid', !c.ok);
+      error.setText(c.ok ? '' : c.error);
+      if (c.ok) void this.writeProperty(file, key, c.value);
+    };
+    this.editorControl(td, spec, value, commit);
+    td.append(error); // below the control
+  }
+
+  private editorControl(td: HTMLElement, spec: FieldSpec, value: unknown, commit: (raw: string | boolean | string[], control?: HTMLElement) => void): HTMLElement {
+    switch (spec.kind) {
+      case 'boolean': {
+        const box = td.createEl('input', { attr: { type: 'checkbox' } });
+        box.checked = value === true;
+        box.addEventListener('change', () => commit(box.checked, box));
+        return box;
+      }
+      case 'enum': {
+        const select = td.createEl('select');
+        select.createEl('option', { value: '', text: '' });
+        const current = chosenOptions(value)[0];
+        const options = spec.options.map(String);
+        if (current !== undefined && !options.includes(current)) options.push(current);
+        for (const o of options) select.createEl('option', { value: o, text: o });
+        select.value = current ?? '';
+        select.addEventListener('change', () => commit(select.value, select));
+        return select;
+      }
+      case 'enum-list': {
+        const wrap = td.createDiv({ cls: 'obsigraph-enum-list' });
+        const chosen = new Set(chosenOptions(value));
+        const options = [...new Set([...spec.options.map(String), ...chosen])];
+        const boxes: HTMLInputElement[] = [];
+        for (const o of options) {
+          const l = wrap.createEl('label');
+          const box = l.createEl('input', { attr: { type: 'checkbox' } });
+          box.checked = chosen.has(o);
+          box.dataset.option = o;
+          boxes.push(box);
+          l.createSpan({ text: o });
+          box.addEventListener('change', () => commit(boxes.filter((b) => b.checked).map((b) => b.dataset.option ?? ''), wrap));
+        }
+        return wrap;
+      }
+      case 'longtext': {
+        const area = td.createEl('textarea');
+        area.value = formatInput(spec, value);
+        area.rows = Math.min(10, Math.max(3, area.value.split('\n').length));
+        area.addEventListener('change', () => commit(area.value, area));
+        return area;
+      }
+      default: {
+        const date = spec.kind === 'date' && /^(\d{4}-\d{2}-\d{2})?$/.test(formatInput(spec, value));
+        const input = td.createEl('input', { attr: { type: date ? 'date' : 'text', ...(spec.kind === 'datetime' ? { placeholder: 'YYYY-MM-DDTHH:mm' } : {}), ...(spec.kind === 'list' ? { placeholder: 'a, b, c' } : {}) } });
+        input.value = formatInput(spec, value);
+        input.addEventListener('change', () => commit(input.value, input));
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') input.blur();
+        });
+        return input;
+      }
+    }
+  }
+
+  /** Write one property into the note's frontmatter, as the Properties editor does. */
+  private async writeProperty(file: TFile, key: string, value: unknown): Promise<void> {
+    try {
+      await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+        fm[key] = value;
+      });
+    } catch (e) {
+      new Notice(`Could not save ${key}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -323,6 +518,7 @@ export class GraphView extends ItemView {
   private dropRenderer(): void {
     this.renderer?.destroy();
     this.renderer = null;
+    this.candidates = this.shown = { nodes: [], edges: [] };
     this.details.empty();
   }
 

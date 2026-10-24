@@ -1,15 +1,17 @@
 import { setIcon } from 'obsidian';
+import { renderNodeTypes, type FilterHost } from './graph-filters';
 import { DISPLAY_RANGES, FORCE_RANGES, formatLayoutOptions, type ControlsMode, type GraphRenderer } from '@obsigraph/graph-ui';
 
 /**
  * Gear button and panel over a graph, in the spirit of Obsidian's graph settings: Display, Edge types,
  * Forces and Pins. It only drives the renderer's public settings and pin methods, so it works for inline
- * blocks and the Graph view alike. `hide` adds nothing.
+ * blocks and the Graph view alike. `hide` adds nothing. The Graph view also passes a `filterHost`, which
+ * adds a Node types section to hide types and filter by property values.
  */
 // @tg: implements:: [[visualization#Forces and pinning]] {since: "2026-10-12"}
 // @lat: [[visualization#Forces and pinning]]
 // @tg: implements:: [[openspec:graph-ui#Forces, pinning and controls]]
-export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode): void {
+export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode, filterHost?: FilterHost): void {
   if (mode === 'hide') return;
   const root = renderer.container.createDiv({ cls: 'obsigraph-controls' });
   // Keep pointer and wheel input on the panel from reaching the graph underneath.
@@ -94,6 +96,14 @@ export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode)
   };
   renderTypes();
   renderer.onElementsChange(renderTypes);
+
+  if (filterHost) {
+    const nodes = section('Node types');
+    const openTypes = new Set<string>();
+    const draw = () => renderNodeTypes(nodes, filterHost, openTypes, draw);
+    draw();
+    renderer.onElementsChange(draw);
+  }
 
   const forces = section('Forces');
   slider(forces, 'Center force', FORCE_RANGES.center, 0.01, () => f().center, (center) => renderer.updateSettings({ forces: { center } }), two);

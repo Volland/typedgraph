@@ -54,6 +54,28 @@ The Graph view's details panel lists the selection's properties, with note prope
 
 [[packages/graph-ui/src/view-state.ts#nodeDetails]] and [[packages/graph-ui/src/view-state.ts#edgeDetails]] classify each row: a node's `labels`, `stub` and `path`, an edge's `sign`, `id`, declaring `note` and `heading`, every `style.*` row and any property the schema does not declare are technical; `type` and `types` always count as note properties, and with no schema every property is one. [[packages/graph-ui/src/view-state.ts#valueLines]] splits a value into text and link parts, one line per list item. The leaf in [[packages/plugin/src/view/graph-view.ts#GraphView]] adds a Technical toggle (off by default), a Links toggle (on by default) that falls back to the old plain text, links that open the note, and a drag handle between the graph and the panel. Width and toggles are device-local state in `app.saveLocalStorage`, not plugin settings, so changing them does not rebuild the index.
 
+## Graph view filters
+
+The Graph view's controls have a Node types section to hide types and to keep only nodes with chosen property values, so a crowded view can be cut down to what matters.
+
+[[packages/graph-ui/src/view-filters.ts#ViewFilters]] holds the filters and [[packages/graph-ui/src/view-filters.ts#applyFilters]] draws them: the view removes the nodes they hide, and the edges that lose an end, before the renderer sees the elements, so hidden nodes no longer push the layout around. A node's types are its labels (`(no type)` for stubs); it is hidden when any of them is hidden or fails a value filter.
+
+Value filters belong to a type. For one type, the checked values of a property are alternatives and every filtered property has to pass, so `status` in (To Do, Done) and `team` in (y) means both. A list value passes when any item is checked and an empty or missing value is the choice `(empty)`. The values on offer are those of the type's nodes in the view before value filters, with counts, so a filter can always be widened again; [[packages/graph-ui/src/view-filters.ts#propertyValues]] leaves out properties with only empty values or more than 60 distinct ones.
+
+The panel section is [[packages/plugin/src/view/graph-filters.ts#renderNodeTypes]]: a checkbox per type, and a filter button that opens the type's properties and values. A property row in the details pane has the same filter as a menu ([[packages/plugin/src/view/graph-filters.ts#showValueMenu]]), so one can filter from the node being looked at. Filters last while the view is open and across followed notes; Clear filters resets them.
+
+## Remove and collapse
+
+The Graph view's node menu can take nodes out of the view, so exploring does not leave a graph that only grows.
+
+"Collapse neighbors" removes the neighbors of a node that touch nothing else in the view; "Remove from view" removes the node and those same hangers-on ([[packages/graph-ui/src/view-filters.ts#collapseTargets]], [[packages/graph-ui/src/view-filters.ts#removalTargets]]). The view keeps them in a removed set that is applied on every refresh, so a vault change does not bring them back. The set empties when the followed note or the query changes, expanding a node restores its neighbors, and Restore removed in the Node types section brings all back. Only the Graph view has the set; inline blocks run a fixed query and have neither action.
+
+## Editable details
+
+With the Edit toggle on, the Graph view's details pane edits a note's properties in place, and an enum in the type's schema becomes a dropdown.
+
+[[packages/graph-ui/src/property-edit.ts#fieldSpec]] picks the input: the schema first (a `values` list gives a dropdown, or checkboxes for a list property; the kind gives number, date, boolean or list), then the type of the current value. [[packages/graph-ui/src/property-edit.ts#coerceInput]] turns the entry into the value to store and names an invalid one. [[packages/plugin/src/view/graph-view.ts#GraphView]] writes it with `processFrontMatter`, the call Obsidian's Properties editor uses, so only Markdown notes in the vault are editable; code, AsciiDoc and stub nodes stay read-only. Properties the schema declares but the note lacks appear empty so they can be filled in. The pane also has an Open note button, which opens a tab in the background and keeps focus on the graph, and an Only with values toggle that hides empty properties.
+
 ## Forces and pinning
 
 Both surfaces lay nodes out with a live force simulation instead of a one-shot layout, and a gear button opens controls for forces, display, edge-type visibility and pinning.

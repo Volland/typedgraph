@@ -5,3 +5,5 @@ export * from './styler';
 export * from './styles';
 export * from './simulation';
 export * from './view-state';
+export * from './view-filters';
+export * from './property-edit';

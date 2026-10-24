@@ -117,7 +117,7 @@ export class GraphRenderer {
       if (!s) return;
       s.dragging = false;
       if (this.moved.has(s.id) && this.current.forces.pinOnDrag) {
-        s.pinned = true;
+        this.sim.setPinned(s.id, true);
         this.markPins();
       }
     });
@@ -178,6 +178,12 @@ export class GraphRenderer {
     return () => this.listeners.delete(cb);
   }
 
+  /** Select a node or edge by id, which reports it through `onSelect`. */
+  select(id: string): void {
+    const e = this.cy.getElementById(id);
+    if (e.nonempty() && !e.selected()) e.select();
+  }
+
   selectedIds(): string[] {
     return this.cy.nodes(':selected').map((n) => n.id());
   }
@@ -187,10 +193,7 @@ export class GraphRenderer {
   }
 
   setPinned(ids: string[], pinned: boolean): void {
-    for (const id of ids) {
-      const s = this.sim.nodes.get(id);
-      if (s) s.pinned = pinned;
-    }
+    for (const id of ids) this.sim.setPinned(id, pinned);
     this.markPins();
     this.heat(0.3);
   }
@@ -202,7 +205,7 @@ export class GraphRenderer {
   }
 
   unpinAll(): void {
-    for (const s of this.sim.all) s.pinned = false;
+    this.sim.unpinAll();
     this.markPins();
     this.heat(0.6);
   }
