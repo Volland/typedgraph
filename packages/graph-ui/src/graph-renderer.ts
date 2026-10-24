@@ -67,6 +67,9 @@ export class GraphRenderer {
   private dead = false;
   /** Refit after the layout cools, until the user pans or zooms. */
   private autoFit = true;
+  /** Set once the user pans or zooms by hand; until then a change of the visible area refits the graph. */
+  private touched = false;
+  private readonly resizeObserver?: ResizeObserver;
 
   constructor(
     readonly container: HTMLElement,
@@ -130,10 +133,21 @@ export class GraphRenderer {
     });
     const stopAutoFit = () => {
       this.autoFit = false;
+      this.touched = true;
     };
     container.addEventListener('wheel', stopAutoFit, { passive: true });
     container.addEventListener('pointerdown', stopAutoFit);
     container.addEventListener('contextmenu', (e) => e.preventDefault());
+    // The visible area changes when the details pane is shown, hidden or resized: keep the graph centred in what is left.
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        if (this.dead || this.cy.destroyed()) return;
+        this.cy.resize();
+        if (this.autoFit) this.fit();
+        else if (!this.touched && this.sim.all.length > 0) this.cy.fit(undefined, 24);
+      });
+      this.resizeObserver.observe(container);
+    }
   }
 
   /** The current settings; mutate only through `updateSettings`. */
@@ -257,6 +271,7 @@ export class GraphRenderer {
 
   destroy(): void {
     this.dead = true;
+    this.resizeObserver?.disconnect();
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
     this.cy.destroy();

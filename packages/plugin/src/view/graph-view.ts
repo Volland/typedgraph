@@ -379,6 +379,18 @@ export class GraphView extends ItemView {
       const declared = schema?.properties.find((p) => p.name === k);
       const rule = node ? schema?.edges?.find((r) => r.type === k) : undefined;
       const td = tr.createEl('td');
+      // Double-click a field of a note that can be edited to switch to edit mode, with that field focused.
+      if (editable && !edit && !schemaView && k !== 'type' && (hasValue || declared)) {
+        td.addEventListener('dblclick', (ev) => {
+          if ((ev.target as HTMLElement).closest('a')) return;
+          this.app.saveLocalStorage(EDIT_KEY, '1');
+          this.showDetails(this.selection);
+          for (const row of Array.from(this.details.querySelectorAll('tr[data-key]'))) {
+            if (row.getAttribute('data-key') === k) row.querySelector<HTMLElement>('input:not([type=checkbox]), textarea, [contenteditable]')?.focus();
+          }
+        });
+      }
+      tr.setAttribute('data-key', k);
       renderField(td, {
         app: this.app,
         key: k,
