@@ -1,5 +1,5 @@
-import { CypherError, mergeSchemas } from '@obsigraph/core';
-import { applyFilters, collapseTargets, isEmptyValue, nodeElement, removalTargets, typesOf, ViewFilters } from '@obsigraph/graph-ui';
+import { CypherError, mergeSchemas, type TypeSchema } from '@obsigraph/core';
+import { applyFilters, collapseTargets, schemaInfo, isEmptyValue, nodeElement, removalTargets, typesOf, ViewFilters } from '@obsigraph/graph-ui';
 import { ItemView, Notice, TFile, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type ObsigraphPlugin from '../main';
 import { DEFAULT_OPTIONS } from '../query/block';
@@ -14,6 +14,7 @@ import { renderTable } from '../render/table';
 import { TG_ICON } from '../icon';
 import { edgeDetails, mergeElements, neighborhood, nodeDetails, type Details } from './view-state';
 import { renderField } from './property-form';
+const SHOW_DETAILS_KEY = 'obsigraph:details-shown';
 
 export const VIEW_TYPE_GRAPH = 'obsigraph-graph-view';
 const LAYOUT_KEY = 'obsigraph-graph-layout';
@@ -40,6 +41,10 @@ export class GraphView extends ItemView {
   private body!: HTMLElement;
   private details!: HTMLElement;
   private resizer!: HTMLElement;
+  /** Show the type's schema in the details pane instead of the property values. */
+  private schemaView = false;
+  /** Heights the user dragged property text boxes to; kept in memory only. */
+  private readonly fieldHeights = new Map<string, number>();
   private selection: { kind: 'node' | 'edge'; id: string } | null = null;
   private message!: HTMLElement;
   private query = '';
@@ -100,6 +105,7 @@ export class GraphView extends ItemView {
     this.resizer = main.createDiv({ cls: 'obsigraph-resizer', attr: { 'aria-label': 'Drag to resize the details pane' } });
     this.details = main.createDiv({ cls: 'obsigraph-details' });
     this.initResizer(main);
+    this.contentEl.toggleClass('obsigraph-details-off', !this.detailsShown());
 
     this.register(this.plugin.index.onChange(() => this.refresh()));
     this.register(this.plugin.onStylesChanged(() => this.refresh()));
@@ -224,7 +230,12 @@ export class GraphView extends ItemView {
     this.renderer = renderer;
     const saved = this.loadLayout();
     if (saved) renderer.updateSettings(saved);
-    attachGraphControls(renderer, 'show', this.filterHost());
+    attachGraphControls(renderer, 'show', this.filterHost(), {
+      icon: 'panel-right',
+      label: 'Show or hide the details pane',
+      active: () => this.detailsShown(),
+      toggle: () => this.setDetailsShown(!this.detailsShown()),
+    });
     host.setCssStyles({ height: '100%', minHeight: '320px' });
     this.renderer.cy.resize();
     return this.renderer;
@@ -279,6 +290,7 @@ export class GraphView extends ItemView {
 
   // @tg: implements:: [[openspec:graph-view#Details panel]]
   private showDetails(sel: { kind: 'node' | 'edge'; id: string } | null): void {
+    if (!sel || sel.id !== this.selection?.id) this.schemaView = false;
     this.selection = sel;
     this.details.empty();
     if (!sel) return;
@@ -333,6 +345,10 @@ export class GraphView extends ItemView {
       setIcon(link, 'link');
       link.addEventListener('click', () => this.openNote(node.id));
     }
+    if (this.schemaView && schema && node) {
+      this.renderSchemaInfo(schema, schemas.schemas);
+      return;
+    }
     const table = this.details.createEl('table');
     const rows = [...d.rows];
     // Editing can fill in a property the schema declares but the note does not have yet.
@@ -351,14 +367,17 @@ export class GraphView extends ItemView {
       if (node && hasValue) this.addFilterButton(th, node, k);
       const declared = schema?.properties.find((p) => p.name === k);
       const rule = node ? schema?.edges?.find((r) => r.type === k) : undefined;
-      renderField(tr.createEl('td'), {
+      const td = tr.createEl('td');
+      renderField(td, {
         app: this.app,
+        key: k,
+        heights: this.fieldHeights,
         source: d.source,
         value,
         hasValue,
         text,
         declared,
-        link: rule ? { targets: rule.targets ?? schemas.edgeTypes.get(k)?.to ?? null, many: rule.many } : null,
+        link: rule ? { targets: rule.targets ?? schemas.edgeTypes.get(k)?.to ?? null, many: rule.many } : node && declared?.kind === 'link' ? { targets: schemas.edgeTypes.get(k)?.to ?? null, many: declared.many } : null,
         // The note's type is never edited here.
         editable: edit && !!editable && k !== 'type' && (hasValue || !!declared),
         links,
@@ -366,7 +385,43 @@ export class GraphView extends ItemView {
         open: (href, source, newTab) => this.plugin.openNote(href, source, newTab),
         commit: (v) => editable && void this.writeProperty(editable, k, v),
       });
+      if (node && schema && k === 'type') {
+        td.addClass('obsigraph-type-cell');
+        const info = td.createEl('button', { cls: 'clickable-icon obsigraph-type-info', attr: { 'aria-label': "Show the type's schema" } });
+        setIcon(info, 'info');
+        info.addEventListener('click', () => {
+          this.schemaView = true;
+          this.showDetails(this.selection);
+        });
+      }
     }
+  }
+
+  /** The type's schema in place of the values: property data types and cardinalities, and the edge types with the types at their other end. */
+  // @tg: implements:: [[openspec:graph-view#Editable details]] {since: "2026-10-24"}
+  private renderSchemaInfo(schema: TypeSchema, all: Map<string, TypeSchema>): void {
+    const info = schemaInfo(schema, all.values());
+    const back = this.details.createEl('button', { cls: 'obsigraph-type-info is-active clickable-icon', attr: { 'aria-label': 'Show the property values again' } });
+    setIcon(back, 'info');
+    back.addEventListener('click', () => {
+      this.schemaView = false;
+      this.showDetails(this.selection);
+    });
+    this.details.createEl('div', { cls: 'obsigraph-schema-title', text: schema.type });
+    const section = (title: string, head: string[], rows: string[][], empty: string) => {
+      this.details.createEl('div', { cls: 'obsigraph-schema-heading', text: title });
+      if (rows.length === 0) return void this.details.createEl('div', { cls: 'obsigraph-muted', text: empty });
+      const table = this.details.createEl('table', { cls: 'obsigraph-schema-table' });
+      const tr = table.createEl('tr');
+      for (const h of head) tr.createEl('th', { text: h });
+      for (const r of rows) {
+        const row = table.createEl('tr');
+        for (const cell of r) row.createEl('td', { text: cell });
+      }
+    };
+    section('Properties', ['name', 'data type', 'card.'], info.properties.map((p) => [p.name, p.type, p.cardinality]), 'No declared properties');
+    section('Edges', ['edge type', 'to type', 'card.'], info.outgoing.map((e) => [e.type, e.targets?.join(', ') ?? 'any', e.cardinality]), info.unrestricted ? 'Any edge type is allowed' : 'No edges allowed');
+    section('Incoming', ['edge type', 'from type'], info.incoming.map((e) => [e.type, e.from.join(', ')]), 'No type declares edges to this one');
   }
 
   /** A filter icon next to a property: opens the values of that property among the nodes of the same type. */
@@ -400,6 +455,16 @@ export class GraphView extends ItemView {
     box.checked = on;
     l.createSpan({ text: label });
     box.addEventListener('change', () => change(box.checked));
+  }
+
+  private detailsShown(): boolean {
+    return this.app.loadLocalStorage(SHOW_DETAILS_KEY) !== '0';
+  }
+
+  private setDetailsShown(on: boolean): void {
+    this.app.saveLocalStorage(SHOW_DETAILS_KEY, on ? '1' : '0');
+    this.contentEl.toggleClass('obsigraph-details-off', !on);
+    this.renderer?.cy.resize();
   }
 
   /** Drag the handle between the graph and the details pane to set the pane's width. */

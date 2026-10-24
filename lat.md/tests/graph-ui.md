@@ -96,6 +96,10 @@ A property the schema declares with allowed values is an enum dropdown, or check
 While a link property is edited, notes of the edge type's allowed target types whose name contains the typed text are offered, names starting with it first.
 
 
+## Schema info of a type
+
+The info view of a type lists each property with its data type and cardinality, the edge types the type may have with their target types, and which types may point at it.
+
 ## Editor chosen by value
 
 Without a declaration the current value's type picks the input: number, boolean, list, short or long text.

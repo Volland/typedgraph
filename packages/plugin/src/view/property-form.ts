@@ -1,11 +1,12 @@
 import type { GraphNode, PropertySchema } from '@obsigraph/core';
 import { candidateName, chosenOptions, coerceInput, fieldSpec, formatInput, fromLinkItems, linkItems, suggestLinks, type FieldSpec } from '@obsigraph/graph-ui';
-import { AbstractInputSuggest, Menu, TFile, setIcon, type App } from 'obsidian';
+import { AbstractInputSuggest, TFile, setIcon, type App } from 'obsidian';
 import { valueLines } from './view-state';
 
 /** Everything the details pane knows about one property row. */
 export interface FieldContext {
   app: App;
+  key: string;
   /** Note that relative links resolve from, or null. */
   source: string | null;
   /** The value as written; meaningful when `hasValue`. */
@@ -20,6 +21,8 @@ export interface FieldContext {
   editable: boolean;
   /** Draw [[links]] as clickable links. */
   links: boolean;
+  /** Heights the user dragged text boxes to, by property name; kept while Obsidian runs. */
+  heights: Map<string, number>;
   candidates: () => Iterable<GraphNode>;
   open: (href: string, source: string, newTab: boolean) => void;
   commit: (value: unknown) => void;
@@ -27,18 +30,38 @@ export interface FieldContext {
 
 const containsLink = (value: unknown, source: string | null): boolean => valueLines(value, source).some((parts) => parts.some((p) => 'link' in p));
 
+/** One entry of a field's dropdown: what is stored when it is chosen, and how it looks in the list. */
+interface Suggestion {
+  value: string;
+  render: (el: HTMLElement) => void;
+}
+
+/** How a field of chips (links, tags, enum list items) draws and adds its items. */
+interface ChipConfig {
+  many: boolean;
+  chip: (host: HTMLElement, item: string) => void;
+  suggest: (query: string, items: string[]) => Suggestion[];
+  /** What Enter on typed text adds, or null to refuse it. */
+  normalize: (text: string) => string | null;
+  placeholder: string;
+}
+
+const isTagKey = (key: string): boolean => key === 'tags' || key === 'tag';
+
 /**
  * One property as a form field. Read mode draws the same fields as edit mode, only read-only (so the
- * text can still be selected and scrolled); a property that holds links draws them as clickable links
- * in both modes, and in edit mode offers matching notes while typing a new one.
+ * text can still be selected and scrolled). Properties that hold links, tags or several enum values
+ * are fields of chips: links open their note, tags look like Obsidian tags, and in edit mode a chip can
+ * be removed and an input adds one from a list of suggestions (matching notes for links).
  */
 // @tg: implements:: [[visualization#Editable details]] {since: "2026-10-24"}
 // @lat: [[visualization#Editable details]]
 // @tg: implements:: [[openspec:graph-view#Editable details]] {since: "2026-10-24"}
 export function renderField(td: HTMLElement, c: FieldContext): void {
-  const isLink = c.links && (c.link !== null || (c.hasValue && containsLink(c.value, c.source)));
-  if (isLink) return linkField(td, c);
+  if (isTagKey(c.key) && (c.hasValue || c.editable)) return chipField(td, c, tagConfig(c));
+  if (c.links && (c.link !== null || (c.hasValue && containsLink(c.value, c.source)))) return chipField(td, c, linkConfig(c));
   const spec = fieldSpec(c.hasValue ? c.value : null, c.declared);
+  if (spec.kind === 'enum-list' && (c.hasValue || c.editable)) return chipField(td, c, enumListConfig(c, spec));
   if (!c.editable) return readOnlyField(td, c, spec);
   const error = td.createDiv({ cls: 'obsigraph-edit-error' });
   const commit = (raw: string | boolean | string[], control?: HTMLElement) => {
@@ -47,7 +70,7 @@ export function renderField(td: HTMLElement, c: FieldContext): void {
     error.setText(r.ok ? '' : r.error);
     if (r.ok) c.commit(r.value);
   };
-  editorControl(td, spec, c.hasValue ? c.value : null, commit);
+  editorControl(td, c, spec, c.hasValue ? c.value : null, commit);
   td.append(error); // below the control
 }
 
@@ -57,6 +80,20 @@ const plain = (spec: FieldSpec, c: FieldContext): string => {
   return formatInput(spec, c.value);
 };
 
+/** A text box the user can drag taller; the height is remembered per property while Obsidian runs. */
+function textBox(td: HTMLElement, c: FieldContext, text: string, readonly: boolean, rows: number): HTMLTextAreaElement {
+  const area = td.createEl('textarea', { attr: { rows: String(rows), ...(readonly ? { readonly: '' } : {}) } });
+  area.value = text;
+  const saved = c.heights.get(c.key);
+  if (saved) area.style.height = `${saved}px`;
+  let before = 0;
+  area.addEventListener('pointerdown', () => (before = area.offsetHeight));
+  area.addEventListener('pointerup', () => {
+    if (area.offsetHeight > 0 && area.offsetHeight !== before) c.heights.set(c.key, area.offsetHeight);
+  });
+  return area;
+}
+
 function readOnlyField(td: HTMLElement, c: FieldContext, spec: FieldSpec): void {
   if (c.hasValue && spec.kind === 'boolean') {
     const box = td.createEl('input', { attr: { type: 'checkbox', disabled: '' } });
@@ -64,21 +101,43 @@ function readOnlyField(td: HTMLElement, c: FieldContext, spec: FieldSpec): void 
     return;
   }
   const text = plain(spec, c);
-  if (text.includes('\n')) {
-    const area = td.createEl('textarea', { attr: { readonly: '' } });
-    area.value = text;
-    area.rows = Math.min(4, text.split('\n').length);
-    return;
-  }
-  const input = td.createEl('input', { attr: { type: 'text', readonly: '' } });
-  input.value = text;
+  textBox(td, c, text, true, Math.min(4, Math.max(1, text.split('\n').length)));
 }
 
 function chevron(host: HTMLElement): void {
   setIcon(host.createSpan({ cls: 'obsigraph-chevron' }), 'chevron-down');
 }
 
-function editorControl(td: HTMLElement, spec: FieldSpec, value: unknown, commit: (raw: string | boolean | string[], control?: HTMLElement) => void): void {
+/** An input whose focus opens a list of suggestions, styled like Obsidian's own. */
+class ListSuggest extends AbstractInputSuggest<Suggestion> {
+  constructor(
+    app: App,
+    input: HTMLInputElement,
+    private readonly get: (query: string) => Suggestion[],
+    private readonly choose: (s: Suggestion) => void,
+  ) {
+    super(app, input);
+    // Show the list on focus and click, not only after typing.
+    const show = () => input.dispatchEvent(new Event('input'));
+    input.addEventListener('focus', show);
+    input.addEventListener('click', show);
+  }
+
+  getSuggestions(query: string): Suggestion[] {
+    return this.get(query);
+  }
+
+  renderSuggestion(s: Suggestion, el: HTMLElement): void {
+    s.render(el);
+  }
+
+  selectSuggestion(s: Suggestion): void {
+    this.choose(s);
+    this.close();
+  }
+}
+
+function editorControl(td: HTMLElement, c: FieldContext, spec: FieldSpec, value: unknown, commit: (raw: string | boolean | string[], control?: HTMLElement) => void): void {
   switch (spec.kind) {
     case 'boolean': {
       const box = td.createEl('input', { attr: { type: 'checkbox' } });
@@ -88,56 +147,51 @@ function editorControl(td: HTMLElement, spec: FieldSpec, value: unknown, commit:
     }
     case 'enum': {
       const wrap = td.createDiv({ cls: 'obsigraph-field' });
-      const select = wrap.createEl('select');
-      select.createEl('option', { value: '', text: '' });
-      const current = chosenOptions(value)[0];
+      const input = wrap.createEl('input', { attr: { type: 'text', placeholder: 'Choose…' } });
+      let committed = chosenOptions(value)[0] ?? '';
+      input.value = committed;
       const options = spec.options.map(String);
-      if (current !== undefined && !options.includes(current)) options.push(current);
-      for (const o of options) select.createEl('option', { value: o, text: o });
-      select.value = current ?? '';
-      select.addEventListener('change', () => commit(select.value, select));
+      if (committed && !options.includes(committed)) options.push(committed);
+      new ListSuggest(
+        c.app,
+        input,
+        (q) => {
+          const t = q === committed ? '' : q.trim().toLowerCase();
+          return ['', ...options].filter((o) => o.toLowerCase().includes(t)).map((o) => ({ value: o, render: (el) => el.setText(o || '(empty)') }));
+        },
+        (s) => {
+          committed = s.value;
+          input.value = s.value;
+          commit(s.value, input);
+        },
+      );
+      // Typing only filters the list; leaving without a choice restores the value.
+      input.addEventListener('blur', () => window.setTimeout(() => (input.value = committed), 150));
       chevron(wrap);
-      return;
-    }
-    case 'enum-list': {
-      const wrap = td.createDiv({ cls: 'obsigraph-field obsigraph-field-button' });
-      const chosen = new Set(chosenOptions(value));
-      const options = [...new Set([...spec.options.map(String), ...chosen])];
-      const label = wrap.createSpan({ cls: 'obsigraph-field-text' });
-      const draw = () => {
-        label.setText([...chosen].join(', '));
-        label.toggleClass('obsigraph-muted', chosen.size === 0);
-      };
-      draw();
-      chevron(wrap);
-      wrap.addEventListener('click', (ev) => {
-        const menu = new Menu();
-        for (const o of options) {
-          menu.addItem((i) =>
-            i
-              .setTitle(o)
-              .setChecked(chosen.has(o))
-              .onClick(() => {
-                if (!chosen.delete(o)) chosen.add(o);
-                draw();
-                commit(options.filter((x) => chosen.has(x)), wrap);
-              }),
-          );
-        }
-        menu.showAtMouseEvent(ev);
-      });
       return;
     }
     case 'longtext': {
-      const area = td.createEl('textarea');
-      area.value = formatInput(spec, value);
-      area.rows = Math.min(6, Math.max(2, area.value.split('\n').length));
+      const text = formatInput(spec, value);
+      const area = textBox(td, c, text, false, Math.min(6, Math.max(2, text.split('\n').length)));
       area.addEventListener('change', () => commit(area.value, area));
+      return;
+    }
+    case 'text':
+    case 'list': {
+      const area = textBox(td, c, formatInput(spec, value), false, 1);
+      if (spec.kind === 'list') area.placeholder = 'a, b, c';
+      area.addEventListener('change', () => commit(area.value, area));
+      area.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          area.blur();
+        }
+      });
       return;
     }
     default: {
       const date = spec.kind === 'date' && /^(\d{4}-\d{2}-\d{2})?$/.test(formatInput(spec, value));
-      const input = td.createEl('input', { attr: { type: date ? 'date' : 'text', ...(spec.kind === 'datetime' ? { placeholder: 'YYYY-MM-DDTHH:mm' } : {}), ...(spec.kind === 'list' ? { placeholder: 'a, b, c' } : {}) } });
+      const input = td.createEl('input', { attr: { type: date ? 'date' : 'text', ...(spec.kind === 'datetime' ? { placeholder: 'YYYY-MM-DDTHH:mm' } : {}) } });
       input.value = formatInput(spec, value);
       input.addEventListener('change', () => commit(input.value, input));
       input.addEventListener('keydown', (e) => {
@@ -147,74 +201,115 @@ function editorControl(td: HTMLElement, spec: FieldSpec, value: unknown, commit:
   }
 }
 
-/** Notes matching the typed text, offered under the link field's input. */
-class NoteSuggest extends AbstractInputSuggest<GraphNode> {
-  constructor(
-    app: App,
-    input: HTMLInputElement,
-    private readonly c: FieldContext,
-    private readonly choose: (n: GraphNode) => void,
-  ) {
-    super(app, input);
-  }
-
-  getSuggestions(query: string): GraphNode[] {
-    return suggestLinks(this.c.candidates(), query, this.c.link?.targets ?? null);
-  }
-
-  renderSuggestion(n: GraphNode, el: HTMLElement): void {
-    el.createSpan({ text: candidateName(n) });
-    if (n.labels.length > 0) el.createSpan({ cls: 'obsigraph-muted', text: `  ${n.labels.join(', ')}` });
-  }
-
-  selectSuggestion(n: GraphNode): void {
-    this.choose(n);
-    this.close();
-  }
+/** Links: a note name as a link, the type at the other end beside it as plain text. */
+function linkConfig(c: FieldContext): ChipConfig {
+  return {
+    many: !!c.link?.many || Array.isArray(c.value),
+    chip: (host, item) => appendLinks(host, item, c),
+    suggest: (q) =>
+      suggestLinks(c.candidates(), q, c.link?.targets ?? null).map((n) => ({
+        value: `[[${linkText(c, n)}]]`,
+        render: (el) => {
+          el.createEl('a', { cls: 'internal-link obsigraph-suggest-link', text: candidateName(n) });
+          if (n.labels.length > 0) el.createSpan({ cls: 'obsigraph-suggest-type', text: n.labels.join(', ') });
+        },
+      })),
+    normalize: (text) => (text.includes('[[') ? text : `[[${text}]]`),
+    placeholder: 'Add a link…',
+  };
 }
 
-/** A property of links: each a clickable chip; in edit mode removable, with an input to add a note. */
-function linkField(td: HTMLElement, c: FieldContext): void {
-  const many = !!c.link?.many || Array.isArray(c.value);
+function linkText(c: FieldContext, n: GraphNode): string {
+  const file = n.stub ? null : c.app.vault.getAbstractFileByPath(n.id);
+  return file instanceof TFile ? c.app.metadataCache.fileToLinktext(file, c.source ?? '', true) : n.id;
+}
+
+const cleanTag = (t: string): string => t.trim().replace(/^#+/, '').replace(/\s+/g, '-');
+
+/** Tags drawn the way Obsidian draws them; suggestions are the tags in use in the vault. */
+function tagConfig(c: FieldContext): ChipConfig {
+  const tag = (host: HTMLElement, name: string) => host.createEl('a', { cls: 'tag', text: `#${name}`, attr: { href: `#${name}` } });
+  return {
+    many: true,
+    chip: (host, item) => {
+      const a = tag(host, cleanTag(item));
+      a.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        // The core Search plugin has no public API; without it the tag just is not clickable.
+        (c.app as unknown as { internalPlugins?: { getPluginById(id: string): { instance?: { openGlobalSearch?(q: string): void } } | undefined } }).internalPlugins?.getPluginById('global-search')?.instance?.openGlobalSearch?.(`tag:#${cleanTag(item)}`);
+      });
+    },
+    suggest: (q, items) => {
+      const t = cleanTag(q).toLowerCase();
+      return Object.keys((c.app.metadataCache as unknown as { getTags(): Record<string, number> }).getTags())
+        .map(cleanTag)
+        .filter((n) => !items.map(cleanTag).includes(n) && n.toLowerCase().includes(t))
+        .sort((a, b) => a.localeCompare(b))
+        .slice(0, 12)
+        .map((n) => ({ value: n, render: (el) => void tag(el, n) }));
+    },
+    normalize: (text) => cleanTag(text) || null,
+    placeholder: 'Add a tag…',
+  };
+}
+
+/** A list of enum values: the chosen ones as chips, the rest offered from the dropdown. */
+function enumListConfig(c: FieldContext, spec: FieldSpec): ChipConfig {
+  const options = spec.options.map(String);
+  return {
+    many: true,
+    chip: (host, item) => host.appendText(item),
+    suggest: (q, items) => options.filter((o) => !items.includes(o) && o.toLowerCase().includes(q.trim().toLowerCase())).map((o) => ({ value: o, render: (el) => el.setText(o) })),
+    normalize: (text) => options.find((o) => o.toLowerCase() === text.trim().toLowerCase()) ?? null,
+    placeholder: options.length ? 'Choose…' : '',
+  };
+}
+
+/** A field of chips: each removable in edit mode, with an input that adds one from the suggestions. */
+function chipField(td: HTMLElement, c: FieldContext, cfg: ChipConfig): void {
   const items = c.hasValue ? linkItems(c.value) : [];
-  const box = td.createDiv({ cls: `obsigraph-field obsigraph-link-field${c.editable ? ' is-editable' : ''}` });
-  const save = () => c.commit(fromLinkItems(items, many));
-  const draw = () => {
+  const box = td.createDiv({ cls: `obsigraph-field obsigraph-chip-field${c.editable ? ' is-editable' : ''}` });
+  const save = () => c.commit(fromLinkItems(items, cfg.many));
+  const draw = (focus = false) => {
     box.empty();
     items.forEach((item, i) => {
       const chip = box.createSpan({ cls: 'obsigraph-chip' });
-      appendLinks(chip, item, c);
+      cfg.chip(chip, item);
       if (!c.editable) return;
-      const remove = chip.createSpan({ cls: 'obsigraph-chip-remove', text: '×', attr: { 'aria-label': 'Remove' } });
-      remove.addEventListener('click', () => {
+      chip.createSpan({ cls: 'obsigraph-chip-remove', text: '×', attr: { 'aria-label': 'Remove' } }).addEventListener('click', () => {
         items.splice(i, 1);
         save();
         draw();
       });
     });
-    if (!c.editable || (!many && items.length > 0)) return;
-    const input = box.createEl('input', { cls: 'obsigraph-link-input', attr: { type: 'text', placeholder: items.length ? '' : 'Add a link…' } });
-    const add = (link: string) => {
-      items.push(link);
-      save();
-      draw();
-    };
-    const suggest = new NoteSuggest(c.app, input, c, (n) => {
-      const file = n.stub ? null : c.app.vault.getAbstractFileByPath(n.id);
-      add(`[[${file instanceof TFile ? c.app.metadataCache.fileToLinktext(file, c.source ?? '', true) : n.id}]]`);
-    });
-    // Enter on typed text that matches nothing offered adds it as written; a chosen suggestion has cleared the input by then.
-    input.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      window.setTimeout(() => {
-        const text = input.value.trim();
-        if (!text) return;
-        suggest.close();
-        add(text.includes('[[') ? text : `[[${text}]]`);
-      }, 0);
-    });
+    if (!c.editable) return;
+    if (cfg.many || items.length === 0) {
+      const input = box.createEl('input', { cls: 'obsigraph-chip-input', attr: { type: 'text', placeholder: items.length ? '' : cfg.placeholder } });
+      const add = (value: string) => {
+        if (!items.includes(value)) items.push(value);
+        save();
+        draw(true);
+      };
+      const suggest = new ListSuggest(c.app, input, (q) => cfg.suggest(q, items), (s) => add(s.value));
+      // Enter on text that matches no suggestion adds it as typed; a chosen suggestion has already cleared the input.
+      input.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        window.setTimeout(() => {
+          const text = input.value.trim();
+          const value = text ? cfg.normalize(text) : null;
+          if (!value) return;
+          suggest.close();
+          add(value);
+        }, 0);
+      });
+      if (focus) input.focus();
+    }
+    chevron(box);
   };
   draw();
+  box.addEventListener('click', (ev) => {
+    if (ev.target === box) box.querySelector('input')?.focus();
+  });
 }
 
 /** Text and links of one value; links open their note, in a new tab with Cmd/Ctrl. */

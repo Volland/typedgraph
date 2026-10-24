@@ -5,6 +5,7 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 ## Unreleased
 
 ### Added
+- Graph view: schema info behind an info icon on `type`, a button beside the gear that shows or hides the details pane, resizable text boxes, tag and dimmed missing-link styling, dropdown suggestions for links, tags and enum values, dotted read-only fields, a scrollable controls panel.
 - Graph view details pane: compact form fields as wide as the pane, read-only look-alike in read mode, pen and link icons next to the note title, dropdown chevrons, clickable link chips with note suggestions in edit mode, locked `type`; `aliases`, `tags` and `path` are note properties.
 - Graph view: Option/Alt-click on a node expands or collapses its neighbors; opening a note switches to its tab when it is already open.
 

@@ -7,3 +7,4 @@ export * from './simulation';
 export * from './view-state';
 export * from './view-filters';
 export * from './property-edit';
+export * from './schema-info';

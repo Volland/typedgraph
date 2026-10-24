@@ -11,18 +11,39 @@ import { DISPLAY_RANGES, FORCE_RANGES, formatLayoutOptions, type ControlsMode, t
 // @tg: implements:: [[visualization#Forces and pinning]] {since: "2026-10-12"}
 // @lat: [[visualization#Forces and pinning]]
 // @tg: implements:: [[openspec:graph-ui#Forces, pinning and controls]]
-export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode, filterHost?: FilterHost): void {
+export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode, filterHost?: FilterHost, extra?: { icon: string; label: string; active: () => boolean; toggle: () => void }): void {
   if (mode === 'hide') return;
   const root = renderer.container.createDiv({ cls: 'obsigraph-controls' });
   // Keep pointer and wheel input on the panel from reaching the graph underneath.
   for (const ev of ['pointerdown', 'mousedown', 'touchstart', 'wheel', 'click', 'dblclick', 'contextmenu']) {
     root.addEventListener(ev, (e) => e.stopPropagation());
   }
-  const button = root.createEl('button', { cls: 'obsigraph-controls-button clickable-icon', attr: { 'aria-label': 'Graph controls' } });
+  const iconRow = root.createDiv({ cls: 'obsigraph-controls-buttons-row' });
+  const button = iconRow.createEl('button', { cls: 'obsigraph-controls-button clickable-icon', attr: { 'aria-label': 'Graph controls' } });
   setIcon(button, 'settings');
+  if (extra) {
+    const more = iconRow.createEl('button', { cls: 'obsigraph-controls-button clickable-icon', attr: { 'aria-label': extra.label } });
+    setIcon(more, extra.icon);
+    more.toggleClass('is-active', extra.active());
+    more.addEventListener('click', () => {
+      extra.toggle();
+      more.toggleClass('is-active', extra.active());
+    });
+  }
   const panel = root.createDiv({ cls: 'obsigraph-controls-panel' });
+  // The panel scrolls when it is taller than the visible part of the view, whatever the CSS makes of the graph's own height.
+  const fit = () => {
+    if (!panel.hasClass('is-open')) return;
+    const bottoms = [renderer.container.getBoundingClientRect().bottom, (renderer.container.closest('.view-content') ?? activeDocument.body).getBoundingClientRect().bottom, window.innerHeight];
+    panel.style.maxHeight = `${Math.max(120, Math.min(...bottoms) - panel.getBoundingClientRect().top - 12)}px`;
+  };
+  new ResizeObserver(fit).observe(renderer.container);
   panel.toggleClass('is-open', mode === 'open');
-  button.addEventListener('click', () => panel.toggleClass('is-open', !panel.hasClass('is-open')));
+  button.addEventListener('click', () => {
+    panel.toggleClass('is-open', !panel.hasClass('is-open'));
+    fit();
+  });
+  window.setTimeout(fit, 0);
 
   const refreshers: (() => void)[] = [];
   const section = (title: string) => {
