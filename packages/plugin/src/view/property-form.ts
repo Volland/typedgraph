@@ -139,6 +139,46 @@ class ListSuggest extends AbstractInputSuggest<Suggestion> {
   }
 }
 
+/** Typing `[[` in a text box suggests notes (of the types the schema allows) by the characters typed after it. */
+class TextLinkSuggest extends AbstractInputSuggest<Suggestion> {
+  constructor(
+    app: App,
+    private readonly area: HTMLTextAreaElement,
+    private readonly find: (query: string) => Suggestion[],
+  ) {
+    super(app, area as unknown as HTMLInputElement);
+  }
+
+  /** The characters between an unclosed `[[` and the caret, or null when the caret is not inside one. */
+  private pending(): { start: number; query: string } | null {
+    const caret = this.area.selectionStart ?? this.area.value.length;
+    const m = /\[\[([^[\]|\n]*)$/.exec(this.area.value.slice(0, caret));
+    return m ? { start: m.index, query: m[1]! } : null;
+  }
+
+  getSuggestions(): Suggestion[] {
+    const o = this.pending();
+    return o ? this.find(o.query) : [];
+  }
+
+  renderSuggestion(s: Suggestion, el: HTMLElement): void {
+    s.render(el);
+  }
+
+  selectSuggestion(s: Suggestion): void {
+    const o = this.pending();
+    if (o) {
+      const caret = this.area.selectionStart ?? this.area.value.length;
+      const rest = this.area.value.slice(caret).replace(/^\]\]/, '');
+      this.area.value = this.area.value.slice(0, o.start) + s.value + rest;
+      const at = o.start + s.value.length;
+      this.area.setSelectionRange(at, at);
+      this.area.dispatchEvent(new Event('change'));
+    }
+    this.close();
+  }
+}
+
 function editorControl(td: HTMLElement, c: FieldContext, spec: FieldSpec, value: unknown, commit: (raw: string | boolean | string[], control?: HTMLElement) => void): void {
   switch (spec.kind) {
     case 'boolean': {
@@ -176,15 +216,18 @@ function editorControl(td: HTMLElement, c: FieldContext, spec: FieldSpec, value:
       const text = formatInput(spec, value);
       const area = textBox(td, c, text, false, Math.min(6, Math.max(2, text.split('\n').length)));
       area.addEventListener('change', () => commit(area.value, area));
+      suggestNotes(area, c);
       return;
     }
     case 'text':
     case 'list': {
       const area = textBox(td, c, formatInput(spec, value), false, 1);
       if (spec.kind === 'list') area.placeholder = 'a, b, c';
+      suggestNotes(area, c);
       area.addEventListener('change', () => commit(area.value, area));
       area.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        // Enter inside an unclosed [[ belongs to the note suggestions.
+        if (e.key === 'Enter' && !e.shiftKey && !/\[\[[^[\]|\n]*$/.test(area.value.slice(0, area.selectionStart ?? 0))) {
           e.preventDefault();
           area.blur();
         }
@@ -201,6 +244,11 @@ function editorControl(td: HTMLElement, c: FieldContext, spec: FieldSpec, value:
       });
     }
   }
+}
+
+function suggestNotes(area: HTMLTextAreaElement, c: FieldContext): void {
+  const cfg = linkConfig(c);
+  new TextLinkSuggest(c.app, area, (q) => cfg.suggest(q, []));
 }
 
 /** Links: a note name as a link, the type at the other end beside it as plain text. */

@@ -5,6 +5,7 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 ## Unreleased
 
 ### Added
+- Graph view details: typing `[[` in a text or list property in edit mode suggests notes by the typed characters, limited to the types the schema allows.
 - Graph view: the note's `type` is always the first property, schema info sections fold and have accent-coloured headings, and the mouse wheel over the controls panel scrolls it instead of the graph.
 - Graph view details: one-line `type` field with the info icon inside, schema info as read-only fields (note properties with allowed values and default, outgoing and incoming edges from rules and `edgeTypes`), tags without `#`, a dimmed border on editable fields, and the pane keeps showing the followed note when the selected one is filtered out. Controls: visible scrollbars, filled funnel for filtered properties, Clear links only while property filters are set, links shown without brackets.
 - Graph view: schema info behind an info icon on `type`, a button beside the gear that shows or hides the details pane, resizable text boxes, tag and dimmed missing-link styling, dropdown suggestions for links, tags and enum values, dotted read-only fields, a scrollable controls panel.
