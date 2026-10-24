@@ -91,6 +91,11 @@ A type's properties are listed with their values and counts, a node without the 
 
 A property the schema declares with allowed values is an enum dropdown, or checkboxes for a list property; the schema kind picks number, date, boolean and list inputs.
 
+## Link suggestions by type and text
+
+While a link property is edited, notes of the edge type's allowed target types whose name contains the typed text are offered, names starting with it first.
+
+
 ## Editor chosen by value
 
 Without a declaration the current value's type picks the input: number, boolean, list, short or long text.

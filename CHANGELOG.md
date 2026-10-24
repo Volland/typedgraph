@@ -5,6 +5,8 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 ## Unreleased
 
 ### Added
+- Graph view details pane: compact form fields as wide as the pane, read-only look-alike in read mode, pen and link icons next to the note title, dropdown chevrons, clickable link chips with note suggestions in edit mode, locked `type`; `aliases`, `tags` and `path` are note properties.
+- Graph view: Option/Alt-click on a node expands or collapses its neighbors; opening a note switches to its tab when it is already open.
 
 - **Hiding an edge type hides orphaned nodes.** In the graph controls, unchecking an edge type now also hides the nodes that were connected only by hidden types. Nodes without edges and pinned nodes stay; the layout is unchanged.
 - **Forces, pinning and controls for graphs.** Inline blocks and the Graph view now use a live force simulation with Obsidian's forces (centre, repel, link force, link distance) plus node-edge repulsion (a node lying across an edge is pushed off it) and label repulsion. Drag a node to pin it, shift-click toggles a pin, and the note holding a block (or followed by the Graph view) is pinned at the canvas centre. A gear button opens Display, Edge types (show or hide each type), Forces and Pins controls, and right-click opens a menu with pin, unpin, open, expand and re-center. Block headers take `forces:`, `display:`, `pin:` and `controls:` for initial values; "Copy as block options" turns the panel into those lines.

@@ -138,11 +138,11 @@ The Graph view's controls SHALL have a Node types section that lists the types i
 - **THEN** each property with at least one value is listed with its values and counts, a node without the property counting as "(empty)"
 
 ### Requirement: Editable details
-The details pane SHALL have an Edit toggle, remembered on the device, for a selected node that is a Markdown note in the vault. With it on, each property SHALL be an input that writes the value back to the note's frontmatter when it changes. A property the node's schema declares with a list of allowed values SHALL be a dropdown of those values (checkboxes when the property holds a list); otherwise the input SHALL follow the schema kind or, without a declaration, the type of the current value: number, boolean, date, comma-separated list or text. An empty entry SHALL be saved as an empty value. Properties the schema declares and the note lacks SHALL be offered empty. An entry that is not valid for its kind SHALL be marked and not saved.
+The details pane SHALL draw every property as a form field, compact and as wide as the pane. The pane header SHALL have a pen icon, remembered on the device, for a selected node that is a Markdown note in the vault. With it off the fields are read-only but their text SHALL stay selectable and scrollable; with it on, each property SHALL write its value back to the note's frontmatter when it changes, except `type`, which is never editable. A property the node's schema declares with a list of allowed values SHALL be a dropdown of those values, marked with a chevron on the right (a multi-choice dropdown when the property holds a list); otherwise the input SHALL follow the schema kind or, without a declaration, the type of the current value: number, boolean, date, comma-separated list or text. An empty entry SHALL be saved as an empty value. Properties the schema declares and the note lacks SHALL be offered empty. An entry that is not valid for its kind SHALL be marked and not saved. Properties that hold links, which are those with a declared edge type or a `[[link]]` value, SHALL show each link as a clickable chip in both modes; in edit mode a chip can be removed and an input adds a link, offering the notes whose name contains the typed text and whose type the edge type allows. `aliases`, `tags` and `path` SHALL count as note properties, not technical ones.
 
 #### Scenario: Enum property
-- **WHEN** the schema declares `status` with the values `To Do` and `Done` and Edit is on
-- **THEN** `status` is a dropdown of those values and choosing one writes it to the note's frontmatter
+- **WHEN** the schema declares `status` with the values `To Do` and `Done` and editing is on
+- **THEN** `status` is a dropdown with a chevron of those values and choosing one writes it to the note's frontmatter
 
 #### Scenario: Undeclared property
 - **WHEN** a property has no declaration and its value is a number
@@ -152,13 +152,39 @@ The details pane SHALL have an Edit toggle, remembered on the device, for a sele
 - **WHEN** the user changes a value and leaves the field
 - **THEN** the note's frontmatter has the new value and the graph refreshes from the vault
 
-### Requirement: Details pane shortcuts
-The details pane of a selected node that is not a stub SHALL have an "Open note" button that opens the note in a new tab without moving focus from the Graph view, and the Graph view SHALL keep following the note it follows. The pane SHALL have an "Only with values" toggle, remembered on the device, that lists only the properties whose value is not empty, null or an empty list.
+#### Scenario: Read-only fields
+- **WHEN** editing is off
+- **THEN** the fields look the same but cannot be changed, and a long value can be selected and scrolled
 
-#### Scenario: Open in the background
-- **WHEN** the user presses "Open note"
-- **THEN** the note opens in a new tab and the Graph view tab stays active
+#### Scenario: Type is locked
+- **WHEN** editing is on
+- **THEN** the `type` property stays read-only
+
+#### Scenario: Link suggestions
+- **WHEN** the user types `Eu` into an `assignee` link field whose edge type allows `Person`
+- **THEN** the notes of type `Person` whose name contains `Eu` are offered, and choosing one adds `[[Name]]`
+
+### Requirement: Details pane shortcuts
+The header of the details pane of a selected node that is not a stub SHALL have a link icon "Open note" that opens the note exactly as a double-click on the node does. The pane SHALL have an "Only with values" toggle, remembered on the device, that lists only the properties whose value is not empty, null or an empty list. When the pane or the controls panel is taller than the view it SHALL scroll.
+
+#### Scenario: Open note
+- **WHEN** the user presses the link icon
+- **THEN** the note opens as it does on a double-click of its node
 
 #### Scenario: Only with values
 - **WHEN** the toggle is on
 - **THEN** properties with no value are not listed
+
+### Requirement: Opening notes
+Opening a note from the Graph view SHALL switch to the tab the note is already open in, and only open a new tab when it is not open.
+
+#### Scenario: Already open
+- **WHEN** the note is open in another tab and the user double-clicks its node
+- **THEN** that tab becomes active and no new tab opens
+
+### Requirement: Alt-click toggles neighbors
+Option/Alt-clicking a node in the Graph view SHALL expand its neighbors when some are not in the view, and otherwise collapse the neighbors that hang off it alone.
+
+#### Scenario: Expand then collapse
+- **WHEN** the user Alt-clicks a node with hidden neighbors, then Alt-clicks it again
+- **THEN** the first click shows its neighbors and the second removes those that touch nothing else

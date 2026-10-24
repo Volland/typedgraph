@@ -118,12 +118,12 @@ describe('graph view', () => {
     const n = graph.node('T.md')!;
     const style = makeStyler([]).resolveNode(n.labels);
     const d = nodeDetails(n, style, new Set(['status', 'owner']));
-    expect([...d.technical].sort()).toEqual(['labels', 'path', 'stub', 'style.color', 'style.icon', 'style.label', 'style.shape', 'tags'].sort());
-    expect(d.rows.map(([k]) => k).filter((k) => !d.technical.has(k))).toEqual(['type', 'status', 'owner']);
+    expect([...d.technical].sort()).toEqual(['labels', 'stub', 'style.color', 'style.icon', 'style.label', 'style.shape'].sort());
+    expect(d.rows.map(([k]) => k).filter((k) => !d.technical.has(k))).toEqual(['type', 'status', 'tags', 'owner', 'path']);
     expect(d.source).toBe('T.md');
 
     const open = nodeDetails(n, undefined);
-    expect(open.rows.map(([k]) => k).filter((k) => !open.technical.has(k))).toEqual(['type', 'status', 'tags', 'owner']);
+    expect(open.rows.map(([k]) => k).filter((k) => !open.technical.has(k))).toEqual(['type', 'status', 'tags', 'owner', 'path']);
 
     const edge = fixture().edge('Alice.md#knows#Bob.md#0')!;
     const e = edgeDetails(edge, fixture(), undefined, new Set(['since']));

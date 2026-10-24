@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coerceInput, fieldSpec, formatInput } from '../src';
+import { coerceInput, fieldSpec, formatInput, fromLinkItems, linkItems, suggestLinks } from '../src';
 
 const prop = (over: Partial<{ kind: 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'link' | 'list'; many: boolean; values: unknown[] | null }>) => ({ kind: 'text' as const, many: false, values: null, ...over });
 
@@ -43,5 +43,22 @@ describe('editing a property', () => {
     expect(coerceInput({ kind: 'enum-list', options: ['a', 'b'] }, ['b'])).toEqual({ ok: true, value: ['b'] });
     expect(formatInput({ kind: 'list', options: [] }, ['a', 'b'])).toBe('a, b');
     expect(formatInput({ kind: 'text', options: [] }, null)).toBe('');
+  });
+
+  // @tg: verifies:: [[tests/graph-ui#Link suggestions by type and text]] {since: "2026-10-24", level: unit}
+  // @lat: [[tests/graph-ui#Link suggestions by type and text]]
+  // @tg: verifies:: [[openspec:graph-view#Editable details#Link suggestions]]
+  it('suggests notes of the allowed types whose name contains the typed text, prefix matches first', () => {
+    const n = (id: string, labels: string[], title?: string) => ({ id, labels, props: title ? { title } : {}, stub: false });
+    const nodes = [n('People/Eulalius.md', ['Person'], 'Eulálius'), n('People/Ruth.md', ['Person']), n('Tasks/Rue task.md', ['Task']), n('People/Bruce.md', ['Person'])];
+    expect(suggestLinks(nodes, 'ru', ['Person']).map((x) => x.id)).toEqual(['People/Ruth.md', 'People/Bruce.md']);
+    expect(suggestLinks(nodes, 'ru', null).map((x) => x.id)).toEqual(['Tasks/Rue task.md', 'People/Ruth.md', 'People/Bruce.md']);
+    expect(suggestLinks(nodes, '', ['Task'])).toHaveLength(1);
+    expect(suggestLinks(nodes, 'zzz', null)).toEqual([]);
+    expect(linkItems(['[[A]]', '', '[[B]]'])).toEqual(['[[A]]', '[[B]]']);
+    expect(linkItems(null)).toEqual([]);
+    expect(fromLinkItems(['[[A]]'], false)).toBe('[[A]]');
+    expect(fromLinkItems([], false)).toBeNull();
+    expect(fromLinkItems([], true)).toEqual([]);
   });
 });

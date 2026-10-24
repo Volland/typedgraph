@@ -30,6 +30,8 @@ export interface RendererOptions {
   onSelect?: (sel: { kind: 'node' | 'edge'; id: string } | null) => void;
   /** Called when a node's expand action fires (long-press, and right-click when `onContextMenu` is not set). */
   onExpand?: (id: string) => void;
+  /** Option/Alt-click on a node: the host expands its neighbors or collapses them. */
+  onToggleNeighbors?: (id: string) => void;
   /** Saved node positions. When every node has one the simulation is not warmed up and they are used as given. */
   positions?: Record<string, { x: number; y: number }>;
   /** Called on right-click; when set, right-click no longer expands a node, so the host can offer expand in its menu. */
@@ -85,6 +87,7 @@ export class GraphRenderer {
     this.cy.on('tap', 'node', (e) => {
       const orig = e.originalEvent as MouseEvent | undefined;
       if (orig && (orig.metaKey || orig.ctrlKey)) this.open(target(e).data('path') as unknown);
+      else if (orig?.altKey) opts.onToggleNeighbors?.(target(e).id());
     });
     this.cy.on('taphold', 'node', (e) => opts.onExpand?.(target(e).id()));
     this.cy.on('cxttap', (e) => this.contextMenu(e));
