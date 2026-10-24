@@ -23,6 +23,12 @@ export function valueKeys(v: unknown): string[] {
   return [keyOf(v)];
 }
 
+/** A value key as people read it: a `[[link]]` without its brackets (the alias, when it has one). */
+export function valueLabel(key: string): string {
+  const m = /^\[\[([^\]|]*)(?:\|([^\]]*))?\]\]$/.exec(key);
+  return m ? (m[2] ?? m[1]!) : key;
+}
+
 function keyOf(v: unknown): string {
   return typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v);
 }
@@ -46,6 +52,16 @@ export class ViewFilters {
 
   get active(): boolean {
     return this.hiddenTypes.size > 0 || this.values.size > 0;
+  }
+
+  /** True when any property value filter is set. */
+  get valueFiltered(): boolean {
+    return this.values.size > 0;
+  }
+
+  /** Remove the property value filters, keeping the hidden types. */
+  clearValues(): void {
+    this.values.clear();
   }
 
   setTypeHidden(type: string, hidden: boolean): void {

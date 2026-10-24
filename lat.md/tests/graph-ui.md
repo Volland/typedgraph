@@ -98,7 +98,11 @@ While a link property is edited, notes of the edge type's allowed target types w
 
 ## Schema info of a type
 
-The info view of a type lists each property with its data type and cardinality, the edge types the type may have with their target types, and which types may point at it.
+The info view of a type lists each property with its data type, cardinality, allowed values and default, the edge types it may have and which types may point at it, read from type rules and edge type declarations.
+
+## Value filter display
+
+A link value is shown without its brackets in the filter lists, and Clear filters removes only the property value filters, keeping hidden types.
 
 ## Editor chosen by value
 

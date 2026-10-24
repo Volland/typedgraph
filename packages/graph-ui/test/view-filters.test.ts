@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_VALUE, UNTYPED, ViewFilters, applyFilters, collapseTargets, propertyValues, removalTargets, typeCounts, valueKeys, type GraphElements, type NodeElement } from '../src';
+import { EMPTY_VALUE, UNTYPED, ViewFilters, applyFilters, collapseTargets, propertyValues, removalTargets, typeCounts, valueKeys, valueLabel, type GraphElements, type NodeElement } from '../src';
 
 const node = (id: string, labels: string[], props: Record<string, unknown> = {}): NodeElement => ({ id, label: id, labels, stub: false, path: id, props });
 const edge = (source: string, target: string) => ({ id: `${source}-${target}`, source, target, type: 'rel', sign: 1 as const });
@@ -20,6 +20,25 @@ function graph(): GraphElements {
   };
 }
 const ids = (g: GraphElements) => g.nodes.map((n) => n.id).sort();
+
+describe('value filter display', () => {
+  // @tg: verifies:: [[tests/graph-ui#Value filter display]] {since: "2026-10-24", level: unit}
+  // @lat: [[tests/graph-ui#Value filter display]]
+  it('shows links without brackets and clears only the value filters', () => {
+    expect(valueLabel('[[Eulálius Vopršálek]]')).toBe('Eulálius Vopršálek');
+    expect(valueLabel('[[People/Ruth|Ruth]]')).toBe('Ruth');
+    expect(valueLabel('plain [[x]]')).toBe('plain [[x]]');
+    const f = new ViewFilters();
+    expect(f.valueFiltered).toBe(false);
+    f.setTypeHidden('Person', true);
+    expect(f.valueFiltered).toBe(false);
+    f.setValues('Task', 'status', ['Done']);
+    expect(f.valueFiltered).toBe(true);
+    f.clearValues();
+    expect(f.valueFiltered).toBe(false);
+    expect(f.hiddenTypes.has('Person')).toBe(true);
+  });
+});
 
 describe('removing nodes from the view', () => {
   // @tg: verifies:: [[tests/graph-ui#Collapse neighbors]] {since: "2026-10-24", level: unit}

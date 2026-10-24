@@ -101,6 +101,8 @@ function readOnlyField(td: HTMLElement, c: FieldContext, spec: FieldSpec): void 
     return;
   }
   const text = plain(spec, c);
+  // The note's type is one line that cannot be resized.
+  if (c.key === 'type') return void textBox(td, c, text, true, 1).addClass('obsigraph-fixed');
   textBox(td, c, text, true, Math.min(4, Math.max(1, text.split('\n').length)));
 }
 
@@ -146,7 +148,7 @@ function editorControl(td: HTMLElement, c: FieldContext, spec: FieldSpec, value:
       return;
     }
     case 'enum': {
-      const wrap = td.createDiv({ cls: 'obsigraph-field' });
+      const wrap = td.createDiv({ cls: 'obsigraph-field is-editable' });
       const input = wrap.createEl('input', { attr: { type: 'text', placeholder: 'Choose…' } });
       let committed = chosenOptions(value)[0] ?? '';
       input.value = committed;
@@ -228,7 +230,7 @@ const cleanTag = (t: string): string => t.trim().replace(/^#+/, '').replace(/\s+
 
 /** Tags drawn the way Obsidian draws them; suggestions are the tags in use in the vault. */
 function tagConfig(c: FieldContext): ChipConfig {
-  const tag = (host: HTMLElement, name: string) => host.createEl('a', { cls: 'tag', text: `#${name}`, attr: { href: `#${name}` } });
+  const tag = (host: HTMLElement, name: string) => host.createEl('a', { cls: 'tag', text: name, attr: { href: `#${name}` } });
   return {
     many: true,
     chip: (host, item) => {

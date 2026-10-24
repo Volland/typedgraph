@@ -1,5 +1,5 @@
 import { Menu, setIcon } from 'obsidian';
-import { EMPTY_VALUE, propertyValues, typeCounts, typesOf, type GraphElements, type NodeElement, type ViewFilters } from '@obsigraph/graph-ui';
+import { EMPTY_VALUE, propertyValues, typeCounts, typesOf, valueLabel, type GraphElements, type NodeElement, type ViewFilters } from '@obsigraph/graph-ui';
 
 /** What the Graph view lends the controls panel so it can filter the nodes it shows. */
 export interface FilterHost {
@@ -37,9 +37,9 @@ export function renderNodeTypes(host: HTMLElement, filterHost: FilterHost, open:
     for (const t of types) filters.setTypeHidden(t.type, true);
     change();
   });
-  if (filters.active) {
+  if (filters.valueFiltered) {
     bar.createEl('a', { text: 'Clear filters' }).addEventListener('click', () => {
-      filters.clear();
+      filters.clearValues();
       change();
     });
   }
@@ -89,17 +89,19 @@ function renderValueFilters(host: HTMLElement, filterHost: FilterHost, type: str
     d.open = accepted.size > 0;
     d.createEl('summary', { text: accepted.size > 0 ? `${prop} (${accepted.size})` : prop });
     const list = d.createDiv();
-    const bar = list.createDiv({ cls: 'obsigraph-controls-row obsigraph-controls-links' });
-    bar.createEl('a', { text: 'Clear' }).addEventListener('click', () => {
-      filters.setValues(type, prop, []);
-      change();
-    });
+    if (accepted.size > 0) {
+      const bar = list.createDiv({ cls: 'obsigraph-controls-row obsigraph-controls-links' });
+      bar.createEl('a', { text: 'Clear' }).addEventListener('click', () => {
+        filters.setValues(type, prop, []);
+        change();
+      });
+    }
     for (const [key, count] of [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) {
       const row = list.createDiv({ cls: 'obsigraph-controls-row' });
       const label = row.createEl('label', { cls: 'obsigraph-controls-type' });
       const box = label.createEl('input', { type: 'checkbox' });
       box.checked = accepted.has(key);
-      label.createSpan({ text: key, cls: key === EMPTY_VALUE ? 'obsigraph-muted' : '' });
+      label.createSpan({ text: valueLabel(key), attr: { title: key }, cls: key === EMPTY_VALUE ? 'obsigraph-muted' : '' });
       row.createSpan({ cls: 'obsigraph-controls-value', text: String(count) });
       box.addEventListener('change', () => {
         const next = new Set(filters.acceptedValues(type, prop));
@@ -133,7 +135,7 @@ export function showValueMenu(at: { x: number; y: number }, filterHost: FilterHo
     for (const [key, count] of [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) {
       menu.addItem((i) =>
         i
-          .setTitle(`${key} (${count})`)
+          .setTitle(`${valueLabel(key)} (${count})`)
           .setChecked(accepted.has(key))
           .onClick(() => {
             const next = new Set(filters.acceptedValues(type, prop));

@@ -1,4 +1,4 @@
-import { CypherError, mergeSchemas, type TypeSchema } from '@obsigraph/core';
+import { CypherError, mergeSchemas, type SchemaSet, type TypeSchema } from '@obsigraph/core';
 import { applyFilters, collapseTargets, schemaInfo, isEmptyValue, nodeElement, removalTargets, typesOf, ViewFilters } from '@obsigraph/graph-ui';
 import { ItemView, Notice, TFile, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type ObsigraphPlugin from '../main';
@@ -186,13 +186,19 @@ export class GraphView extends ItemView {
 
   /** After a redraw: keep the selected element selected and its details current, or clear them if it is gone. */
   private keepSelection(renderer: GraphRenderer, sel: { kind: 'node' | 'edge'; id: string } | null): void {
-    if (!sel) return;
+    if (!sel) return this.showDetails(null);
     const present = sel.kind === 'node' ? this.shown.nodes.some((n) => n.id === sel.id) : this.shown.edges.some((e) => e.id === sel.id);
-    if (!present) return this.showDetails(null);
+    if (!present) return this.showDetails(this.primary());
     // Do not rebuild the pane under someone who is typing in it.
     if (this.details.contains(activeDocument.activeElement)) return;
     renderer.select(sel.id);
     this.showDetails(sel);
+  }
+
+  /** The note the details fall back to when nothing (visible) is selected: the followed note, else the first one shown. */
+  private primary(): { kind: 'node'; id: string } | null {
+    const id = !this.query && this.focus && this.shown.nodes.some((n) => n.id === this.focus) ? this.focus : this.shown.nodes[0]?.id;
+    return id ? { kind: 'node', id } : null;
   }
 
   // @tg: implements:: [[openspec:graph-view#Click to expand]]
@@ -289,7 +295,9 @@ export class GraphView extends ItemView {
   }
 
   // @tg: implements:: [[openspec:graph-view#Details panel]]
-  private showDetails(sel: { kind: 'node' | 'edge'; id: string } | null): void {
+  private showDetails(selected: { kind: 'node' | 'edge'; id: string } | null): void {
+    // The pane never goes blank while it is switched on: with nothing selected it shows the primary note.
+    const sel = selected ?? this.primary();
     if (!sel || sel.id !== this.selection?.id) this.schemaView = false;
     this.selection = sel;
     this.details.empty();
@@ -345,10 +353,7 @@ export class GraphView extends ItemView {
       setIcon(link, 'link');
       link.addEventListener('click', () => this.openNote(node.id));
     }
-    if (this.schemaView && schema && node) {
-      this.renderSchemaInfo(schema, schemas.schemas);
-      return;
-    }
+    const schemaView = this.schemaView && !!schema && !!node;
     const table = this.details.createEl('table');
     const rows = [...d.rows];
     // Editing can fill in a property the schema declares but the note does not have yet.
@@ -358,6 +363,8 @@ export class GraphView extends ItemView {
     // Note properties first, graph bookkeeping after.
     rows.sort((a, b) => Number(d.technical.has(a[0])) - Number(d.technical.has(b[0])));
     for (const [k, text] of rows) {
+      // The schema view keeps the note's type row as it is and replaces the rest.
+      if (schemaView && k !== 'type') continue;
       const hasValue = k in d.values;
       const value = hasValue ? d.values[k] : text;
       if (withValues && (hasValue ? isEmptyValue(value) : text.trim() === '' || text === '—')) continue;
@@ -387,41 +394,49 @@ export class GraphView extends ItemView {
       });
       if (node && schema && k === 'type') {
         td.addClass('obsigraph-type-cell');
-        const info = td.createEl('button', { cls: 'clickable-icon obsigraph-type-info', attr: { 'aria-label': "Show the type's schema" } });
+        const info = td.createEl('button', { cls: `clickable-icon obsigraph-type-info${schemaView ? ' is-active' : ''}`, attr: { 'aria-label': schemaView ? 'Show the property values again' : "Show the type's schema" } });
         setIcon(info, 'info');
         info.addEventListener('click', () => {
-          this.schemaView = true;
+          this.schemaView = !schemaView;
           this.showDetails(this.selection);
         });
       }
     }
+    if (schemaView && schema) this.renderSchemaInfo(table, schema, schemas);
   }
 
-  /** The type's schema in place of the values: property data types and cardinalities, and the edge types with the types at their other end. */
+  /** The type's schema as read-only fields in the details table: properties, outgoing and incoming edge types. */
   // @tg: implements:: [[openspec:graph-view#Editable details]] {since: "2026-10-24"}
-  private renderSchemaInfo(schema: TypeSchema, all: Map<string, TypeSchema>): void {
-    const info = schemaInfo(schema, all.values());
-    const back = this.details.createEl('button', { cls: 'obsigraph-type-info is-active clickable-icon', attr: { 'aria-label': 'Show the property values again' } });
-    setIcon(back, 'info');
-    back.addEventListener('click', () => {
-      this.schemaView = false;
-      this.showDetails(this.selection);
-    });
-    this.details.createEl('div', { cls: 'obsigraph-schema-title', text: schema.type });
-    const section = (title: string, head: string[], rows: string[][], empty: string) => {
-      this.details.createEl('div', { cls: 'obsigraph-schema-heading', text: title });
-      if (rows.length === 0) return void this.details.createEl('div', { cls: 'obsigraph-muted', text: empty });
-      const table = this.details.createEl('table', { cls: 'obsigraph-schema-table' });
-      const tr = table.createEl('tr');
-      for (const h of head) tr.createEl('th', { text: h });
+  private renderSchemaInfo(table: HTMLElement, schema: TypeSchema, set: SchemaSet): void {
+    const info = schemaInfo(schema, set.schemas.values(), set.edgeTypes.values());
+    const section = (title: string, empty: string, rows: { name: string; lines: string[] }[]) => {
+      table.createEl('tr', { cls: 'obsigraph-schema-heading' }).createEl('th', { text: title, attr: { colspan: '2' } });
+      if (rows.length === 0) table.createEl('tr').createEl('td', { cls: 'obsigraph-muted', text: empty, attr: { colspan: '2' } });
       for (const r of rows) {
-        const row = table.createEl('tr');
-        for (const cell of r) row.createEl('td', { text: cell });
+        const tr = table.createEl('tr');
+        tr.createEl('th', { text: r.name });
+        const area = tr.createEl('td').createEl('textarea', { attr: { rows: String(r.lines.length), readonly: '' } });
+        area.value = r.lines.join('\n');
       }
     };
-    section('Properties', ['name', 'data type', 'card.'], info.properties.map((p) => [p.name, p.type, p.cardinality]), 'No declared properties');
-    section('Edges', ['edge type', 'to type', 'card.'], info.outgoing.map((e) => [e.type, e.targets?.join(', ') ?? 'any', e.cardinality]), info.unrestricted ? 'Any edge type is allowed' : 'No edges allowed');
-    section('Incoming', ['edge type', 'from type'], info.incoming.map((e) => [e.type, e.from.join(', ')]), 'No type declares edges to this one');
+    section(
+      'Note properties',
+      'No declared properties',
+      info.properties.map((p) => {
+        const more = [p.values.length > 0 ? `values: ${p.values.join(', ')}` : '', p.default !== null ? `default: ${p.default}` : ''].filter(Boolean);
+        return { name: p.name, lines: [`${p.type} · ${p.cardinality}`, ...(more.length > 0 ? [more.join(' · ')] : [])] };
+      }),
+    );
+    section(
+      'Outgoing edges',
+      info.unrestricted ? 'Any edge type is allowed' : 'No edges allowed',
+      info.outgoing.map((e) => ({ name: e.type, lines: [`→ ${e.targets?.join(', ') ?? 'any type'}${e.cardinality ? ` · ${e.cardinality}` : ''}`] })),
+    );
+    section(
+      'Incoming edges',
+      'No type declares edges to this one',
+      info.incoming.map((e) => ({ name: e.type, lines: [`← ${e.from?.join(', ') ?? 'any type'}`] })),
+    );
   }
 
   /** A filter icon next to a property: opens the values of that property among the nodes of the same type. */
