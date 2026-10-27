@@ -6,6 +6,7 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 
 ### Added
 
+- **Note variables in `graph-query` blocks.** `{{path}}`, `{{title}}`, `{{name}}`, `{{folder}}`, `{{extension}}` and frontmatter values such as `{{fm.status}}` in the query are replaced by Cypher literals of the note holding the block, so `MATCH (w {path: {{path}}})` works in any note. Plain lookup only, nothing is evaluated; a name that resolves to nothing becomes `null`.
 - **Plugin setting "Plain links as links_to edges".** Turns on the existing `linkEdges` option from the settings tab, so ordinary links in note text become untyped `links_to` edges. Off by default; changing it re-indexes the vault, like "Frontmatter links as edges".
 
 ### Fixed
