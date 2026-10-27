@@ -138,7 +138,7 @@ function valueParts(v: unknown, source: string | null): ValuePart[] {
 }
 
 /** Properties that always count as note properties, even when a schema does not declare them. */
-const NOTE_KEYS = new Set(['type', 'types']);
+const NOTE_KEYS = new Set(['type', 'types', 'aliases', 'alias', 'tags', 'tag', 'path']);
 
 const isTechnical = (key: string, declared: ReadonlySet<string> | undefined): boolean => !!declared && !declared.has(key) && !NOTE_KEYS.has(key);
 
@@ -163,7 +163,7 @@ export function nodeDetails(n: GraphNode, style?: ResolvedNodeStyle, declared?: 
     ['labels', n.labels.join(', ') || '—'],
     ['stub', String(n.stub)],
   ];
-  const technical = new Set(['labels', 'stub', 'path']);
+  const technical = new Set(['labels', 'stub']);
   const values: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(n.props)) {
     if (k === 'title') continue;

@@ -106,3 +106,89 @@ The Graph view SHALL run the query in its input on Ctrl+Enter or Cmd+Enter, and 
 #### Scenario: Empty query
 - **WHEN** the view shows a query result and the user clears the input and submits
 - **THEN** the view shows the active note's neighborhood and follows note switches again
+
+### Requirement: Remove and collapse
+The Graph view's node context menu SHALL offer "Collapse neighbors" and "Remove from view". Collapse SHALL remove from the view the neighbors of the node that are joined to no other node in the view. Remove SHALL remove the node and the nodes in the view that are joined only to it. Removed nodes SHALL stay out across refreshes until the followed note or the query changes, the user expands a neighbor that includes them, or the user restores them from the Node types section of the controls.
+
+#### Scenario: Collapse neighbors
+- **WHEN** a node has three neighbors, two of which have no other edge in the view, and the user chooses "Collapse neighbors"
+- **THEN** the two leaf neighbors disappear and the third, which also connects to another node, stays
+
+#### Scenario: Remove from view
+- **WHEN** the user chooses "Remove from view" on a node that has one leaf neighbor
+- **THEN** the node, the leaf and their edges are gone, and the rest of the graph is unchanged
+
+#### Scenario: Removed nodes stay out
+- **WHEN** a node was removed and the vault changes
+- **THEN** the view refreshes without it
+
+### Requirement: Graph view filters
+The Graph view's controls SHALL have a Node types section that lists the types in the view with their node counts. A type SHALL be hideable, which removes its nodes and their edges from the view. For each type the section SHALL offer the properties of that type with the values they have and how many nodes have each; checking values of a property SHALL keep only nodes whose value for it is any of the checked ones, a list value counting when any item is checked and an empty or missing value being the choice "(empty)". A type's properties that have filters SHALL all hold for a node to stay. A property in the details pane SHALL have a filter button that opens the same values as a menu. The values offered SHALL be those of the nodes of that type in the view before value filters, and properties with only empty values or with more than 60 distinct values SHALL be left out unless they are already filtered. Filters SHALL stay while the followed note changes. "Clear filters", which removes the property value filters, and a property's "Clear" SHALL be offered only while such filters are set; the filter button of a filtered property SHALL be drawn filled, and link values SHALL be listed without their brackets.
+
+#### Scenario: Hide node types
+- **WHEN** the user unchecks the type `Person` in Node types
+- **THEN** every `Person` node and the edges at it disappear and the type stays listed so it can be checked again
+
+#### Scenario: Filter by property values
+- **WHEN** the user checks `To Do` and `Done` for `status` of `Task` and `y` for `team`
+- **THEN** a Task stays only if its status is `To Do` or `Done` and its `team` contains `y`, and nodes of other types are unaffected
+
+#### Scenario: Values offered per type
+- **WHEN** the user opens the filter of a type
+- **THEN** each property with at least one value is listed with its values and counts, a node without the property counting as "(empty)"
+
+### Requirement: Editable details
+The details pane SHALL draw every property as a form field, compact and as wide as the pane. The pane header SHALL have a pen icon, remembered on the device, for a selected node that is a Markdown note in the vault. With it off the fields are read-only but their text SHALL stay selectable and scrollable; with it on, each property SHALL write its value back to the note's frontmatter when it changes, except `type`, which is never editable. A property the node's schema declares with a list of allowed values SHALL be a dropdown of those values, marked with a chevron on the right (a multi-choice dropdown when the property holds a list); otherwise the input SHALL follow the schema kind or, without a declaration, the type of the current value: number, boolean, date, comma-separated list or text. An empty entry SHALL be saved as an empty value. Properties the schema declares and the note lacks SHALL be offered empty. An entry that is not valid for its kind SHALL be marked and not saved. Properties that hold links, which are those with a declared edge type or a `[[link]]` value, SHALL show each link as a clickable chip in both modes; in edit mode a chip can be removed and an input adds a link, offering the notes whose name contains the typed text and whose type the edge type allows. `aliases`, `tags` and `path` SHALL count as note properties, not technical ones. In a text, long text or list field in edit mode, typing `[[` SHALL suggest notes by the characters typed after it, limited to the types the property's edge type allows, and choosing one SHALL insert `[[name]]` at the caret. Suggestions SHALL show a note as a link with its type beside it as plain text; a link property that is empty SHALL offer them too. A link to a note that does not exist SHALL be dimmed as in Obsidian, tags SHALL look like Obsidian tags, and the values of an enum list SHALL be chips with the same dropdown of suggestions as links, and a single enum a field that opens the same list. Text boxes SHALL be resizable by dragging their corner, the height kept for the property until Obsidian restarts. Read-only fields SHALL have a dotted outline instead of a fill, and editable fields a border in the dimmed colour Obsidian uses for links to missing notes. Tags SHALL show without the `#`. The `type` field SHALL be a single line that cannot be resized, with an info icon inside it that replaces the values below it with the type's schema, drawn as read-only fields: under "Note properties" each declared property with its data type and cardinality and, on a second line, its allowed values and default; under "Outgoing edges" and "Incoming edges" the edge types with the types at the other end, read from the type's edge rules, other types' rules and the `edgeTypes` declarations of every schema note. The `type` row SHALL be the first one, and the schema sections SHALL fold on a click of their heading, which is drawn in the accent colour. A double-click on a read-only field of an editable note SHALL switch to edit mode with that field focused. The graph SHALL be re-centred in the area left beside the pane when the pane is shown, hidden or resized, until the user pans or zooms. The pane SHALL keep showing while it is switched on: when the selected node is filtered out or nothing is selected it SHALL show the followed note, or the first node of the view. The graph controls SHALL have a button beside the gear that shows or hides the details pane, and the controls panel SHALL scroll when taller than the visible view, with the mouse wheel and trackpad scrolling the panel and not the graph underneath.
+
+#### Scenario: Enum property
+- **WHEN** the schema declares `status` with the values `To Do` and `Done` and editing is on
+- **THEN** `status` is a dropdown with a chevron of those values and choosing one writes it to the note's frontmatter
+
+#### Scenario: Undeclared property
+- **WHEN** a property has no declaration and its value is a number
+- **THEN** it is a number input, and an entry that is not a number is marked and not saved
+
+#### Scenario: Save an edit
+- **WHEN** the user changes a value and leaves the field
+- **THEN** the note's frontmatter has the new value and the graph refreshes from the vault
+
+#### Scenario: Read-only fields
+- **WHEN** editing is off
+- **THEN** the fields look the same but cannot be changed, and a long value can be selected and scrolled
+
+#### Scenario: Type is locked
+- **WHEN** editing is on
+- **THEN** the `type` property stays read-only
+
+#### Scenario: Schema info
+- **WHEN** the user presses the info icon on the `type` row
+- **THEN** the pane lists the type's properties, edges and incoming edges until the icon is pressed again
+
+#### Scenario: Link suggestions
+- **WHEN** the user types `Eu` into an `assignee` link field whose edge type allows `Person`
+- **THEN** the notes of type `Person` whose name contains `Eu` are offered, and choosing one adds `[[Name]]`
+
+### Requirement: Details pane shortcuts
+The header of the details pane of a selected node that is not a stub SHALL have a link icon "Open note" that opens the note exactly as a double-click on the node does. The pane SHALL have an "Only with values" toggle, remembered on the device, that lists only the properties whose value is not empty, null or an empty list. When the pane or the controls panel is taller than the view it SHALL scroll.
+
+#### Scenario: Open note
+- **WHEN** the user presses the link icon
+- **THEN** the note opens as it does on a double-click of its node
+
+#### Scenario: Only with values
+- **WHEN** the toggle is on
+- **THEN** properties with no value are not listed
+
+### Requirement: Opening notes
+Opening a note from the Graph view SHALL switch to the tab the note is already open in, and only open a new tab when it is not open.
+
+#### Scenario: Already open
+- **WHEN** the note is open in another tab and the user double-clicks its node
+- **THEN** that tab becomes active and no new tab opens
+
+### Requirement: Alt-click toggles neighbors
+Option/Alt-clicking a node in the Graph view SHALL expand its neighbors when some are not in the view, and otherwise collapse the neighbors that hang off it alone.
+
+#### Scenario: Expand then collapse
+- **WHEN** the user Alt-clicks a node with hidden neighbors, then Alt-clicks it again
+- **THEN** the first click shows its neighbors and the second removes those that touch nothing else

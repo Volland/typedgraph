@@ -54,3 +54,15 @@ A name that resolves to nothing, or to a value that is not a literal, becomes `n
 ## Variables substituted before parsing
 
 A query such as `MATCH (w {path: {{path}}})` runs against the note it sits in, because substitution happens before the Cypher text is parsed and keeps the block's line numbers.
+
+## Layout header options
+
+The `forces`, `display`, `pin` and `controls` header lines fill the block's layout options and leave the query untouched.
+
+## Layout header defaults
+
+Without those lines the block pins its own note, shows the controls button and sets no initial forces or display values, and options never leak from one parse to the next.
+
+## Layout header errors
+
+Invalid layout values are reported with their line while valid entries are kept, and the unknown-option message lists the new options.

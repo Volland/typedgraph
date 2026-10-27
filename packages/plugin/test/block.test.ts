@@ -32,7 +32,7 @@ describe('graph-query block', () => {
   // @tg: verifies:: [[openspec:graph-query-block#Block structure#Header and query]]
   it('splits the header from the query and maps the query start line', () => {
     const b = parseBlock('view: table\ncolumns: a, b\nheight: 500px\n\nMATCH (a)-->(b)\nRETURN a, b');
-    expect(b.options).toEqual({ view: 'table', columns: ['a', 'b'], height: 500, backend: null, code: 'show' });
+    expect(b.options).toEqual({ view: 'table', columns: ['a', 'b'], height: 500, backend: null, code: 'show', forces: {}, display: {}, pin: ['self'], controls: 'show' });
     expect(b.query).toBe('MATCH (a)-->(b)\nRETURN a, b');
     expect(b.queryLine).toBe(4);
     expect(b.errors).toEqual([]);
@@ -43,7 +43,7 @@ describe('graph-query block', () => {
   // @tg: verifies:: [[openspec:graph-query-block#Block structure#No header]]
   it('uses defaults when there is no header', () => {
     const b = parseBlock('MATCH (n:Person) RETURN n');
-    expect(b.options).toEqual({ view: 'auto', columns: null, height: 360, backend: null, code: 'show' });
+    expect(b.options).toEqual({ view: 'auto', columns: null, height: 360, backend: null, code: 'show', forces: {}, display: {}, pin: ['self'], controls: 'show' });
     expect(b.query).toBe('MATCH (n:Person) RETURN n');
     expect(b.queryLine).toBe(0);
   });
@@ -146,5 +146,51 @@ describe('graph-query block', () => {
     expect(parseEdgeStyles('{"knows": {"line": "wavy"}}')).toMatch(/Ignored line 'wavy'/);
     expect(parseTypeStyles('[1]')).toMatch(/object keyed by type label/);
     expect(parseTypeStyles('{bad')).toMatch(/Invalid JSON/);
+  });
+});
+
+describe('layout header options', () => {
+  // @tg: verifies:: [[tests/graph-query-block#Layout header options]] {since: "2026-10-12", level: unit}
+  // @lat: [[tests/graph-query-block#Layout header options]]
+  // @tg: verifies:: [[openspec:graph-query-block#Layout header options#Valid layout header]]
+  it('reads forces, display, pin and controls from the header', () => {
+    const b = parseBlock('forces: center=0.5, repel=12\ndisplay: arrows=false, hide=requirement|feature\npin: self, Other Note\ncontrols: open\n\nMATCH (n) RETURN n');
+    expect(b.errors).toEqual([]);
+    expect(b.options.forces).toEqual({ center: 0.5, repel: 12 });
+    expect(b.options.display).toEqual({ arrows: false, hide: ['requirement', 'feature'] });
+    expect(b.options.pin).toEqual(['self', 'Other Note']);
+    expect(b.options.controls).toBe('open');
+    expect(b.query).toBe('MATCH (n) RETURN n');
+    const none = parseBlock('pin: none\nMATCH (n) RETURN n');
+    expect(none.options.pin).toEqual([]);
+  });
+
+  // @tg: verifies:: [[tests/graph-query-block#Layout header defaults]] {since: "2026-10-12", level: unit}
+  // @lat: [[tests/graph-query-block#Layout header defaults]]
+  // @tg: verifies:: [[openspec:graph-query-block#Layout header options#Defaults]]
+  it('defaults to pinning the note holding the block, with the controls button shown', () => {
+    const b = parseBlock('MATCH (n) RETURN n');
+    expect(b.options.pin).toEqual(['self']);
+    expect(b.options.controls).toBe('show');
+    expect(b.options.forces).toEqual({});
+    expect(b.options.display).toEqual({});
+    // Parsing one block never leaks into the next.
+    parseBlock('forces: repel=3\npin: none\nMATCH (n) RETURN n');
+    expect(parseBlock('MATCH (n) RETURN n').options.forces).toEqual({});
+    expect(parseBlock('MATCH (n) RETURN n').options.pin).toEqual(['self']);
+  });
+
+  // @tg: verifies:: [[tests/graph-query-block#Layout header errors]] {since: "2026-10-12", level: unit}
+  // @lat: [[tests/graph-query-block#Layout header errors]]
+  // @tg: verifies:: [[openspec:graph-query-block#Layout header options#Invalid layout header]]
+  it('reports invalid layout values with their line and keeps valid entries', () => {
+    const b = parseBlock('forces: center=2, repel=5, speed=1\ncontrols: sideways\nMATCH (n) RETURN n');
+    expect(b.errors).toEqual([
+      { line: 0, message: "Invalid center '2' (0-1)" },
+      { line: 0, message: "Unknown forces setting 'speed' (expected center, repel, link, distance, edgeRepel, labelRepel, pinOnDrag)" },
+      { line: 1, message: "Invalid controls 'sideways' (expected show, open or hide)" },
+    ]);
+    expect(b.options.forces).toEqual({ repel: 5 });
+    expect(parseBlock('bogus: 1\nMATCH (n) RETURN n').errors[0]!.message).toContain('forces, display, pin, controls');
   });
 });

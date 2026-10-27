@@ -8,5 +8,6 @@ export function themeFrom(el: HTMLElement): Theme {
     text: v('--text-normal', '#222'),
     muted: v('--text-faint', '#999'),
     background: v('--background-primary', '#fff'),
+    accent: v('--interactive-accent', '#e0a030'),
   };
 }

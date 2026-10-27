@@ -6,8 +6,25 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 
 ### Added
 
+- **Forces, pinning and controls for graphs.** Inline blocks and the Graph view now use a live force simulation with Obsidian's forces (centre, repel, link force, link distance) plus node-edge repulsion (a node lying across an edge is pushed off it) and label repulsion. Drag a node to pin it, shift-click toggles a pin, and the note holding a block (or followed by the Graph view) is pinned at the canvas centre. A gear button opens Display, Edge types (show or hide each type), Forces and Pins controls, and right-click opens a menu with pin, unpin, open, expand and re-center. Block headers take `forces:`, `display:`, `pin:` and `controls:` for initial values; "Copy as block options" turns the panel into those lines.
+- **Hiding an edge type hides orphaned nodes.** In the graph controls, unchecking an edge type now also hides the nodes that were connected only by hidden types. Nodes without edges and pinned nodes stay; the layout is unchanged.
+- **Graph view: remove and collapse.** The node menu has "Collapse neighbors", which drops the neighbors that hang off the node alone, and "Remove from view", which drops the node and those same neighbors. They stay out across refreshes until the followed note or query changes; expanding a node, or Restore removed in the controls, brings them back.
+- **Graph view: filters.** A Node types section in the controls hides node types and, per type, keeps only nodes with checked property values: values of one property are alternatives, every filtered property has to match. A filter button next to a property in the details pane opens the same values as a menu.
+- **Details pane.** An "Open note" button opens the note in a background tab without leaving the graph, "Only with values" hides empty properties, and "Edit" makes the properties editable in place (written to the frontmatter), with a dropdown for properties that list allowed values in the type's schema.
 - **Note variables in `graph-query` blocks.** `{{path}}`, `{{title}}`, `{{name}}`, `{{folder}}`, `{{extension}}` and frontmatter values such as `{{fm.status}}` in the query are replaced by Cypher literals of the note holding the block, so `MATCH (w {path: {{path}}})` works in any note. Plain lookup only, nothing is evaluated; a name that resolves to nothing becomes `null`.
 - **Plugin setting "Plain links as links_to edges".** Turns on the existing `linkEdges` option from the settings tab, so ordinary links in note text become untyped `links_to` edges. Off by default; changing it re-indexes the vault, like "Frontmatter links as edges".
+- Graph view: the graph is re-centred in the visible area whenever the details pane is shown, hidden or resized (until you pan or zoom by hand), and a double-click on a read-only field switches the pane to edit mode.
+- Graph view details: typing `[[` in a text or list property in edit mode suggests notes by the typed characters, limited to the types the schema allows.
+- Graph view: the note's `type` is always the first property, schema info sections fold and have accent-coloured headings, and the mouse wheel over the controls panel scrolls it instead of the graph.
+- Graph view details: one-line `type` field with the info icon inside, schema info as read-only fields (note properties with allowed values and default, outgoing and incoming edges from rules and `edgeTypes`), tags without `#`, a dimmed border on editable fields, and the pane keeps showing the followed note when the selected one is filtered out. Controls: visible scrollbars, filled funnel for filtered properties, Clear links only while property filters are set, links shown without brackets.
+- Graph view: schema info behind an info icon on `type`, a button beside the gear that shows or hides the details pane, resizable text boxes, tag and dimmed missing-link styling, dropdown suggestions for links, tags and enum values, dotted read-only fields, a scrollable controls panel.
+- Graph view details pane: compact form fields as wide as the pane, read-only look-alike in read mode, pen and link icons next to the note title, dropdown chevrons, clickable link chips with note suggestions in edit mode, locked `type`; `aliases`, `tags` and `path` are note properties.
+- Graph view: Option/Alt-click on a node expands or collapses its neighbors; opening a note switches to its tab when it is already open.
+- Graph UI: `Simulation`, `parseForces`, `parseDisplay`, `parsePin`, `formatLayoutOptions` and the default settings are exported; `GraphRenderer` gains `layout`, `onContextMenu` and `onSettingsChange` options and pin, settings and edge-type methods; `buildStylesheet` takes optional display settings.
+
+### Changed
+
+- Graphs are no longer laid out once with `cose`: nodes keep moving until the layout cools, and default node size, link thickness and label fade are smaller. Right-click in the plugin opens the menu instead of expanding a node (use the menu or long-press); the VS Code webview still expands on right-click.
 
 ### Fixed
 

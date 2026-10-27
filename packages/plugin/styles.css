@@ -151,3 +151,111 @@
   padding: 0 6px;
   text-align: left;
 }
+
+/* Graph controls: gear button and panel over the graph */
+.obsigraph-graph { position: relative; }
+.obsigraph-controls { position: absolute; top: 6px; right: 6px; z-index: 10; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-height: calc(100% - 12px); }
+/* In a block, Obsidian's </> button sits in the top right corner; keep the gear clear of it. */
+.obsigraph-block .obsigraph-controls { right: 44px; }
+.obsigraph-controls-button { background: var(--background-secondary); border: 1px solid var(--background-modifier-border); }
+.obsigraph-controls-panel { display: none; min-height: 0; width: 240px; overflow-y: auto; padding: 2px 10px 8px; background: var(--background-secondary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); box-shadow: var(--shadow-s); font-size: var(--font-ui-small); }
+.obsigraph-controls-panel.is-open { display: block; }
+.obsigraph-controls-section { border-bottom: 1px solid var(--background-modifier-border); padding: 4px 0; }
+.obsigraph-controls-section:last-child { border-bottom: none; }
+.obsigraph-controls-section > summary { cursor: pointer; font-weight: var(--font-semibold); padding: 4px 0; }
+.obsigraph-controls-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.obsigraph-controls-slider { padding: 2px 0 4px; }
+.obsigraph-controls-slider input[type=range] { width: 100%; }
+.obsigraph-controls-value { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.obsigraph-controls-type { display: flex; align-items: center; gap: 6px; min-width: 0; cursor: pointer; }
+.obsigraph-controls-type > span:last-child { overflow-wrap: anywhere; }
+.obsigraph-controls-swatch { flex: none; width: 10px; height: 10px; border-radius: 2px; background: var(--text-faint); }
+.obsigraph-controls-links { justify-content: flex-start; gap: 12px; }
+.obsigraph-controls-links a { cursor: pointer; }
+.obsigraph-controls-hint { color: var(--text-muted); font-size: var(--font-ui-smaller); padding: 2px 0 6px; }
+.obsigraph-controls-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+.obsigraph-controls-buttons button { font-size: var(--font-ui-smaller); }
+
+/* Node type filters in the graph controls */
+.obsigraph-controls-right { display: flex; align-items: center; gap: 2px; }
+.obsigraph-filter-button { width: 20px; height: 20px; padding: 0; color: var(--text-faint); }
+.obsigraph-filter-button.is-active { color: var(--interactive-accent); }
+.obsigraph-filter-props { margin: 2px 0 6px 12px; padding-left: 8px; border-left: 2px solid var(--background-modifier-border); }
+.obsigraph-filter-prop > summary { cursor: pointer; padding: 2px 0; color: var(--text-muted); }
+
+/* Details pane: header icons, filter icons and form fields */
+.obsigraph-view { min-height: 0; overflow: hidden; }
+.obsigraph-view-main { overflow: hidden; }
+.obsigraph-details { overflow-x: hidden; overflow-y: auto; align-self: stretch; max-height: 100%; }
+.obsigraph-details-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.obsigraph-details-head h4 { margin: 4px 0; min-width: 0; overflow-wrap: anywhere; }
+.obsigraph-details-icons { display: flex; flex: none; gap: 2px; }
+.obsigraph-details-icons .clickable-icon.is-active { color: var(--interactive-accent); background: var(--background-modifier-hover); }
+.obsigraph-details table { width: 100%; border-collapse: collapse; }
+.obsigraph-details th { width: 1%; white-space: nowrap; vertical-align: middle; padding: 1px 6px 1px 0; }
+.obsigraph-details td { width: 99%; padding: 1px 0; white-space: normal; min-width: 0; }
+.obsigraph-prop-filter { display: inline-flex; width: 16px; height: 16px; margin-left: 4px; padding: 0; vertical-align: middle; color: var(--text-faint); opacity: 0; }
+.obsigraph-details tr:hover .obsigraph-prop-filter, .obsigraph-prop-filter.is-active { opacity: 1; }
+.obsigraph-prop-filter.is-active { color: var(--interactive-accent); }
+.obsigraph-details td input[type=text], .obsigraph-details td input[type=number], .obsigraph-details td input[type=date], .obsigraph-details td input[type=datetime-local], .obsigraph-details td select, .obsigraph-details td textarea, .obsigraph-details .obsigraph-field {
+  box-sizing: border-box; width: 100%; height: 22px; min-height: 0; padding: 0 6px; font-size: inherit; line-height: 20px;
+}
+.obsigraph-details td textarea { height: auto; padding: 2px 6px; line-height: 1.3; resize: vertical; white-space: pre-wrap; }
+.obsigraph-details td .is-invalid { border-color: var(--text-error); }
+.obsigraph-edit-error { color: var(--text-error); font-size: var(--font-ui-smaller); }
+/* Read-only fields: a dotted outline instead of a fill */
+.obsigraph-details td input[readonly], .obsigraph-details td textarea[readonly], .obsigraph-chip-field:not(.is-editable) {
+  background: transparent; border: 1px dotted var(--background-modifier-border-hover); box-shadow: none; color: var(--text-normal); cursor: text;
+}
+.obsigraph-details td textarea { scrollbar-width: thin; overflow-wrap: anywhere; }
+/* Dropdown fields: a chevron on the right marks them */
+.obsigraph-field { position: relative; display: flex; align-items: center; background: var(--background-modifier-form-field); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); }
+.obsigraph-field > input[type=text] { border: none; background: transparent; box-shadow: none; padding-right: 22px; }
+.obsigraph-chevron { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: inline-flex; width: 14px; height: 14px; color: var(--text-muted); pointer-events: none; }
+.obsigraph-chevron svg { width: 14px; height: 14px; }
+/* Fields of chips: links, tags and enum values, scrollable sideways */
+.obsigraph-chip-field { overflow-x: auto; white-space: nowrap; gap: 4px; padding: 0 4px; user-select: text; scrollbar-width: none; }
+.obsigraph-chip-field .obsigraph-chevron { position: static; transform: none; flex: none; margin-left: auto; }
+.obsigraph-chip { flex: none; display: inline-flex; align-items: center; gap: 3px; }
+.obsigraph-chip-field.is-editable .obsigraph-chip:not(:has(a.tag)) { padding: 0 5px; border-radius: var(--radius-s); background: var(--background-modifier-hover); }
+.obsigraph-chip-remove { cursor: pointer; color: var(--text-faint); }
+.obsigraph-chip-remove:hover { color: var(--text-error); }
+.obsigraph-details .obsigraph-chip-input { flex: 1; min-width: 70px; width: auto; height: 20px; border: none; background: transparent; box-shadow: none; padding: 0 2px; }
+/* Links that point at no note look dimmed, as in Obsidian */
+.obsigraph-details a.internal-link.is-unresolved { color: var(--link-unresolved-color, var(--text-muted)); opacity: var(--link-unresolved-opacity, 0.7); text-decoration-style: var(--link-unresolved-decoration-style, solid); text-decoration-color: var(--link-unresolved-decoration-color, currentColor); }
+/* Tags look like Obsidian's tags */
+.obsigraph-details a.tag { background-color: var(--tag-background, var(--background-modifier-hover)); color: var(--tag-color, var(--text-accent)); border: var(--tag-border-width, 0) solid var(--tag-color); border-radius: var(--tag-radius, 2em); padding: var(--tag-padding-y, 1px) var(--tag-padding-x, 0.65em); font-size: var(--tag-size, 0.875em); font-weight: var(--tag-weight, inherit); text-decoration: none; line-height: 1.2; }
+/* Suggestion lists: a note looks like a link, its type is plain text */
+.suggestion-item a.obsigraph-suggest-link { pointer-events: none; }
+.suggestion-item .obsigraph-suggest-type { margin-left: 8px; color: var(--text-muted); }
+.suggestion-item a.tag { pointer-events: none; }
+/* Type row with its info icon inside the field, and the schema view */
+.obsigraph-type-cell { position: relative; }
+.obsigraph-details td.obsigraph-type-cell > textarea { padding-right: 26px; }
+.obsigraph-type-info { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; padding: 0; color: var(--text-muted); }
+.obsigraph-type-info.is-active { color: var(--interactive-accent); }
+.obsigraph-details td textarea.obsigraph-fixed { resize: none; overflow: hidden; white-space: nowrap; }
+.obsigraph-schema-heading th { padding-top: 10px; color: var(--text-accent); font-weight: var(--font-semibold); cursor: pointer; user-select: none; }
+.obsigraph-schema-fold { display: inline-block; width: 1em; font-size: 0.8em; }
+.obsigraph-details tr.obsigraph-hidden { display: none; }
+.obsigraph-schema-heading + tr td.obsigraph-muted { padding: 2px 0; }
+/* Details pane switched off from the controls */
+.obsigraph-details-off .obsigraph-details, .obsigraph-details-off .obsigraph-resizer { display: none; }
+.obsigraph-controls-buttons-row { display: flex; flex-direction: row-reverse; gap: 4px; }
+.obsigraph-controls-buttons-row .is-active { color: var(--interactive-accent); }
+
+/* Editable fields have a border in the dimmed colour Obsidian uses for links to missing notes */
+.obsigraph-details { --obsigraph-edit-border: color-mix(in srgb, var(--link-unresolved-color, var(--text-muted)) calc(var(--link-unresolved-opacity, 0.7) * 100%), transparent); }
+.obsigraph-details td > input[type=text]:not([readonly]), .obsigraph-details td > input[type=number]:not([readonly]), .obsigraph-details td > input[type=date]:not([readonly]), .obsigraph-details td > input[type=datetime-local]:not([readonly]), .obsigraph-details td > textarea:not([readonly]), .obsigraph-details .obsigraph-field.is-editable {
+  border: 1px solid var(--obsigraph-edit-border);
+}
+/* A filter that is set shows as a filled funnel */
+.obsigraph-filter-button.is-active { color: var(--text-on-accent, #fff); background: var(--interactive-accent); }
+.obsigraph-filter-button.is-active svg { fill: currentColor; }
+.obsigraph-prop-filter.is-active { color: var(--text-on-accent, #fff); background: var(--interactive-accent); border-radius: var(--radius-s); }
+.obsigraph-prop-filter.is-active svg { fill: currentColor; }
+/* Scrollbars that stay visible, since the controls panel and the details pane scroll */
+.obsigraph-controls-panel, .obsigraph-details { overflow-y: auto; scrollbar-width: auto; }
+.obsigraph-controls-panel::-webkit-scrollbar, .obsigraph-details::-webkit-scrollbar { width: 10px; background: transparent; }
+.obsigraph-controls-panel::-webkit-scrollbar-thumb, .obsigraph-details::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb-bg, var(--background-modifier-border-hover)); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; min-height: 30px; }
+.obsigraph-controls-panel::-webkit-scrollbar-thumb:hover, .obsigraph-details::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-active-thumb-bg, var(--text-faint)); background-clip: padding-box; }

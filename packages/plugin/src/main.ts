@@ -1,5 +1,5 @@
 import type { CodeMode, StyleSource } from '@obsigraph/core';
-import { getIcon, Keymap, Notice, parseYaml, Plugin } from 'obsidian';
+import { getIcon, Keymap, MarkdownView, Notice, parseYaml, Plugin, type WorkspaceLeaf } from 'obsidian';
 import { latLinkTarget } from './lat-links';
 import { makeStyler, type Styler } from './render/styler';
 import type { EditorView } from '@codemirror/view';
@@ -159,7 +159,17 @@ export default class ObsigraphPlugin extends Plugin {
     void this.app.workspace.openLinkText(path, '', false, { eState: { line } });
   }
 
-  openNote(path: string, sourcePath: string): void {
-    void this.app.workspace.openLinkText(path, sourcePath, false);
+  /** Open a note: switch to the tab it is already open in, else open it (in a new tab if asked). */
+  // @tg: implements:: [[openspec:graph-view#Opening notes]] {since: "2026-10-24"}
+  openNote(path: string, sourcePath: string, newTab = false): void {
+    const file = this.app.metadataCache.getFirstLinkpathDest(path.split('#')[0] ?? path, sourcePath);
+    let open: WorkspaceLeaf | null = null;
+    if (file) {
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (!open && leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) open = leaf;
+      });
+    }
+    if (open && !path.includes('#')) void this.app.workspace.setActiveLeaf(open, { focus: true });
+    else void this.app.workspace.openLinkText(path, sourcePath, newTab);
   }
 }
