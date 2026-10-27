@@ -284,6 +284,18 @@ export class Simulation {
     if (ke <= 0) return;
     const rg = Math.max(20, Math.min(70, 24 * this.display.nodeSize + 14));
     const rg2 = rg * rg;
+    // Bucket the nodes by position once, so an edge visits only the cells its box covers instead of
+    // every node: a 2000-node graph took seconds per warm-up with the full scan. Positions do not
+    // change in this pass, so the nodes reached are the same.
+    const cell = rg * 4;
+    const key = (cx: number, cy: number) => (cx + 32768) * 65536 + (cy + 32768);
+    const grid = new Map<number, SimNode[]>();
+    for (const p of this.arr) {
+      const k = key(Math.floor(p.x / cell), Math.floor(p.y / cell));
+      const bucket = grid.get(k);
+      if (bucket) bucket.push(p);
+      else grid.set(k, [p]);
+    }
     for (const l of this.links) {
       const s = l.source;
       const t = l.target;
@@ -295,7 +307,23 @@ export class Simulation {
       const x1 = Math.max(s.x, t.x) + rg;
       const y0 = Math.min(s.y, t.y) - rg;
       const y1 = Math.max(s.y, t.y) + rg;
-      for (const p of this.arr) {
+      const cx0 = Math.floor(x0 / cell);
+      const cx1 = Math.floor(x1 / cell);
+      const cy0 = Math.floor(y0 / cell);
+      const cy1 = Math.floor(y1 / cell);
+      // A box spanning more cells than there are nodes is cheaper to check node by node.
+      let near: readonly SimNode[] = this.arr;
+      if ((cx1 - cx0 + 1) * (cy1 - cy0 + 1) < this.arr.length) {
+        const found: SimNode[] = [];
+        for (let cx = cx0; cx <= cx1; cx++) {
+          for (let cy = cy0; cy <= cy1; cy++) {
+            const bucket = grid.get(key(cx, cy));
+            if (bucket) for (const p of bucket) found.push(p);
+          }
+        }
+        near = found;
+      }
+      for (const p of near) {
         if (p === s || p === t || p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
         const u = ((p.x - s.x) * ex + (p.y - s.y) * ey) / e2;
         if (u <= 0 || u >= 1) continue;

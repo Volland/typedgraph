@@ -49,7 +49,9 @@ export function attachGraphControls(renderer: GraphRenderer, mode: ControlsMode,
     const bottoms = [renderer.container.getBoundingClientRect().bottom, (renderer.container.closest('.view-content') ?? activeDocument.body).getBoundingClientRect().bottom, window.innerHeight];
     panel.style.maxHeight = `${Math.max(120, Math.min(...bottoms) - panel.getBoundingClientRect().top - 12)}px`;
   };
-  new ResizeObserver(fit).observe(renderer.container);
+  const observer = new ResizeObserver(fit);
+  observer.observe(renderer.container);
+  renderer.onDestroy(() => observer.disconnect());
   panel.toggleClass('is-open', mode === 'open');
   button.addEventListener('click', () => {
     panel.toggleClass('is-open', !panel.hasClass('is-open'));

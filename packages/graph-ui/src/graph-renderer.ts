@@ -63,6 +63,7 @@ export class GraphRenderer {
   private readonly cyNodes = new Map<string, cytoscape.NodeSingular>();
   private readonly moved = new Set<string>();
   private readonly listeners = new Set<() => void>();
+  private readonly disposers: (() => void)[] = [];
   private raf = 0;
   private dead = false;
   /** Refit after the layout cools, until the user pans or zooms. */
@@ -195,6 +196,11 @@ export class GraphRenderer {
     return () => this.listeners.delete(cb);
   }
 
+  /** Called once when the renderer is destroyed, so a host can release what it attached to it. */
+  onDestroy(cb: () => void): void {
+    this.disposers.push(cb);
+  }
+
   /** Select a node or edge by id, which reports it through `onSelect`. */
   select(id: string): void {
     const e = this.cy.getElementById(id);
@@ -272,6 +278,7 @@ export class GraphRenderer {
   destroy(): void {
     this.dead = true;
     this.resizeObserver?.disconnect();
+    for (const cb of this.disposers.splice(0)) cb();
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
     this.cy.destroy();

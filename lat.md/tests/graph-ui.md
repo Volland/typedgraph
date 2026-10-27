@@ -51,6 +51,10 @@ When the graph grows, existing nodes keep position and pin and new ones appear n
 
 With node-edge repulsion on, a node placed on an edge ends up clear of the edge line; with it off it stays on the line.
 
+## Edge push-off anywhere in a large graph
+
+Node-edge repulsion finds the node on an edge wherever the edge sits, at the origin or thousands of pixels away in negative coordinates, among many unrelated nodes.
+
 ## Labels pushed apart
 
 With label repulsion on, a dense graph ends with fewer overlapping node and edge label boxes than with it off.

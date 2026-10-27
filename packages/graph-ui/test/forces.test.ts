@@ -207,6 +207,28 @@ describe('force simulation', () => {
     expect(run(1)).toBeGreaterThan(20);
   });
 
+  // @tg: verifies:: [[tests/graph-ui#Edge push-off anywhere in a large graph]] {since: "2026-10-27", level: unit}
+  // @lat: [[tests/graph-ui#Edge push-off anywhere in a large graph]]
+  // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Edges repel nodes]]
+  it('pushes a node off an edge far from the origin among many unrelated nodes', () => {
+    const filler = Array.from({ length: 60 }, (_, i) => ({ id: `f${i}`, labelWidth: 0 }));
+    const input: SimInput = {
+      nodes: [...['a', 'b', 'c'].map((id) => ({ id, labelWidth: 0 })), ...filler],
+      links: [{ source: 'a', target: 'b', type: 't' }],
+    };
+    for (const [ox, oy] of [[0, 0], [-5000, -7300], [9100, 40]] as const) {
+      const s = sim(input, { edgeRepel: 1, repel: 0, center: 0, link: 0, labelRepel: 0 });
+      filler.forEach((f, i) => Object.assign(s.nodes.get(f.id)!, { x: ox + 3000 + i * 40, y: oy + 3000, pinned: true }));
+      const [a, b, c] = ['a', 'b', 'c'].map((id) => s.nodes.get(id)!);
+      Object.assign(a!, { x: ox - 100, y: oy, pinned: true });
+      Object.assign(b!, { x: ox + 100, y: oy, pinned: true });
+      Object.assign(c!, { x: ox + 10, y: oy });
+      s.reheat(1);
+      for (let i = 0; i < 60; i++) s.tick();
+      expect(segmentDistance(c!, a!, b!), `edge at ${ox},${oy}`).toBeGreaterThan(20);
+    }
+  });
+
   // @tg: verifies:: [[tests/graph-ui#Labels pushed apart]] {since: "2026-10-12", level: unit}
   // @lat: [[tests/graph-ui#Labels pushed apart]]
   // @tg: verifies:: [[openspec:graph-ui#Forces, pinning and controls#Labels repel each other]]
