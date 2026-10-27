@@ -2,7 +2,9 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
-## Unreleased
+## 0.21.0 — 2026-10-27
+
+Three contributions from @ma-be: forces, pinning, controls and editable details in graphs (#9), note variables in `graph-query` blocks (#8), and the edge settings for Obsidian 1.13+ (#10).
 
 ### Added
 
@@ -25,9 +27,11 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 ### Changed
 
 - Graphs are no longer laid out once with `cose`: nodes keep moving until the layout cools, and default node size, link thickness and label fade are smaller. Right-click in the plugin opens the menu instead of expanding a node (use the menu or long-press); the VS Code webview still expands on right-click.
+- Node-edge repulsion uses a spatial grid instead of checking every node for every edge, so a 2000-node graph settles in about 2.5 s instead of 4 s and drags at about 27 ms per frame instead of 70.
 
 ### Fixed
 
+- The graph controls panel disconnects its resize observer when its block re-renders.
 - **Settings missing in Obsidian 1.13+.** The settings page Obsidian 1.13+ builds from `getSettingDefinitions()` lacked "Code in the graph", "Code folder", "Schema base IRI", "AsciiDoc notes" and the two link-edge toggles; all are there now with the same effects as in the legacy tab (the code layer refreshes, the vault re-indexes).
 
 ## 0.20.0 — 2026-10-16

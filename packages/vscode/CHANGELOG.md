@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0
+
+- **Live force layout.** The graph panel lays nodes out with a force simulation instead of a one-shot layout: nodes keep settling, a node lying across an edge is pushed off it and overlapping labels move apart. Drag a node to pin it where you drop it and shift-click to toggle a pin; pinned nodes get an accent border. Right-click still expands a node. Default node size, link thickness and label fade are smaller.
+- The HTML export starts at the saved layout and settles under the same forces when you drag a node.
+
 ## 0.12.0
 
 - **Node subtitles.** A note's frontmatter `subtitle` is drawn after its title, as `spec — billing`, in the graph panel, the details panel and the HTML and PDF exports, so notes that share a file name such as `spec.md` stay apart.

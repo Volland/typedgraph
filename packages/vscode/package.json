@@ -2,7 +2,7 @@
   "name": "typegraph-vscode",
   "displayName": "TypeGraph",
   "description": "Typed backlinks and a graph view for your markdown and code, with no Obsidian required.",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "publisher": "pavlyshyn",
   "license": "MIT",

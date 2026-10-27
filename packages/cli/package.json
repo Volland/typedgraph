@@ -1,6 +1,6 @@
 {
   "name": "@typedgraph/cli",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "tg: keep docs, OpenSpec requirements and code linked as one typed graph, checked in CI and queryable by coding agents; a drop-in replacement for lat.md",
   "type": "module",
   "license": "MIT",
