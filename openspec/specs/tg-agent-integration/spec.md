@@ -161,7 +161,14 @@ When OpenSpec skills exist in a selected agent's skills folder, or OpenSpec comm
 - **THEN** it exits with an error naming the accepted ids and writes nothing
 
 ### Requirement: Setup parts
-`tg init` SHALL set up any of five parts: `instructions` (the tg block in `CLAUDE.md` or `AGENTS.md`, or Cursor's rules file), `hooks` (Claude Code hooks and the `tg` MCP server), `skills`, `openspec` (OpenSpec skill patches and config rules) and `ontology`. `--only` and `--skip` SHALL take comma-separated part names, `--no-ontology` and `--no-openspec` SHALL skip those parts and `--skills-only` SHALL mean `skills` and `openspec`. Without any of these flags, in an interactive setup it SHALL show a checklist of the parts with all ticked except `openspec` when the project has no `openspec/` folder. Otherwise every part SHALL be set up. An unknown part name SHALL be an error.
+`tg init` SHALL set up any of five parts:
+- `instructions`: the tg block in `CLAUDE.md` or `AGENTS.md`, or Cursor's rules file.
+- `hooks`: Claude Code hooks and the `tg` MCP server.
+- `skills`.
+- `specs`: the spec framework step, framework skill patches, OpenSpec config rules and framework scaffolds; `openspec` is accepted as an older name for it.
+- `ontology`.
+
+`--only` and `--skip` SHALL take comma-separated part names. `--no-ontology` and `--no-openspec` SHALL skip the `ontology` and `specs` parts. `--skills-only` SHALL mean `skills` and `specs`. Without any of these flags, an interactive setup SHALL show a checklist of the parts with all ticked; otherwise every part SHALL be set up. An unknown part name SHALL be an error.
 
 #### Scenario: Only the OpenSpec config
 - **WHEN** a project has `openspec/config.yaml` and `tg init --only openspec --write` runs
@@ -170,6 +177,10 @@ When OpenSpec skills exist in a selected agent's skills folder, or OpenSpec comm
 #### Scenario: Skip instructions
 - **WHEN** `tg init --skip instructions --write` runs
 - **THEN** no `CLAUDE.md` or `AGENTS.md` is created and the skills are installed
+
+#### Scenario: Parts checklist
+- **WHEN** an interactive `tg init` runs in a project without `openspec/`
+- **THEN** the parts checklist shows every part ticked, including `specs`
 
 ### Requirement: Interactive setup
 `tg init` SHALL treat a run as interactive when it has a terminal on standard input and output and neither `--json` nor `--yes` is given. An interactive run SHALL show its checklists, then write the files and list each one as created or updated, without a further question, and write nothing when every agent or every part is left unticked; with `--dry-run` it SHALL print the diff instead. A non-interactive run SHALL never prompt.

@@ -6,6 +6,7 @@ import { Graph } from '../graph/graph.js';
 import { isSourceTarget } from './links.js';
 import { isSpecTarget, type SpecIndex } from '../openspec/index.js';
 import type { LatIndex } from './index.js';
+import { specEntries } from './markdown.js';
 
 export interface LatGraphOptions {
   /** Code to bring into the graph; default `off`. */
@@ -41,6 +42,7 @@ function edge(type: string, target: string, line: number): ParsedEdge {
 // @tg: implements:: [[openspec:tg-trace#Requirement nodes]]
 // @tg: implements:: [[openspec:tg-trace#Docs frontmatter]]
 // @tg: implements:: [[openspec:tg-cli#Typed edges in docs]]
+// @tg: implements:: [[openspec:spec-frameworks#Framework nodes in the graph]]
 export function buildLatGraph(index: LatIndex, options: LatGraphOptions = {}): { graph: Graph; code: CodeLayer } {
   const known = new Set<string>(index.sections().map((s) => s.id));
   const specs = options.specs ?? null;
@@ -124,9 +126,9 @@ export function buildLatGraph(index: LatIndex, options: LatGraphOptions = {}): {
     edges.push(...typed);
     const typedTargets = new Set(typed.map((e) => e.target));
     const fm = index.files.get(s.filePath)?.frontmatter;
-    if (specs && s.depth === 1 && fm?.openspec) {
-      for (const entry of fm.openspec) {
-        const reqs = entry.includes('#') ? [resolveSpec(entry)].filter((x): x is string => x !== null) : specs.ofCapability(entry).map((r) => r.id);
+    if (specs && s.depth === 1) {
+      for (const { entry } of specEntries(fm)) {
+        const reqs = entry.includes('#') ? [resolveSpec(entry)].filter((x): x is string => x !== null) : specs.entries(entry).map((r) => r.id);
         for (const id of reqs) edges.push(edge('references', id, s.startLine));
       }
     }
@@ -142,16 +144,20 @@ export function buildLatGraph(index: LatIndex, options: LatGraphOptions = {}): {
     graph.node(s.id)!.props.title = s.heading;
   }
 
+  // Spec nodes keep the base label the code ontology's edges allow (Requirement, Scenario, Decision) and add the framework's own (UserStory, ADR, ...).
   for (const r of specs?.requirements() ?? []) {
+    const relations = (r.relations ?? []).map((x) => ({ ...edge(x.type, resolveSpec(x.target) ?? x.target, r.line) }));
+    const base = r.kind === 'decision' ? 'Decision' : 'Requirement';
     graph.upsertNote({
       path: r.id,
       text: '',
-      edges: r.scenarios.map((sc) => edge('contains', sc.id, sc.line)),
-      frontmatter: { type: 'Requirement', requirement: r.id, capability: r.capability, name: r.name, text: r.text, file: r.file, line: r.line, status: r.status, change: r.change, removedBy: r.removedBy },
+      edges: [...r.scenarios.map((sc) => edge('contains', sc.id, sc.line)), ...relations],
+      frontmatter: { ...(r.props ?? {}), type: [base, ...(r.labels ?? [])], requirement: r.id, framework: r.framework ?? 'openspec', capability: r.capability, name: r.name, text: r.text, file: r.file, line: r.line, status: r.status, change: r.change, removedBy: r.removedBy },
     });
-    graph.node(r.id)!.props.title = r.name;
+    // A user story or decision record shows its own title; OpenSpec requirements have only their name.
+    graph.node(r.id)!.props.title = r.props?.title || r.name;
     for (const sc of r.scenarios) {
-      graph.upsertNote({ path: sc.id, text: '', edges: [], frontmatter: { type: 'Scenario', scenario: sc.id, requirement: r.id, name: sc.name, file: sc.file, line: sc.line } });
+      graph.upsertNote({ path: sc.id, text: '', edges: [], frontmatter: { ...(sc.props ?? {}), type: ['Scenario', ...(sc.labels ?? [])], scenario: sc.id, requirement: r.id, name: sc.name, file: sc.file, line: sc.line } });
       graph.node(sc.id)!.props.title = sc.name;
     }
   }

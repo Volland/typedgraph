@@ -70,7 +70,7 @@ Access tokens expire after 15 minutes and refresh tokens rotate on every use.
 The refresh endpoint keeps a small revocation list, which is why the gateway is no longer fully stateless.
 ```
 
-Edges can point at sections (`[[file#Section]]`), at OpenSpec requirements and scenarios (`[[openspec:<capability>#<Requirement>]]`) and at code (`[[src/auth/token.ts#refresh]]`).
+Edges can point at sections (`[[file#Section]]`), at spec requirements and scenarios ({{spec-names}}, e.g. `[[openspec:<capability>#<Requirement>]]`) and at code (`[[src/auth/token.ts#refresh]]`).
 
 # Syntax primer
 
@@ -78,7 +78,8 @@ Edges can point at sections (`[[file#Section]]`), at OpenSpec requirements and s
 - **Wiki links**: `[[target]]` or `[[target|alias]]` — cross-references between sections. Can also reference source code: `[[src/foo.ts#myFunction]]`, `[[src/server.ts#App#listen]]` (class method).
 - **Typed doc edges**: `- type:: [[target]] {key: value}` on its own line in a section — a named edge from that section; `-type::` makes it negative.
 - **Typed code edges**: `// @tg: implements:: [[decisions#Short-lived access tokens]] {since: "2.3"}` — a named edge from the next declaration; a bare `// @tg: [[x]]` or `// @lat: [[x]]` is a plain link.
-- **OpenSpec requirements**: if the project has `openspec/`, point code at the requirement it realizes with `// @tg: implements:: [[openspec:<capability>#<Requirement>]]` and tests at the scenario they prove with `// @tg: verifies:: [[openspec:<capability>#<Requirement>#<Scenario>]]` directly above the `it(`. List the capabilities a lat.md file explains as `openspec: [capability]` in its frontmatter. `tg trace --gaps` shows what is unimplemented or unverified.
+- **Spec requirements** — `tg trace --gaps` shows what is unimplemented or unverified across every spec framework the project uses:
+{{spec-bullets}}
 
 # Questions to ask the graph
 

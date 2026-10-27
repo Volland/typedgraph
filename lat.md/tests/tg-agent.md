@@ -183,7 +183,7 @@ Choosing which parts `tg init` sets up or updates.
 
 ### Parts checklist
 
-In a terminal the parts checklist lists all five parts with OpenSpec unticked when the project has no `openspec/` folder, and only the ticked parts are written.
+In a terminal the parts checklist lists all five parts (the spec frameworks part named `specs`) with every part ticked, and only the ticked parts are written.
 
 ## Interactive setup
 

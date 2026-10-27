@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { compileIgnore, LatIndex, lookupSymbol, scanAnnotations, SpecIndex, type Annotation, type Diagnostic } from '@obsigraph/core';
+import { compileIgnore, LatIndex, lookupSymbol, scanAnnotations, SpecIndex, type Annotation, type Diagnostic, type SpecFrameworkId } from '@obsigraph/core';
+import { detectSpecs, specFiles } from './specs.mjs';
 import { readConfig, type TgConfig } from './config.mjs';
 import { DOCS_DIRS, existingDocsDir, type DocsDir } from './root.mjs';
 import { walkProject } from './walk.mjs';
@@ -89,28 +90,27 @@ export class Project {
     return this.latEntries().filter((e) => e.toLowerCase().endsWith('.adoc')).map((e) => `${this.latDirName}/${e}`);
   }
 
-  /** OpenSpec requirements from `openspec/specs/` and active changes; null when there is no `openspec/` folder. */
+  /**
+   * Requirements of every spec framework the project uses (OpenSpec specs and
+   * active changes, Spec Kit features, Kiro specs, BMAD PRD and stories, GSD
+   * requirements, ADRs); null when it uses none.
+   */
+  // @tg: implements:: [[openspec:spec-frameworks#Framework detection]]
   specIndex(): SpecIndex | null {
     if (this.specCache === undefined) {
-      const dir = join(this.root, 'openspec');
-      if (!existsSync(dir)) return (this.specCache = null);
-      const subdirs = (rel: string): string[] => {
-        try {
-          return readdirSync(join(this.root, rel), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
-        } catch {
-          return [];
-        }
-      };
-      const paths = subdirs('openspec/specs').map((c) => `openspec/specs/${c}/spec.md`);
-      for (const ch of subdirs('openspec/changes')) {
-        if (ch !== 'archive') paths.push(...subdirs(`openspec/changes/${ch}/specs`).map((c) => `openspec/changes/${ch}/specs/${c}/spec.md`));
-      }
-      this.specCache = new SpecIndex(paths.flatMap((path) => {
-        const text = this.text(path);
-        return text === null ? [] : [{ path, text }];
+      const used = detectSpecs(this.root);
+      if (!used.length) return (this.specCache = null);
+      this.specCache = new SpecIndex(used.flatMap((id) => specFiles(this.root, id)).flatMap((f) => {
+        const text = this.text(f.path);
+        return text === null ? [] : [{ ...f, text }];
       }));
     }
     return this.specCache;
+  }
+
+  /** Spec frameworks the project uses, judged by their folders. */
+  specFrameworks(): SpecFrameworkId[] {
+    return detectSpecs(this.root);
   }
 
   /** Source files outside the docs folder: no markdown or AsciiDoc, no `.claude/`, no nested projects that have their own docs folder. */

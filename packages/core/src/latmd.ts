@@ -1,6 +1,6 @@
 export { LatIndex } from './latmd/index.js';
 export type { FindMatch, LatFile, LinkResult } from './latmd/index.js';
-export { flattenSections, leadingParagraphIssue, MAX_LEADING_LENGTH, parseFrontmatter, parseMarkdown } from './latmd/markdown.js';
+export { flattenSections, leadingParagraphIssue, MAX_LEADING_LENGTH, parseFrontmatter, parseMarkdown, specEntries } from './latmd/markdown.js';
 export type { Frontmatter, LeadingIssue, ParsedMarkdown, Section, WikiRef } from './latmd/markdown.js';
 export { extOf, isSourceTarget, LAT_SOURCE_EXTENSIONS, SOURCE_EXTENSIONS, splitTarget, TG_SOURCE_EXTENSIONS, toPosix } from './latmd/links.js';
 export { checkLattice } from './latmd/check.js';

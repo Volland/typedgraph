@@ -44,5 +44,6 @@ Test specifications whose leaf sections must each be referenced by exactly one `
 - [[new-notes]] — identifier generators, the id key and template planning
 - [[plugin-install]] — Obsidian install: manifest, release assets, bundle load and live install check
 - [[tg-trace]] — OpenSpec requirement index, `openspec:` targets and frontmatter, `tg trace`
+- [[spec-frameworks]] — Spec Kit, Kiro, BMAD, GSD and ADR readers, the init framework step, installers, patches and the spec ontology
 - [[tg-validate]] — `tg validate` findings, codes, exit codes, formats and plugin agreement
 - [[asciidoc-notes]] — AsciiDoc notes: parser, render safety, graph, links, chunks, export, new notes and hosts

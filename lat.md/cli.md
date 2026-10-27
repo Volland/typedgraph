@@ -1,6 +1,6 @@
 ---
 type: Decision
-openspec: [code-layer, lat-resolver, lat-vault-integration, symbol-provider, tg-agent-integration, tg-annotations, tg-check, tg-cli, tg-search, tg-trace, tg-validate]
+openspec: [code-layer, lat-resolver, lat-vault-integration, spec-frameworks, symbol-provider, tg-agent-integration, tg-annotations, tg-check, tg-cli, tg-search, tg-trace, tg-validate]
 ---
 # CLI
 
@@ -84,9 +84,9 @@ In Obsidian, [[packages/plugin/src/code-layer.ts#CodeLayer]] reads vault source 
 
 `tg init`, `gen`, `hook` and `mcp` match lat.md's agent layer and add `cypher` and `edges` over the section graph, six bundled skills and tg steps in OpenSpec's own skills.
 
-`tg init` sets up one or more coding agents from `--agent` (comma-separated `claude`, `codex`, `cursor`, `github-copilot`, `opencode`, `kilocode`, `pi`, `oh-my-pi`, `agents`, OpenSpec's ids) and any of five parts from `--only` or `--skip`: `instructions`, `hooks`, `skills`, `openspec`, `ontology` (`packages/cli/src/commands/init.mts`, `agents.mts`).
+`tg init` sets up one or more coding agents from `--agent` (comma-separated `claude`, `codex`, `cursor`, `github-copilot`, `opencode`, `kilocode`, `pi`, `oh-my-pi`, `agents`, OpenSpec's ids) and any of five parts from `--only` or `--skip`: `instructions`, `hooks`, `skills`, `specs` (formerly `openspec`, still accepted) and `ontology` (`packages/cli/src/commands/init.mts`, `agents.mts`). The `specs` part runs the spec framework step described in [[cli#Spec frameworks]].
 
-In a terminal, without `--json` or `--yes`, it is a small setup TUI (`packages/cli/src/tui.mts`, reached through the optional `Io.choose` and `Io.ask` that `main.mts` provides only when stdin and stdout are terminals): an arrow-key checklist of agents with the detected ones ticked, a checklist of parts (OpenSpec unticked when the project has no `openspec/`), then the files are written and listed. Agents are detected from their folders and instruction files and from the `openspec-*` skill folders OpenSpec writes. Each agent's skills go to its own folder (`.claude/skills`, `.agents/skills` shared by Codex and generic agents, `.cursor/skills`, `.github/skills`, `.opencode/skills`, `.kilocode/skills`, `.pi/skills`, `.omp/skills`), written once per folder; Claude Code gets `CLAUDE.md`, Cursor `.cursor/rules/tg.mdc`, the rest one `AGENTS.md` block. Hooks and MCP registration stay Claude Code only.
+In a terminal, without `--json` or `--yes`, it is a small setup TUI (`packages/cli/src/tui.mts`, reached through the optional `Io.choose` and `Io.ask` that `main.mts` provides only when stdin and stdout are terminals): an arrow-key checklist of agents with the detected ones ticked, a checklist of parts (all ticked), the docs folder choice, the spec frameworks checklist and an installer choice per missing framework, then the files are written and listed. Agents are detected from their folders and instruction files and from the `openspec-*` skill folders OpenSpec writes. Each agent's skills go to its own folder (`.claude/skills`, `.agents/skills` shared by Codex and generic agents, `.cursor/skills`, `.github/skills`, `.opencode/skills`, `.kilocode/skills`, `.pi/skills`, `.omp/skills`), written once per folder; Claude Code gets `CLAUDE.md`, Cursor `.cursor/rules/tg.mdc`, the rest one `AGENTS.md` block. Hooks and MCP registration stay Claude Code only.
 
 `tg init` writes by default and lists each file it created or updated; `--dry-run` prints the diff instead and writes nothing, and `--write` is accepted for older scripts and changes nothing. Outside a terminal nothing is asked: detected agents (or Claude Code) and all parts are used. The managed block is bounded by `%% tg:begin %%` markers so re-runs replace only it; an existing `lat:begin` block is replaced only with `--migrate`, which also swaps `lat hook claude` hooks and the `lat` MCP entry. `--agent` picks Claude Code (CLAUDE.md, `.claude/settings.json` hooks, `.mcp.json`, skills), `agents` (AGENTS.md) or `cursor`. Templates and skills are markdown files in `packages/cli/templates/`, bundled as text. For Claude Code, `init` installs the skills `tg-docs` (lat.md maintenance), `tg-graph` (Cypher over the section graph), `tg-trace` (linking OpenSpec requirements to code, tests and docs), `tg-impact` (what a code change touches, before and after) `tg-audit` (specs against code, classified as stale spec, code bug or open decision) and `tg-migrate` (finishing a [[cli#Migration]] by resolving the links `tg migrate` left plain). When OpenSpec's propose, apply, archive or explore skills exist in a selected agent's skills folder (`<skills>/openspec-*/SKILL.md`), or Claude Code's `/opsx` commands do, `withOpenspecBlock` in `packages/cli/src/commands/init.mts` appends the matching block from `packages/cli/templates/openspec/` between `<!-- tg:begin -->` and `<!-- tg:end -->` and replaces only that block later, so `openspec update` followed by `tg init --write` restores it. When `openspec/config.yaml` exists, `withOpenspecRules` in `packages/cli/src/commands/openspec-config.mts` adds the rules in `packages/cli/templates/openspec/config-rules.md` to its `rules` for `proposal`, `specs`, `design` and `tasks`, prefixed `tg:` so later runs replace only them, keeping other rules and comments through the `yaml` document API. OpenSpec injects these rules into what it generates, so its task lists ask for `implements` and `verifies` annotations, `openspec:` frontmatter in the lat.md docs and a closing `tg check` and `tg trace`. `--no-openspec` skips the patches and rules and `--skills-only` sets up nothing but the `skills` and `openspec` parts. `tg gen` prints every skill and block. `tg hook claude UserPromptSubmit|Stop` and `cursor stop` follow lat's JSON protocol, accept the prompt as `prompt` or `user_prompt`, search lexically only (no network in a hook), flag a stale lat.md after 5 or more changed code lines, and always exit 0.
 
@@ -94,7 +94,7 @@ In a terminal, without `--json` or `--yes`, it is a small setup TUI (`packages/c
 
 `tg init` also installs a small shared vocabulary for intent and code: the note `lat.md/code-ontology.md`, its Typed Graph Schema `Types/code-types.md` and a template note per type in `Templates/`.
 
-So people and agents use the same names, and any host can create typed notes from it. The templates live in `packages/cli/templates/ontology/` and print with `tg gen ontology.md`, `tg gen ontology-schema.md` and `tg gen template-decision.md` (one per type). Six intent types (Decision, Requirement, Scenario, Constraint, Concept, Change) and eleven edge types (`implements`, `verifies`, `-contradicts`, `supersedes`, `motivated_by`, `constrains`, `refines`, `depends_on`, `defines`, `introduced_by`, `changed_by`) are declared as [[shacl#Typed Graph Schema]], so the schema exports to SHACL (`tg schema export shapes.ttl`) and is read by the Obsidian plugin, VS Code's New Typed Note and `tg validate` from their default schema folder `Types/`; each type's `template` links its note in `Templates/` (Decision, Requirement, Scenario, Constraint, Concept, Change). The schema sits outside `lat.md/` because every note directly in a schema folder declares a type. An `ontology/code-types.md` from an older version is left alone with a note. All files are written only when absent, so a project owns them after the first run, and the note is appended to the lat.md index so `tg check` stays green; `--no-ontology` (or `--skip ontology`) skips them. A `type:` in a lat.md file's frontmatter labels the sections below its title in `tg cypher`. Each edge type declares the properties it takes (`since`, `confidence`, `strength`, `ticket`, ...).
+So people and agents use the same names, and any host can create typed notes from it. The templates live in `packages/cli/templates/ontology/` and print with `tg gen ontology.md`, `tg gen ontology-schema.md` and `tg gen template-decision.md` (one per type). Six intent types (Decision, Requirement, Scenario, Constraint, Concept, Change) and eleven edge types (`implements`, `verifies`, `-contradicts`, `supersedes`, `motivated_by`, `constrains`, `refines`, `depends_on`, `defines`, `introduced_by`, `changed_by`) are declared as [[shacl#Typed Graph Schema]], so the schema exports to SHACL (`tg schema export shapes.ttl`) and is read by the Obsidian plugin, VS Code's New Typed Note and `tg validate` from their default schema folder `Types/`; each type's `template` links its note in `Templates/` (Decision, Requirement, Scenario, Constraint, Concept, Change). The schema sits outside `lat.md/` because every note directly in a schema folder declares a type. An `ontology/code-types.md` from an older version is left alone with a note. With a spec framework chosen it also writes `Types/spec-types.md`, the tg-owned spec ontology of [[cli#Spec frameworks#Composed spec ontology]]. All the other files are written only when absent, so a project owns them after the first run, and the note is appended to the lat.md index so `tg check` stays green; `--no-ontology` (or `--skip ontology`) skips them. A `type:` in a lat.md file's frontmatter labels the sections below its title in `tg cypher`. Each edge type declares the properties it takes (`since`, `confidence`, `strength`, `ticket`, ...).
 
 ### Typed docs
 
@@ -124,13 +124,74 @@ The lattice becomes a property graph that `tg cypher`, `tg edges` and the MCP se
 
 ## Requirement trace
 
-`tg` reads OpenSpec requirements and links them to code, tests and docs: `@tg: implements::` on code, `@tg: verifies::` on tests, `openspec:` frontmatter in lat.md files, and `tg trace` reports the gaps.
+`tg` reads OpenSpec requirements, and those of the other frameworks in [[cli#Spec frameworks]], and links them to code, tests and docs: `@tg: implements::`, `@tg: verifies::`, `openspec:` or `specs:` frontmatter, and `tg trace`.
 
 [[packages/core/src/openspec/index.ts#SpecIndex]] parses `openspec/specs/<capability>/spec.md` and the ADDED and MODIFIED requirements of unarchived changes (status `pending`, REMOVED names recorded in `removedBy`). Targets are `openspec:<capability>#<requirement>[#<scenario>]`, matched case-insensitively with whitespace collapsed; a main-spec requirement wins over a pending one, and misses get a nearest-id suggestion. The `openspec:` scheme keeps these ids out of lat.md id space, so short-id resolution and `lat check` parity are untouched: lat ignores `@tg:` and unknown frontmatter keys.
 
 A `@tg:` comment directly above a test call (`it`, `test`, `describe`, with `.each`, `.skip`, `.only` and similar) attaches to the file without a warning and puts `test: <name>` on each edge, so a test carries `@lat:` for its test-spec section and `@tg: verifies::` for the scenario it proves. A lat.md file lists what it explains as `openspec: [capability, "capability#Requirement"]` in frontmatter.
 
 `tg check` passes the index to [[packages/core/src/latmd/check.ts#checkLattice]], which reports unresolved `openspec:` annotation targets and unknown frontmatter entries; hosts that pass no index (plugin, export) skip these checks. Missing traceability is never a check finding. [[packages/core/src/openspec/trace.ts#traceRequirements]] builds the matrix for `tg trace [capability...] [--gaps] [--strict] [--json]` (`packages/cli/src/commands/trace.mts`): a requirement is implemented when an `implements` edge reaches it or a scenario, verified when every scenario has a `verifies` edge, and documented when frontmatter names it. `--strict` exits 1 on any unimplemented or unverified requirement. [[packages/core/src/latmd/graph.ts#buildLatGraph]] adds `Requirement` and `Scenario` nodes linked by `contains`, so `tg cypher`, `tg edges` and the `tg_trace` MCP tool see the same links.
+
+## Spec frameworks
+
+`tg` reads six spec-driven development frameworks — OpenSpec, Spec Kit, Kiro-format specs, BMAD, GSD and ADRs — and `tg init` chooses, installs and wires the ones a project uses.
+
+[[packages/core/src/openspec/frameworks.ts#locateSpecFile]] places a file and [[packages/core/src/openspec/frameworks.ts#parseSpecFile]] hands it to a reader. The readers cover:
+- Spec Kit: `specs/<feature>/spec.md`, giving `USN` stories with numbered scenarios and `FR-`/`SC-` items.
+- Kiro, cc-sdd and spec-workflow-mcp: `requirements.md`, giving `Requirement N` and `N.M` criteria with their EARS pattern.
+- BMAD: the PRD's `FR-1` and `Story 1.2` files with `ACn` criteria.
+- GSD: `.planning/REQUIREMENTS.md`, giving `CAT-NN` items.
+- ADRs: numbered MADR, Nygard and log4brains records, with status, date and `Supersedes`/`Amends` relations.
+
+[[packages/core/src/openspec/index.ts#SpecIndex]] keys them by scheme (`speckit:`, `kiro:`, `bmad:`, `gsd:`, `adr:`), resolves aliases and returns the requirements a frontmatter entry names through `entries()`. `packages/cli/src/specs.mts` holds the CLI side:
+- Detection by the folders each tool creates.
+- File discovery, including `.adr-dir`.
+- Install options.
+- Ontology fragments.
+- `forSpecs` and `forStage`, which fill templates from `packages/cli/templates/specs/`.
+
+`tg trace` groups rows as `speckit:<feature>` or `adr`, counts decisions as verified, and never reports retired records as gaps.
+
+In `tg init`, the `specs` part runs these steps:
+1. `chooseSpecs` takes `--spec` or shows a checklist. Detected frameworks are ticked; otherwise `recommendSpec` ticks OpenSpec when there are ten or more source files, else Spec Kit.
+2. `installSpecs` offers each missing framework's own installer through `Io.exec`: the tool on PATH, a one-off `npx`/`uvx` run, or a global install. Scripts need `--install-spec`, and dry runs only print.
+3. `planSpecPatches` appends stage blocks to the frameworks' skills and commands in every selected agent's folders.
+4. `planSpecScaffolds` writes `.kiro/steering/tg.md` and a first ADR with a template.
+
+The skills and the instruction block are filled for the chosen frameworks.
+
+### Scheme per framework
+
+Each framework keeps its own id scheme and its own stable ids (`FR-001`, `Requirement 1#1.2`, `adr:0003`), and titles resolve as aliases.
+
+The scheme prefix keeps every new id out of lat.md id space, as `openspec:` did, so `lat check` parity holds. A target without a scheme is still OpenSpec, so existing annotations and frontmatter keep resolving.
+
+- motivated_by:: [[cli#Requirement trace]] {weight: primary, since: "0.22", note: "the openspec: scheme already kept spec ids out of lat.md id space"}
+- motivated_by:: [[cli#Compatibility contract]] {weight: secondary}
+
+### Base label plus framework label
+
+Spec nodes keep `Requirement`, `Scenario` or `Decision` and add their framework's label (`UserStory`, `AcceptanceCriterion`, `ADR`), so the code ontology's `implements` and `verifies` endpoints accept them unchanged.
+
+The alternative, framework labels alone, would need every project's own `Types/code-types.md` widened, and tg never rewrites that file after the first run.
+
+- motivated_by:: [[cli#Code ontology]] {weight: primary, since: "0.22"}
+
+### Composed spec ontology
+
+`Types/spec-types.md` is generated from per-framework fragments and is tool-owned. A type or edge shared by two frameworks (`Feature`, `part_of`) is declared once, with the union of its endpoints.
+
+Schema notes in one folder must not declare a name twice, so one note per framework would clash as soon as two were chosen. Because tg rewrites the note on every run, a framework added later brings its types with it.
+
+- motivated_by:: [[cli#Code ontology]] {since: "0.22", note: "code-types.md stays project-owned; spec-types.md is rewritten"}
+
+### Installers run with consent
+
+`tg init` runs a framework's own installer only after a person picks it in the wizard, or when a script passes `--install-spec`. Every option shows its exact command, and a dry run runs nothing.
+
+Installers run before planning, so the skills they write are patched in the same run. Their output goes to stderr, so `--json` stays a single document.
+
+- motivated_by:: [[cli#Agent integration]] {weight: primary, since: "0.22", note: "init never changes more than it was asked to"}
 
 ## AsciiDoc notes
 

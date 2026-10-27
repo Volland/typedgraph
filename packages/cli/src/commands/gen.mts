@@ -19,6 +19,14 @@ import constraintTemplate from '../../templates/ontology/templates/Constraint.md
 import conceptTemplate from '../../templates/ontology/templates/Concept.md';
 import changeTemplate from '../../templates/ontology/templates/Change.md';
 import openspecRules from '../../templates/openspec/config-rules.md';
+import stageAuthor from '../../templates/specs/stage-author.md';
+import stagePlan from '../../templates/specs/stage-plan.md';
+import stageTasks from '../../templates/specs/stage-tasks.md';
+import stageImplement from '../../templates/specs/stage-implement.md';
+import kiroSteering from '../../templates/specs/kiro-steering.md';
+import adrTemplate from '../../templates/specs/adr-template.md';
+import adrFirst from '../../templates/specs/adr-first.md';
+import { detectSpecs, forSpecs, forStage, SPEC_SETUPS, SPEC_STAGES, specOntology, specSection, type SpecStage } from '../specs.mjs';
 import { EXIT_ERROR, EXIT_OK, register, type Command } from '../cli.mjs';
 
 // @tg: implements:: [[openspec:tg-agent-integration#Bundled skills]]
@@ -41,6 +49,12 @@ export const ONTOLOGY_TEMPLATES: Record<string, string> = {
 
 export const OPENSPEC_PATCHES = { propose: openspecPropose, apply: openspecApply, archive: openspecArchive, explore: openspecExplore };
 
+/** Blocks appended to other spec frameworks' skills and commands, by stage; `{{requirement}}` and the like are filled per framework. */
+export const STAGE_PATCHES: Record<SpecStage, string> = { author: stageAuthor, plan: stagePlan, tasks: stageTasks, implement: stageImplement };
+
+/** Files tg writes for a chosen framework: Kiro's steering file, a first ADR and the ADR template. */
+export const SPEC_TEMPLATES = { kiroSteering, adrTemplate, adrFirst };
+
 // @tg: implements:: [[openspec:tg-agent-integration#Instruction generation]]
 // @tg: implements:: [[openspec:tg-agent-integration#Skill text available]]
 const TARGETS: Record<string, string> = {
@@ -61,21 +75,29 @@ const TARGETS: Record<string, string> = {
   'ontology-schema.md': ontologySchema,
   'openspec-rules.md': openspecRules,
   ...Object.fromEntries(Object.entries(ONTOLOGY_TEMPLATES).map(([type, text]) => [`template-${type.toLowerCase()}.md`, text])),
+  'kiro-steering.md': kiroSteering,
+  'adr-template.md': adrTemplate,
+  ...Object.fromEntries(SPEC_SETUPS.map((s) => [`spec-${s.id}.md`, specSection(s.id)])),
+  ...Object.fromEntries(SPEC_SETUPS.filter((s) => Object.keys(s.patches).length).flatMap((s) => SPEC_STAGES.filter((st) => s.patches[st]).map((st) => [`${s.id}-${st}.md`, forStage(STAGE_PATCHES[st], s)]))),
 };
 
 // @tg: implements:: [[openspec:tg-agent-integration#Instruction generation]]
+// @tg: implements:: [[openspec:spec-frameworks#Skills follow the frameworks]]
 export const gen: Command = {
   name: 'gen',
-  summary: 'Print agent instructions, skills and OpenSpec patch blocks (tg gen <target>; an unknown target lists them all)',
+  summary: 'Print agent instructions, skills, spec framework patch blocks and the spec ontology (tg gen <target>; an unknown target lists them all)',
   usage: 'gen <target>',
   noProject: true,
   run(ctx, args) {
-    const text = TARGETS[(args[0] ?? '').toLowerCase()];
-    if (text === undefined) {
-      ctx.err(`unknown target "${args[0] ?? ''}"; supported: ${Object.keys(TARGETS).join(', ')}\n`);
+    // Text that names spec frameworks is filled for the ones this folder uses (OpenSpec when none).
+    const specs = detectSpecs(ctx.cwd);
+    const target = (args[0] ?? '').toLowerCase();
+    const text = target === 'spec-ontology.md' ? specOntology(specs.length ? specs : SPEC_SETUPS.map((s) => s.id)) : TARGETS[target];
+    if (text === undefined || text === null) {
+      ctx.err(`unknown target "${args[0] ?? ''}"; supported: ${[...Object.keys(TARGETS), 'spec-ontology.md'].join(', ')}\n`);
       return EXIT_ERROR;
     }
-    ctx.out(text);
+    ctx.out(forSpecs(text, specs));
     return EXIT_OK;
   },
 };

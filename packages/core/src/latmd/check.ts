@@ -2,7 +2,7 @@ import type { Annotation } from '../code/annotations.js';
 import { isSpecTarget, type SpecIndex } from '../openspec/index.js';
 import type { LatIndex } from './index.js';
 import { isSourceTarget, splitTarget, SOURCE_EXTENSIONS } from './links.js';
-import { leadingParagraphIssue, MAX_LEADING_LENGTH, flattenSections } from './markdown.js';
+import { leadingParagraphIssue, MAX_LEADING_LENGTH, flattenSections, specEntries } from './markdown.js';
 
 export type FindingKind = 'link' | 'code-ref' | 'index' | 'section' | 'annotation';
 
@@ -28,8 +28,8 @@ export interface CheckInput {
   /** Verify a source link on disk: an error message, or null when file and symbol exist (or cannot be judged). */
   checkSourceLink(file: string, symbol: string | null): string | null;
   /**
-   * OpenSpec requirements for `openspec:` targets and frontmatter; null when the
-   * project has no `openspec/`. Left out, OpenSpec references are not checked.
+   * Spec requirements for `openspec:`, `speckit:`, `kiro:`, `bmad:` and `adr:` targets and
+   * frontmatter; null when the project has no spec framework. Left out, spec references are not checked.
    */
   specs?: SpecIndex | null;
 }
@@ -125,12 +125,12 @@ function checkCodeRefs(input: CheckInput): Finding[] {
 }
 
 function specTargetError(specs: SpecIndex | null, target: string): string | null {
-  if (!specs) return 'no openspec/ folder in this project';
+  if (!specs) return 'no spec framework (openspec/, specs/, .kiro/specs/, docs/adr/, ...) in this project';
   const r = specs.resolve(target);
   return r.kind === 'missing' ? `${r.message}${r.suggestion ? ` — did you mean '[[${r.suggestion}]]'?` : ''}` : null;
 }
 
-/** `openspec:` frontmatter in lattice files: every entry must name a capability or `capability#requirement`. */
+/** `openspec:` and `specs:` frontmatter in lattice files: every entry must name a group or a requirement. */
 // @tg: implements:: [[cli#Requirement trace]] {since: "2026-10-08"}
 // @lat: [[cli#Requirement trace]]
 // @tg: implements:: [[openspec:tg-check#Check]]
@@ -139,13 +139,13 @@ function checkSpecFrontmatter(input: CheckInput): Finding[] {
   if (input.specs === undefined) return out;
   const specs = input.specs;
   for (const [path, parsed] of input.index.files) {
-    const entries = parsed.frontmatter.openspec;
-    if (!entries) continue;
+    const entries = specEntries(parsed.frontmatter);
+    if (!entries.length) continue;
     const text = input.readLatFile(path.replace(/^[^/]+\//, '')) ?? '';
-    const line = text.split(/\r?\n/).findIndex((l) => l.startsWith('openspec:')) + 1;
-    for (const entry of entries) {
+    for (const { entry, key } of entries) {
+      const line = text.split(/\r?\n/).findIndex((l) => l.startsWith(`${key}:`)) + 1;
       const err = entry.includes('#') || !specs?.hasCapability(entry) ? specTargetError(specs, entry) : null;
-      if (err) out.push({ kind: 'link', file: path, line, target: entry, message: `openspec: "${entry}" — ${err}` });
+      if (err) out.push({ kind: 'link', file: path, line, target: entry, message: `${key}: "${entry}" — ${err}` });
     }
   }
   return out;

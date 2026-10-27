@@ -25,7 +25,7 @@ export interface RequirementTrace {
   /** Any other edge type to the requirement or its scenarios. */
   other: TraceLink[];
   scenarios: ScenarioTrace[];
-  /** lat.md files whose `openspec:` frontmatter names the requirement or its capability. */
+  /** lat.md files whose `openspec:` or `specs:` frontmatter names the requirement or its group. */
   documentedIn: string[];
   implemented: boolean;
   verified: boolean;
@@ -35,6 +35,7 @@ export interface RequirementTrace {
 export interface TraceDoc {
   /** Project-relative lattice file. */
   file: string;
+  /** Frontmatter entries: `openspec:` ones as written and `specs:` ones with their scheme. */
   openspec: string[];
 }
 
@@ -43,11 +44,13 @@ export interface TraceDoc {
  * implement or verify it and the lattice files that explain it. A requirement
  * is implemented when an `implements` edge reaches it or one of its scenarios,
  * and verified when every scenario has a `verifies` edge (or, with no
- * scenarios, the requirement has one). Negative edges are ignored.
+ * scenarios, the requirement has one). Decision records need no test, so they
+ * count as verified. Negative edges are ignored.
  */
 // @tg: implements:: [[cli#Requirement trace]] {since: "2026-10-08"}
 // @lat: [[cli#Requirement trace]]
 // @tg: implements:: [[openspec:tg-trace#Trace command]]
+// @tg: implements:: [[openspec:spec-frameworks#Trace across frameworks]]
 export function traceRequirements(specs: SpecIndex, annotations: Annotation[], docs: TraceDoc[]): RequirementTrace[] {
   const rows = new Map<string, RequirementTrace>();
   const scenRows = new Map<string, ScenarioTrace>();
@@ -72,8 +75,7 @@ export function traceRequirements(specs: SpecIndex, annotations: Annotation[], d
   }
   for (const d of docs) {
     for (const entry of d.openspec) {
-      const targets = entry.includes('#') ? [specs.resolve(entry)].flatMap((r) => (r.kind === 'missing' ? [] : [r.requirement])) : specs.ofCapability(entry);
-      for (const r of targets) {
+      for (const r of specs.entries(entry)) {
         const row = rows.get(r.id)!;
         if (!row.documentedIn.includes(d.file)) row.documentedIn.push(d.file);
       }
@@ -81,7 +83,7 @@ export function traceRequirements(specs: SpecIndex, annotations: Annotation[], d
   }
   for (const row of rows.values()) {
     row.implemented = row.implementedBy.length > 0;
-    row.verified = row.scenarios.length ? row.scenarios.every((s) => s.verifiedBy.length > 0) : row.verifiedBy.length > 0;
+    row.verified = row.requirement.kind === 'decision' || (row.scenarios.length ? row.scenarios.every((s) => s.verifiedBy.length > 0) : row.verifiedBy.length > 0);
     row.documented = row.documentedIn.length > 0;
   }
   return [...rows.values()];

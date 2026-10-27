@@ -1,6 +1,6 @@
 ---
 name: tg-audit
-description: Audit OpenSpec requirements against the code that is supposed to implement them, classify every mismatch as a stale spec, a code bug or an open decision, and turn the findings into an OpenSpec change plus tg annotations. Use when asked to review, audit, align or clean up specs, when tg trace shows large gaps, or before adopting traceability in an existing project.
+description: Audit spec requirements (OpenSpec, Spec Kit, Kiro, BMAD, GSD) and decision records against the code that is supposed to implement them, classify every mismatch as a stale spec, a code bug or an open decision, and turn the findings into a spec change plus tg annotations. Use when asked to review, audit, align or clean up specs, when tg trace shows large gaps, or before adopting traceability in an existing project.
 ---
 
 # Auditing specs against code
@@ -14,7 +14,7 @@ Specs drift. An audit reads every requirement next to the code and records what 
 
 ## 2. Per requirement, read the code
 
-For each `### Requirement:` record:
+For each requirement (`### Requirement:` in OpenSpec, `FR-001` or a user story in Spec Kit, `### Requirement N` in Kiro, `FR-1` or a story in BMAD, an ADR) record:
 
 | field | meaning |
 |---|---|
@@ -32,19 +32,21 @@ Verify claims by reading code and tests, not file names. Note behavior the code 
 - **Code bug**: the spec states the right behavior and the code is wrong. Keep the spec; add a task to fix the code with a test.
 - **Both**: fix the wording and the code.
 - **Open decision**: neither side is clearly right. Write both options down and ask; do not guess.
-- **Known debt**: the code is knowingly wrong and will stay so for now. Keep the spec, and mark the code with `// @tg: -contradicts:: [[openspec:<cap>#<Requirement>]] {ticket: "...", until: "...", reason: "..."}` so the debt is queryable instead of forgotten.
+- **Known debt**: the code is knowingly wrong and will stay so for now. Keep the spec, and mark the code with `// @tg: -contradicts:: [[<requirement id>]] {ticket: "...", until: "...", reason: "..."}` so the debt is queryable instead of forgotten.
 
 Record what the audit learns in the typed graph, using the names `tg ontology` lists: a decision taken to resolve a mismatch becomes a `Decision` section in `lat.md/` with `- motivated_by::` edges to its reasons, an external rule that explains odd code becomes a `Constraint` section with `- constrains::` edges to what it binds (`{strength: must}` or `should`), and a superseded rule gets `- supersedes::` from its replacement.
 
 ## 4. Write the change
 
-Create one OpenSpec change (for example `align-specs-with-code`):
+Write the fixes the way the project's spec framework changes specs, keeping every existing requirement id and scenario name (they are ids annotations point at; add, never rename or renumber):
 
-- MODIFIED requirements carry the complete requirement, header, text and every scenario. **Keep every existing requirement and scenario name**: they are ids that annotations point at. Add scenarios instead of renaming them.
-- ADDED requirements for important unspecified behavior and for shipped features with no spec, with scenarios taken from tests that already exist.
-- REMOVED only for requirements nothing annotates (`tg edges --to "openspec:<cap>#<name>"` is empty).
-- `design.md` holds the classification table; `tasks.md` the code fixes and the open decisions.
-- `openspec validate <change> --strict` must pass.
+- **OpenSpec**: one change (for example `align-specs-with-code`). MODIFIED requirements carry the complete requirement, header, text and every scenario; ADDED ones cover important unspecified behavior, with scenarios from tests that already exist; REMOVED only for requirements nothing annotates (`tg edges --to "openspec:<cap>#<name>"` is empty). `design.md` holds the classification table, `tasks.md` the fixes and open decisions, and `openspec validate <change> --strict` must pass.
+- **Spec Kit, Kiro, BMAD, GSD**: edit the spec file in place on a branch: append new `FR-`/criterion numbers after the last one, rewrite stale sentences without changing their id, and list fixes and open decisions in the feature's `tasks.md` (or a story).
+- **ADRs**: a decision the code no longer follows gets a new record that supersedes it (`Supersedes [...](NNNN-....md)`), never an edit of the accepted one.
+
+The frameworks this project uses:
+
+{{spec-frameworks}}
 
 ## 5. Annotate from the audit
 

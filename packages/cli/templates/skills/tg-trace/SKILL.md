@@ -1,27 +1,21 @@
 ---
 name: tg-trace
-description: Trace OpenSpec requirements to the code that implements them, the tests that verify their scenarios and the lat.md docs that explain them, with tg. Use when implementing or testing a requirement, when a project has an openspec/ folder, before archiving an OpenSpec change, or when asked what is implemented, tested or covered.
+description: Trace spec requirements (OpenSpec, Spec Kit, Kiro, BMAD, GSD) and architecture decision records to the code that implements them, the tests that verify their scenarios and the lat.md docs that explain them, with tg. Use when implementing or testing a requirement, when a project has openspec/, specs/, .kiro/specs/, a BMAD PRD, .planning/REQUIREMENTS.md or docs/adr/, before archiving a change, or when asked what is implemented, tested or covered.
 ---
 
 # Requirement traceability with tg
 
-`tg` reads `openspec/specs/<capability>/spec.md` and the spec deltas of open changes. Every requirement and scenario has an id, code and tests point at those ids in comments, and `tg trace` reports what is implemented, verified and documented.
+`tg` reads the requirement files of the spec frameworks a project uses ({{spec-names}}). Every requirement and scenario has an id in its framework's scheme, code and tests point at those ids in comments, and `tg trace` reports what is implemented, verified and documented.
 
 ## Ids
 
-```
-openspec:<capability>#<Requirement>
-openspec:<capability>#<Requirement>#<Scenario>
-```
+Each framework has its own scheme, so ids never collide with lat.md sections or each other. Matching ignores case and collapses whitespace, aliases resolve (a user story's title, an ADR number without zeros), and a typo fails `tg check` with a did-you-mean suggestion. Never renumber or rename an id that code points at.
 
-- `<capability>` is the folder name under `openspec/specs/`. `<Requirement>` is the text after `### Requirement:`; `<Scenario>` the text after `#### Scenario:`.
-- Matching ignores case and collapses whitespace. A typo fails `tg check` with a did-you-mean suggestion.
-- Requirements ADDED or MODIFIED in an open change resolve at once, shown as `pending in <change>`. Archiving keeps the id.
+{{spec-frameworks}}
 
 ## Link code, tests and docs
 
-Put one comment line directly above the declaration that realizes a requirement. Annotate the entry points (one to three symbols), not every helper:
-
+Put one comment line directly above the declaration that realizes a requirement. Annotate the entry points (one to three symbols), not every helper. The examples use OpenSpec ids; an id of any framework above works the same way:
 ```ts
 // @tg: implements:: [[openspec:auth#Token expiry]]
 export function checkToken(token: Token): Result {
@@ -41,36 +35,38 @@ Several edges fit on one line: `// @tg: verifies:: [[openspec:a#X#S1]], verifies
 
 Docs relate to requirements with typed edge lines too, after a section's leading paragraph: a `Constraint` section that binds a requirement writes `- constrains:: [[openspec:auth#Token expiry]] {strength: must}`, a `Decision` that knowingly departs from one writes `- -contradicts:: [[openspec:auth#Token expiry]] {ticket: "AUTH-12"}`. Use only edge names `tg ontology` lists.
 
-Name the capabilities a lat.md file explains in its frontmatter (lat.md ignores the key):
+Name what a lat.md file explains in its frontmatter (lat.md ignores both keys): `openspec:` takes bare OpenSpec capabilities, `specs:` takes ids of any framework with their scheme:
 
 ```yaml
 ---
 openspec: [auth, "billing#Refunds"]
+specs: ["speckit:001-user-auth", "adr:0003"]
 ---
 ```
 
 ## Check and report
 
 ```bash
-tg check                       # broken openspec: targets and frontmatter entries fail here
+tg check                       # broken spec targets and frontmatter entries fail here
 tg trace                       # every capability: implements, verifies, docs per requirement
 tg trace auth billing --gaps   # only requirements still unimplemented or unverified
+tg trace speckit:001-user-auth adr   # one Spec Kit feature, every ADR
 tg trace --json                # for scripts
 tg trace --strict              # exit 1 while any gap remains (CI, once coverage is complete)
 tg edges --type verifies --to "openspec:auth#Token expiry"
 tg ontology check              # typed edges with undeclared names, wrong endpoints or properties
 ```
 
-A requirement is **implemented** when an `implements` edge reaches it or one of its scenarios, **verified** when every scenario has a `verifies` edge (or, with no scenarios, the requirement has one), and **documented** when a lat.md file names it. Missing links never fail `tg check`; only `tg trace --strict` enforces coverage.
+A requirement is **implemented** when an `implements` edge reaches it or one of its scenarios, **verified** when every scenario has a `verifies` edge (or, with no scenarios, the requirement has one), and **documented** when a lat.md file names it. Decision records need no test; retired ones (superseded, deprecated, rejected, out of scope) are listed but never a gap. Missing links never fail `tg check`; only `tg trace --strict` enforces coverage.
 
 ## Rules that keep links working
 
-- **Never rename a requirement or scenario that code points at.** Rewrite its sentence instead. If a rename is unavoidable, update every annotation in the same change: `tg edges --to "openspec:<cap>#<Old name>"` lists them, and `tg check` catches the rest.
+- **Never rename a requirement or scenario that code points at.** Rewrite its sentence instead. If a rename is unavoidable, update every annotation in the same change: `tg edges --to "<old id>"` lists them, and `tg check` catches the rest.
 - **Write the annotation with the code**, in the same edit, not afterwards.
 - **A requirement with no test is a finding, not a failure.** Report it; do not invent a test name to silence it.
 - **Negative edges** (`-implements::`) are ignored by the trace. Use `-contradicts::` for code that knowingly breaks a requirement, with `{until, ticket}`.
 
 ## Graph
 
-The same links are graph data: `Requirement` and `Scenario` nodes joined by `contains`, reached by `implements`, `verifies` and `references` and by typed doc edges such as `constrains`, with their properties (`r.confidence`, `r.level`).
+The same links are graph data: `Requirement`, `Scenario` and (for ADRs) `Decision` nodes joined by `contains`, with their framework's own label (`UserStory`, `AcceptanceCriterion`, `ADR`, ...), reached by `implements`, `verifies` and `references` and by typed doc edges such as `constrains`, with their properties (`r.confidence`, `r.level`).
 Partly implemented requirements: `MATCH (c)-[i:implements {confidence: "partial"}]->(q:Requirement) RETURN q.title, c.symbol`. See the `tg-graph` and `tg-impact` skills for queries.

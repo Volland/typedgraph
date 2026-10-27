@@ -26,6 +26,8 @@ export interface Io {
   choose?: (title: string, items: { id: string; label: string; checked: boolean }[]) => Promise<string[]>;
   /** Let the person at the terminal pick one item; absent outside a terminal, like `ask`. */
   select?: (title: string, items: { id: string; label: string }[]) => Promise<string>;
+  /** Run an external program in `cwd` with the terminal attached and return its exit code; absent in hosts that cannot, so installers are only suggested. */
+  exec?: (argv: string[], cwd: string) => Promise<number>;
 }
 
 export interface Ctx extends Io {

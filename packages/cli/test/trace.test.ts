@@ -105,7 +105,8 @@ describe('OpenSpec reader', () => {
     expect((await tg(root, 'check')).code).toBe(0);
     const t = await tg(root, 'trace');
     expect(t.code).toBe(2);
-    expect(t.err).toContain('no openspec/ folder');
+    expect(t.err).toContain('no spec framework');
+    expect(t.err).toContain('openspec/');
   });
 });
 

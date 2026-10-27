@@ -159,12 +159,13 @@ it('skips instruction files with --skip instructions', async () => {
 
 // @tg: verifies:: [[tests/tg-agent#Setup parts#Parts checklist]] {since: "2026-10-14", level: unit}
 // @lat: [[tests/tg-agent#Setup parts#Parts checklist]]
-it('offers the parts as a checklist, with OpenSpec unticked when the project has none', async () => {
+// @tg: verifies:: [[openspec:tg-agent-integration#Setup parts#Parts checklist]]
+it('offers the parts as a checklist with every part ticked', async () => {
   const dir = project();
   const r = await tg(dir, ['init'], { pick: { 'What to set up or update': ['skills'] }, answers: [''] });
   const shown = r.shown['What to set up or update']!;
-  expect(shown.map((i) => i.id)).toEqual(['instructions', 'hooks', 'skills', 'openspec', 'ontology']);
-  expect(shown.filter((i) => !i.checked).map((i) => i.id)).toEqual(['openspec']);
+  expect(shown.map((i) => i.id)).toEqual(['instructions', 'hooks', 'skills', 'specs', 'ontology']);
+  expect(shown.every((i) => i.checked)).toBe(true);
   expect(existsSync(join(dir, '.claude/skills/tg-docs/SKILL.md'))).toBe(true);
   expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
   expect(existsSync(join(dir, 'lat.md'))).toBe(false);

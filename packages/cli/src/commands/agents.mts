@@ -11,20 +11,24 @@ export interface Agent {
   skills: string;
   /** Paths whose presence means the project uses this agent. */
   markers: string[];
+  /** Folders where spec frameworks write this agent's slash commands or prompts (Spec Kit, cc-sdd, OpenSpec's `/opsx`). */
+  commands: string[];
+  /** The agent's key for Spec Kit's `specify init --integration`, when it has one. */
+  speckit?: string;
 }
 
 // @tg: implements:: [[openspec:tg-agent-integration#Skills per agent]]
 // @tg: implements:: [[openspec:tg-agent-integration#Agent detection]]
 export const AGENTS: readonly Agent[] = [
-  { id: 'claude', name: 'Claude Code', instructions: 'CLAUDE.md', skills: '.claude/skills', markers: ['.claude', 'CLAUDE.md'] },
-  { id: 'codex', name: 'Codex', instructions: 'AGENTS.md', skills: '.agents/skills', markers: ['.codex'] },
-  { id: 'cursor', name: 'Cursor', instructions: '.cursor/rules/tg.mdc', skills: '.cursor/skills', markers: ['.cursor'] },
-  { id: 'github-copilot', name: 'GitHub Copilot', instructions: 'AGENTS.md', skills: '.github/skills', markers: ['.github/skills', '.github/copilot-instructions.md'] },
-  { id: 'opencode', name: 'OpenCode', instructions: 'AGENTS.md', skills: '.opencode/skills', markers: ['.opencode'] },
-  { id: 'kilocode', name: 'Kilo Code', instructions: 'AGENTS.md', skills: '.kilocode/skills', markers: ['.kilocode'] },
-  { id: 'pi', name: 'Pi', instructions: 'AGENTS.md', skills: '.pi/skills', markers: ['.pi'] },
-  { id: 'oh-my-pi', name: 'Oh My Pi', instructions: 'AGENTS.md', skills: '.omp/skills', markers: ['.omp'] },
-  { id: 'agents', name: 'Other agents (AGENTS.md, .agents/skills)', instructions: 'AGENTS.md', skills: '.agents/skills', markers: ['.agents', 'AGENTS.md'] },
+  { id: 'claude', name: 'Claude Code', instructions: 'CLAUDE.md', skills: '.claude/skills', markers: ['.claude', 'CLAUDE.md'], commands: ['.claude/commands'], speckit: 'claude' },
+  { id: 'codex', name: 'Codex', instructions: 'AGENTS.md', skills: '.agents/skills', markers: ['.codex'], commands: ['.codex/prompts'], speckit: 'codex' },
+  { id: 'cursor', name: 'Cursor', instructions: '.cursor/rules/tg.mdc', skills: '.cursor/skills', markers: ['.cursor'], commands: ['.cursor/commands'], speckit: 'cursor-agent' },
+  { id: 'github-copilot', name: 'GitHub Copilot', instructions: 'AGENTS.md', skills: '.github/skills', markers: ['.github/skills', '.github/copilot-instructions.md'], commands: ['.github/prompts', '.github/agents'], speckit: 'copilot' },
+  { id: 'opencode', name: 'OpenCode', instructions: 'AGENTS.md', skills: '.opencode/skills', markers: ['.opencode'], commands: ['.opencode/command', '.opencode/commands'], speckit: 'opencode' },
+  { id: 'kilocode', name: 'Kilo Code', instructions: 'AGENTS.md', skills: '.kilocode/skills', markers: ['.kilocode'], commands: ['.kilocode/workflows'], speckit: 'kilocode' },
+  { id: 'pi', name: 'Pi', instructions: 'AGENTS.md', skills: '.pi/skills', markers: ['.pi'], commands: ['.pi/prompts'], speckit: 'pi' },
+  { id: 'oh-my-pi', name: 'Oh My Pi', instructions: 'AGENTS.md', skills: '.omp/skills', markers: ['.omp'], commands: [] },
+  { id: 'agents', name: 'Other agents (AGENTS.md, .agents/skills)', instructions: 'AGENTS.md', skills: '.agents/skills', markers: ['.agents', 'AGENTS.md'], commands: [] },
 ];
 
 export const AGENT_IDS = AGENTS.map((a) => a.id);

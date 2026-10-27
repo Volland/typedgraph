@@ -2,6 +2,30 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+### Added
+
+- **Spec frameworks beyond OpenSpec.** `tg` now reads requirements from:
+  - GitHub Spec Kit (`speckit:001-auth#FR-001`, `#US1#Scenario 1`).
+  - Kiro-format specs from Kiro, cc-sdd and spec-workflow-mcp (`kiro:auth#Requirement 1#1.2`, with each criterion's EARS pattern).
+  - BMAD PRDs and stories (`bmad:prd#FR-1`, `bmad:epic-1#Story 1.2#AC1`).
+  - GSD (`gsd:requirements#AUTH-01`).
+  - Architecture decision records in MADR, Nygard or log4brains format (`adr:0003`).
+
+  These ids work everywhere `openspec:` ids do: in annotations, typed doc edges, `tg check`, `tg trace`, `tg edges` and `tg cypher`. Spec nodes keep the `Requirement`, `Scenario` or `Decision` label and gain their framework's own (`UserStory`, `AcceptanceCriterion`, `ADR`, ...). ADR `Supersedes` lines become `supersedes` edges. A new `specs:` frontmatter key names ids of any framework.
+- **`tg init` chooses and installs your spec framework.** A new wizard step lists the frameworks. The ones it detects are ticked; if it detects none, it recommends one after looking at the project. For each framework you pick that is not set up yet, `tg init` offers to run its installer: the tool already on PATH, a one-off `npx` or `uvx` run, or a global install. Scripts use `--spec <ids>|none` and run installers only with `--install-spec`.
+
+  ADRs need no installer: `tg init` writes a first record and a template itself. Kiro gets an always-included steering file.
+
+  Spec Kit, cc-sdd, BMAD and GSD skills and commands get tg steps for their stage. The skills and the instruction block describe only the frameworks you chose.
+- **Spec ontology.** `Types/spec-types.md` declares the types and edges of the chosen frameworks, merged so that shared names are declared once. `tg init` rewrites it on every run. Print it with `tg gen spec-ontology.md`.
+
+### Changed
+
+- The `tg init` part `openspec` is now `specs` (`openspec` is still accepted). The parts checklist ticks every part.
+- `tg trace` counts decision records as verified. It lists retired records (superseded, deprecated, rejected or out of scope) but never reports them as gaps.
+
 ## 0.21.0 — 2026-10-27
 
 Three contributions from @ma-be: forces, pinning, controls and editable details in graphs (#9), note variables in `graph-query` blocks (#8), and the edge settings for Obsidian 1.13+ (#10).

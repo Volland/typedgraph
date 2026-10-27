@@ -68,7 +68,7 @@ A known disagreement is `-contradicts::` with `{ticket, until}`, never a positiv
 ```bash
 tg check            # links, structure, coverage
 tg ontology check   # every edge uses a declared name, direction and properties
-tg trace --gaps     # if the project has OpenSpec
+tg trace --gaps     # if the project has a spec framework (OpenSpec, Spec Kit, Kiro, BMAD, GSD, ADRs)
 ```
 
 Report what the migration did: files typed, edges added by type (deterministic and yours), comments upgraded, and the links you deliberately left plain with one line each on why. Commit the deterministic pass and your edits as separate commits so each can be reviewed.

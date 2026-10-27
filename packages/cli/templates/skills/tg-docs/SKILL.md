@@ -50,7 +50,7 @@ Access tokens expire after 15 minutes and refresh tokens rotate on every use.
 - -contradicts:: [[decisions#Stateless gateway]] {ticket: "PLAT-481", until: "2026-Q4"}
 ```
 
-- The edge starts at the section the line is in and ends at a section, an OpenSpec requirement or scenario (`[[openspec:auth#Token expiry]]`), or code (`[[src/auth/token.ts#refresh]]`).
+- The edge starts at the section the line is in and ends at a section, a spec requirement or scenario of any framework (`[[openspec:auth#Token expiry]]`, `[[speckit:001-auth#FR-001]]`, `[[kiro:auth#Requirement 1#1.2]]`, `[[adr:0003]]`), or code (`[[src/auth/token.ts#refresh]]`).
 - Use only edge names `tg ontology` lists. The direction matters: `motivated_by` goes from the Decision to its reason.
 - **Facts about the relation go in `{...}`**: dates and versions (`since`, `until`), tickets, `confidence`, `strength`, `weight`, `reason`. Use the properties the edge type declares; a sentence may explain more, but only a property can be queried.
 - A leading `-` (`-contradicts::`) means a known conflict, and nothing else.
@@ -73,7 +73,7 @@ Access tokens expire after 15 minutes and refresh tokens rotate on every use.
 
 `// @tg: implements:: [[decisions#Short-lived access tokens]] {since: "2.3"}` makes a named edge from the next declaration. Use `-type::` for a negative edge. A bare `// @tg: [[x]]` or `// @lat: [[x]]` is a plain link; prefer a named one.
 
-OpenSpec requirements are targets too: `// @tg: implements:: [[openspec:auth#Login]] {confidence: partial}` on code, `// @tg: verifies:: [[openspec:auth#Login#Expired token]] {level: integration}` above a test call (it attaches to the test, with its name). `tg check` rejects a target that does not resolve and suggests the nearest one; `tg trace [capability] --gaps` lists requirements with no implementation or unverified scenarios.
+Spec requirements are targets too (see the `tg-trace` skill for each framework's ids): `// @tg: implements:: [[openspec:auth#Login]] {confidence: partial}` on code, `// @tg: verifies:: [[openspec:auth#Login#Expired token]] {level: integration}` above a test call (it attaches to the test, with its name). `tg check` rejects a target that does not resolve and suggests the nearest one; `tg trace [capability] --gaps` lists requirements with no implementation or unverified scenarios.
 
 ## Test specs
 

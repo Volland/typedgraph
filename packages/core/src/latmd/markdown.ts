@@ -34,6 +34,13 @@ export interface Frontmatter {
   types?: string[];
   /** OpenSpec capabilities or `capability#requirement` ids this file explains, from `openspec:`. */
   openspec?: string[];
+  /** Spec ids of any framework this file explains, scheme included (`speckit:001-auth`, `adr:0003`), from `specs:`. */
+  specs?: string[];
+}
+
+/** Every spec entry a file's frontmatter names: `openspec:` entries as written (OpenSpec by default) and `specs:` entries. */
+export function specEntries(fm: Frontmatter | undefined): { entry: string; key: 'openspec' | 'specs' }[] {
+  return [...(fm?.openspec ?? []).map((entry) => ({ entry, key: 'openspec' as const })), ...(fm?.specs ?? []).map((entry) => ({ entry, key: 'specs' as const }))];
 }
 
 export interface ParsedMarkdown {
@@ -46,6 +53,7 @@ export interface ParsedMarkdown {
 }
 
 // @tg: implements:: [[openspec:tg-trace#Docs frontmatter]]
+// @tg: implements:: [[openspec:spec-frameworks#Docs name any framework]]
 export function parseFrontmatter(content: string): Frontmatter {
   const m = /^---\n([\s\S]*?)\n---/.exec(content);
   if (!m) return {};
@@ -55,6 +63,8 @@ export function parseFrontmatter(content: string): Frontmatter {
   if (types.length) out.types = types;
   const specs = listKey(m[1]!, 'openspec');
   if (specs.length) out.openspec = specs;
+  const any = listKey(m[1]!, 'specs');
+  if (any.length) out.specs = any;
   return out;
 }
 
