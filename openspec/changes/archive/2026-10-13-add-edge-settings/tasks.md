@@ -1,0 +1,3 @@
+- [x] 1.1 Add the `linkEdges` setting and pass it to `VaultIndex`
+- [x] 1.2 Add the settings tab toggle with re-index
+- [x] 1.3 Tests and lat.md

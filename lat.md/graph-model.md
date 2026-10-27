@@ -49,3 +49,5 @@ Syntax is defined in [[edge-syntax]]. An [[edge-syntax#Edge notes|edge note]] co
 With the `linkEdges` graph option, every plain wikilink or markdown link to a note in prose becomes an untyped `links_to` edge (sign +1), as OKF consumers read links.
 
 The option is off by default so existing vaults keep their graphs and queries; it is the third argument of [[packages/core/src/graph/graph.ts#Graph]] and is passed to the parser. Lines that already produce typed edges, fenced and inline code, frontmatter and image embeds (`![..](..)`, `![[..]]`) never yield link edges; missing targets become stubs as usual. The sidecar turns it on with `OBSIGRAPH_LINK_EDGES=1`.
+
+In the Obsidian plugin both options are settings, "Plain links as links_to edges" and "Frontmatter links as edges", off by default; changing either re-indexes the vault. See [[tests/edge-settings]].

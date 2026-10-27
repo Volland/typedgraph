@@ -8,6 +8,7 @@ Test specifications whose leaf sections must each be referenced by exactly one `
 - [[tg-ontology]] — typed edges in docs, tg ontology and its check, ontology-aware guidance
 - [[tg-migrate]] — tg migrate, the lat.md to typed graph migration
 - [[frontmatter-edges]] — links in frontmatter properties read as typed edges
+- [[edge-settings]] — plugin settings for `links_to` and frontmatter link edges
 - [[cypher-query]] — query behaviors from the cypher-query spec
 - [[graph-query-block]] — block pipeline behaviors from the graph-query-block spec
 - [[graph-view]] — view-state behaviors from the graph-view spec

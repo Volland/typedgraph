@@ -2,6 +2,16 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+### Added
+
+- **Plugin setting "Plain links as links_to edges".** Turns on the existing `linkEdges` option from the settings tab, so ordinary links in note text become untyped `links_to` edges. Off by default; changing it re-indexes the vault, like "Frontmatter links as edges".
+
+### Fixed
+
+- **Settings missing in Obsidian 1.13+.** The settings page Obsidian 1.13+ builds from `getSettingDefinitions()` lacked "Code in the graph", "Code folder", "Schema base IRI", "AsciiDoc notes" and the two link-edge toggles; all are there now with the same effects as in the legacy tab (the code layer refreshes, the vault re-indexes).
+
 ## 0.20.0 — 2026-10-16
 
 ### Added

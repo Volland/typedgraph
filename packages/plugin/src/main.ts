@@ -35,6 +35,7 @@ export default class ObsigraphPlugin extends Plugin {
       () => this.settings.frontmatterEdges,
       () => this.settings.asciidoc,
       parseYaml,
+      () => this.settings.linkEdges,
     );
     this.addSettingTab(new ObsigraphSettingTab(this.app, this));
 

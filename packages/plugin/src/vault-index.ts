@@ -64,6 +64,7 @@ export class VaultIndex {
     private readonly asciidoc: () => boolean = () => true,
     /** YAML parser for AsciiDoc property blocks; Obsidian's own in the plugin. */
     private readonly parseYaml?: YamlParser,
+    linkEdges: () => boolean = () => false,
   ) {
     this.graph = new Graph(
       this.resolver(),
@@ -75,6 +76,9 @@ export class VaultIndex {
           return frontmatterEdges();
         },
         parseYaml: this.parseYaml,
+        get linkEdges() {
+          return linkEdges();
+        },
       },
     );
     this.code = new CodeLayer(app, this.graph, codeMode, codeRoot);

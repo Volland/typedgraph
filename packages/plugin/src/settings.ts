@@ -29,6 +29,8 @@ export interface ObsigraphSettings {
   frontmatterEdges: boolean;
   /** Index `.adoc` files as notes beside Markdown. */
   asciidoc: boolean;
+  /** Read plain links in prose as untyped `links_to` edges. */
+  linkEdges: boolean;
   /** Derived code layer: off, annotated symbols only, or every symbol. */
   codeMode: CodeMode;
   /** Vault folder scanned for source files; empty means the whole vault. */
@@ -49,10 +51,12 @@ export const DEFAULT_SETTINGS: ObsigraphSettings = {
   sidecarToken: '',
   frontmatterEdges: false,
   asciidoc: true,
+  linkEdges: false,
   codeMode: 'off',
   codeRoot: '',
 };
 
+// @tg: implements:: [[openspec:graph-model#Edge options as plugin settings]] {since: "2026-10-13"}
 export class ObsigraphSettingTab extends PluginSettingTab {
   constructor(
     app: App,
@@ -203,6 +207,17 @@ export class ObsigraphSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName('Plain links as links_to edges')
+      .setDesc('Read ordinary wikilinks and markdown links in note text as untyped `links_to` edges, the way OKF consumers do. Typed edge lines such as `knows:: [[Bob]]` are unaffected. Re-indexes the vault when changed.')
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.linkEdges).onChange(async (v) => {
+          this.plugin.settings.linkEdges = v;
+          await this.plugin.saveSettings();
+          await this.plugin.index.reindex();
+        }),
+      );
+
+    new Setting(containerEl)
       .setName('Show diagnostics')
       .setDesc('Show the number of parse and schema issues in the status bar.')
       .addToggle((t) =>
@@ -275,6 +290,18 @@ export class ObsigraphSettingTab extends PluginSettingTab {
       },
       {
         type: 'group',
+        heading: 'Code',
+        items: [
+          {
+            name: 'Code in the graph',
+            desc: 'Show source code as derived nodes. Annotated adds symbols carrying @lat or @tg comments and what they point at; all adds every symbol. Files are only read, never changed.',
+            control: { type: 'dropdown', key: 'codeMode', options: { off: 'Off', annotated: 'Annotated symbols', all: 'All symbols' } },
+          },
+          { name: 'Code folder', desc: 'Vault folder to scan for source files. Leave empty to scan the whole vault.', control: { type: 'text', key: 'codeRoot', placeholder: 'src' } },
+        ],
+      },
+      {
+        type: 'group',
         heading: 'Sidecar',
         items: [
           { name: 'Sidecar URL', desc: 'Address and port of the sidecar, used by sidecar-backed queries.', control: { type: 'text', key: 'sidecarUrl' } },
@@ -295,6 +322,22 @@ export class ObsigraphSettingTab extends PluginSettingTab {
         heading: 'Types and styles',
         items: [
           { name: 'Schema folder', desc: 'Each note directly in this folder declares the schema for the type named by its title.', control: { type: 'folder', key: 'schemaFolder' } },
+          { name: 'Schema base IRI', desc: 'Names types, properties and edge types without a `uri` when exporting to or importing from SHACL.', control: { type: 'text', key: 'schemaBaseIri', placeholder: DEFAULT_BASE_IRI } },
+          {
+            name: 'Frontmatter links as edges',
+            desc: 'Read wikilinks in note properties as edges typed by the property name, so `requirement: "[[Login]]"` is the edge `requirement:: [[Login]]`. Tags, aliases, cssclasses and type are skipped. Re-indexes the vault when changed.',
+            control: { type: 'toggle', key: 'frontmatterEdges' },
+          },
+          {
+            name: 'AsciiDoc notes',
+            desc: 'Index `.adoc` files as notes: properties from a leading `////` comment block and `:tg-*:` attributes, edges from `// @tg:` comments. The files are only read; this plugin does not open or edit them. Re-indexes the vault when changed.',
+            control: { type: 'toggle', key: 'asciidoc' },
+          },
+          {
+            name: 'Plain links as links_to edges',
+            desc: 'Read ordinary wikilinks and markdown links in note text as untyped `links_to` edges, the way OKF consumers do. Typed edge lines such as `knows:: [[Bob]]` are unaffected. Re-indexes the vault when changed.',
+            control: { type: 'toggle', key: 'linkEdges' },
+          },
           { name: 'Show diagnostics', desc: 'Show the number of parse and schema issues in the status bar.', control: { type: 'toggle', key: 'showDiagnostics' } },
           {
             name: 'Type styles',
@@ -318,10 +361,22 @@ export class ObsigraphSettingTab extends PluginSettingTab {
 
   /** Persist through the plugin so caches refresh and open views restyle. */
   async setControlValue(key: string, value: unknown): Promise<void> {
+    // Same effects as the legacy display() controls.
+    if (key === 'codeMode') {
+      await this.plugin.setCodeMode(value === 'all' ? 'all' : value === 'annotated' ? 'annotated' : 'off');
+      return;
+    }
     const settings = this.plugin.settings as unknown as Record<string, unknown>;
-    settings[key] = key === 'schemaFolder' && typeof value === 'string' && !value.trim() ? DEFAULT_SCHEMA_FOLDER : value;
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (key === 'schemaFolder') settings[key] = text ? value : DEFAULT_SCHEMA_FOLDER;
+    else if (key === 'schemaBaseIri') settings[key] = text || DEFAULT_BASE_IRI;
+    else if (key === 'codeRoot') settings[key] = text;
+    else settings[key] = value;
     if (key === 'schemaFolder') this.plugin.index.invalidate();
     await this.plugin.saveSettings();
+    if (key === 'codeRoot') await this.plugin.index.code.refresh();
+    // The edge options are read when a note is indexed, so existing notes need another pass.
+    if (key === 'frontmatterEdges' || key === 'linkEdges' || key === 'asciidoc') await this.plugin.index.reindex();
   }
 
   /** JSON style editor with inline validation, shared by both style settings. */
