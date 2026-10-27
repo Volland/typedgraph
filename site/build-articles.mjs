@@ -59,8 +59,16 @@ POSTS.push(
     date: '8 October 2026',
     related: ['blog-typed-graph-for-coders.html', 'Two graphs in your codebase'],
   },
+  {
+    src: 'articles/bring-your-own-spec-framework.md',
+    out: 'site/blog-spec-frameworks.html',
+    title: 'Bring Your Own Spec Framework',
+    description: 'tg now traces Spec Kit, Kiro-style specs, BMAD, Get Shit Done and architecture decision records to code, tests and docs, next to OpenSpec, and tg init picks and installs the framework for you.',
+    date: '27 October 2026',
+    related: ['spec-frameworks.html', 'Supported spec frameworks, and how to add yours'],
+  },
 );
-const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html' };
+const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html', 'bring-your-own-spec-framework.md': 'blog-spec-frameworks.html' };
 const DATE = '6 October 2026';
 
 const escape = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

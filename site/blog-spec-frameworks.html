@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bring Your Own Spec Framework</title>
+  <meta name="description" content="tg now traces Spec Kit, Kiro-style specs, BMAD, Get Shit Done and architecture decision records to code, tests and docs, next to OpenSpec, and tg init picks and installs the framework for you.">
+  <meta property="og:title" content="Bring your own spec framework">
+  <meta property="og:description" content="tg now traces Spec Kit, Kiro-style specs, BMAD, Get Shit Done and architecture decision records to code, tests and docs, next to OpenSpec, and tg init picks and installs the framework for you.">
+  <meta property="og:image" content="https://typedgraph.org/assets/og.png">
+  <meta property="og:type" content="article">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/logo.svg" alt="">Typed Graph</a>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="agents.html">Agents</a>
+        <a href="obsidian.html">Obsidian</a>
+        <a href="teams.html">Teams</a>
+        <a href="docs.html">Docs</a>
+        <a href="demo.html">Demo</a>
+        <a href="example.html">Example</a>
+        <a href="ontologies.html">Ontologies</a>
+        <a href="blog.html" class="active">Blog</a>
+        <a href="https://github.com/Volland/typedgraph">GitHub</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap post">
+    <div class="meta"><a href="blog.html">Blog</a> · 27 October 2026 · Volodymyr Pavlyshyn</div>
+    <h1>Bring your own spec framework</h1>
+    <p class="standfirst"><code>tg</code> used to trace only OpenSpec requirements to code. It now reads Spec Kit, Kiro-style specs, BMAD, Get Shit Done and architecture decision records too. <code>tg init</code> asks which one you use, installs it if you have none, and teaches your coding agent the ids. One trace covers all of them.</p>
+
+<h2>Everyone writes specs now, just not the same way</h2>
+<p>Spec-driven development won. Teams that build with coding agents write the requirement first and let the agent implement it. But there is no single format for that requirement. Approximate GitHub star counts in October 2026 give a sense of scale:</p>
+<ul>
+<li><strong>GitHub Spec Kit</strong> (about 143k stars) puts each feature in <code>specs/001-checkout/spec.md</code>. A spec has user stories with priorities, numbered acceptance scenarios, and requirement ids like <code>FR-001</code>.</li>
+<li><strong>OpenSpec</strong> (about 73k) keeps one spec per capability and proposes changes as deltas against it.</li>
+<li><strong>Get Shit Done</strong> (about 64k) keeps a <code>REQUIREMENTS.md</code> with ids like <code>AUTH-01</code>.</li>
+<li><strong>BMAD</strong> (about 55k) has agent personas write a PRD with <code>FR-1</code> items, then story files with acceptance criteria.</li>
+<li><strong>Kiro&#39;s format</strong>, shared by the Kiro IDE, cc-sdd and spec-workflow-mcp, writes acceptance criteria in EARS: <code>WHEN … THEN the system SHALL …</code>.</li>
+</ul>
+<p><strong>Architecture decision records</strong> sit beside all of them. ADRs are older than any of these tools and are still the best place to say <em>why</em>.</p>
+<p>Until this release, the <a href="https://typedgraph.org">Typed Graph</a> CLI understood exactly one of these. An <a href="blog-specs-that-know-their-code.html">earlier article</a> showed how <code>tg</code> gives every OpenSpec requirement an id, so code can say <code>implements</code> and tests can say <code>verifies</code>. If your team used Spec Kit, none of that applied to you.</p>
+<h2>One trace, six frameworks</h2>
+<p>Each framework now has its own id scheme. The ids are the ones the framework already writes, so nobody has to rename anything:</p>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Requirement</th>
+<th>Scenario or criterion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OpenSpec</td>
+<td><code>openspec:auth#Login</code></td>
+<td><code>openspec:auth#Login#Valid password</code></td>
+</tr>
+<tr>
+<td>Spec Kit</td>
+<td><code>speckit:001-checkout#FR-001</code>, <code>#US1</code></td>
+<td><code>speckit:001-checkout#US1#Scenario 2</code></td>
+</tr>
+<tr>
+<td>Kiro, cc-sdd, spec-workflow-mcp</td>
+<td><code>kiro:reports#Requirement 2</code></td>
+<td><code>kiro:reports#Requirement 2#2.1</code></td>
+</tr>
+<tr>
+<td>BMAD</td>
+<td><code>bmad:prd#FR-1</code>, <code>bmad:epic-1#Story 1.2</code></td>
+<td><code>bmad:epic-1#Story 1.2#AC1</code></td>
+</tr>
+<tr>
+<td>Get Shit Done</td>
+<td><code>gsd:requirements#AUTH-01</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td>ADRs (MADR, Nygard, log4brains)</td>
+<td><code>adr:0003</code></td>
+<td>none</td>
+</tr>
+</tbody></table>
+<p>The scheme prefix keeps these ids apart, both from each other and from your <code>lat.md</code> sections. That is why <code>tg check</code> still agrees with lat.md&#39;s own check.</p>
+<p>Aliases resolve too:</p>
+<ul>
+<li><code>speckit:checkout#FR-001</code> finds the folder <code>001-checkout</code>.</li>
+<li>A user story&#39;s title finds the story.</li>
+<li><code>kiro:reports#2#1</code> finds criterion <code>2.1</code>.</li>
+<li><code>adr:3</code> finds <code>0003-use-postgres.md</code>.</li>
+</ul>
+<p>They work everywhere <code>openspec:</code> ids already did: in <code>@<span></span>tg:</code> comments, in typed edges in your docs, and in <code>tg check</code>, <code>tg trace</code>, <code>tg edges</code> and <code>tg cypher</code>.</p>
+<h2>The setup asks which one you use</h2>
+<p><code>tg init</code> is the setup wizard. It now has a step for spec frameworks.</p>
+<ul>
+<li><p><strong>Detects:</strong> it looks for the folders each tool creates: <code>.specify/</code>, <code>openspec/</code>, <code>.kiro/</code>, <code>_bmad/</code>, <code>.planning/</code> and the usual ADR folders. Every framework it finds is ticked and marked <em>found</em>.</p>
+</li>
+<li><p><strong>Recommends:</strong> if it finds none, it looks at the project and ticks one, with the reason shown. A project with existing code gets OpenSpec, because change proposals with deltas suit an evolving codebase. A nearly empty one gets Spec Kit, whose feature specs, plans and task lists suit a new project. You can untick it, tick another, or tick ADRs as well.</p>
+</li>
+<li><p><strong>Installs:</strong> for each framework you tick that is not set up yet, it offers to run that framework&#39;s own installer. There are up to three ways, and each one shows its exact command:</p>
+<ul>
+<li>use the tool already on your PATH, for example <code>specify init --here --force --integration claude</code>;</li>
+<li>run it once with <code>npx</code> or <code>uvx</code>, without installing anything;</li>
+<li>install the tool first, for example with <code>uv tool install specify-cli</code>.</li>
+</ul>
+<p>You can always skip and get the command printed instead.</p>
+</li>
+</ul>
+<p>Scripts never get a surprise. Without a terminal, <code>tg init</code> uses <code>--spec</code> (for example <code>--spec speckit,adr</code>, or <code>--spec none</code>). It runs an installer only when you pass <code>--install-spec</code>, and <code>--dry-run</code> prints the commands without running them.</p>
+<p>ADRs need no tool. When you tick them, <code>tg init</code> writes <code>docs/adr/0001-record-architecture-decisions.md</code> and a MADR template itself.</p>
+<p>Here is what happened in a new, empty project with Spec Kit and ADRs ticked:</p>
+<pre>$ tg init --agent claude --spec speckit,adr --install-spec
+  + created lat.md/lat.md
+  + created lat.md/code-ontology.md
+  + created Types/code-types.md
+  + created Types/spec-types.md
+  ~ updated CLAUDE.md
+  + created .claude/settings.json
+  + created .mcp.json
+  ~ updated .claude/skills/speckit-specify/SKILL.md
+  ~ updated .claude/skills/speckit-clarify/SKILL.md
+  ~ updated .claude/skills/speckit-plan/SKILL.md
+  ~ updated .claude/skills/speckit-tasks/SKILL.md
+  ~ updated .claude/skills/speckit-implement/SKILL.md
+  + created docs/adr/0001-record-architecture-decisions.md
+  + created docs/adr/template.md
+Wrote 26 files.</pre>
+<p>(I left out the six tg skills and the template notes.)</p>
+<p>The <code>updated</code> lines are the interesting ones. Spec Kit&#39;s installer ran first and wrote its own skills and its own <code>CLAUDE.md</code>. <code>tg init</code> then appended a short tg section to each skill that drives a stage of the work. Your text outside that section is never touched. Each section fits its stage:</p>
+<ul>
+<li>The <strong>specify</strong> skill now says to keep requirement ids stable.</li>
+<li>The <strong>tasks</strong> skill adds a task to annotate each requirement&#39;s code and each scenario&#39;s test.</li>
+<li>The <strong>implement</strong> skill says to put <code>implements:: [[speckit:&lt;feature&gt;#FR-001]]</code> above the function it writes.</li>
+</ul>
+<p>OpenSpec, cc-sdd, BMAD and GSD skills get the same kind of section, written with their own ids.</p>
+<h2>What the trace shows</h2>
+<p>I added a checkout spec with two user stories, three functional requirements and one success criterion. I also added a decision record: charge every order through an idempotency key. Then I wrote two functions and two tests, annotated like this:</p>
+<pre>// @<span></span>tg: implements:: [[speckit:checkout#FR-001]], implements:: [[adr:2]]
+export function pay(orderId: string, card: string) {
+
+// @<span></span>tg: implements:: [[speckit:checkout#US1]] {confidence: partial}
+export function checkout(cart: string[], card: string) {</pre>
+<pre>// @<span></span>tg: verifies:: [[speckit:checkout#US1#1]] {level: integration}
+it('creates an order for a valid card', () =&gt; {});</pre>
+<p><code>tg trace</code> lists both frameworks in one report:</p>
+<pre>adr  2 req · 1 implemented · 2 verified · 0 documented
+  ✗ 0001 Record architecture decisions  — unimplemented, undocumented
+  ✓ 0002 Charge through an idempotency key  — undocumented
+      implements  src/checkout.ts#pay:1
+
+speckit:001-checkout  6 req · 2 implemented · 1 verified · 0 documented
+  ✗ US1 Pay for a cart  — unverified, undocumented
+      implements  src/checkout.ts#checkout:6
+      ✓ scenario  Scenario 1  test/checkout.test.ts:1 &quot;creates an order for a valid card&quot;
+      ✗ scenario  Scenario 2
+  ✗ US2 Apply a coupon  — unimplemented, unverified, undocumented
+      ✗ scenario  Scenario 1
+  ✗ FR-001  — unverified, undocumented
+      implements  src/checkout.ts#pay:1
+  ✗ FR-002  — unimplemented, undocumented
+      verifies    test/checkout.test.ts:4 &quot;keeps the cart when the card is declined&quot;
+  ✗ FR-003  — unimplemented, unverified, undocumented
+  ✗ SC-001  — unimplemented, unverified, undocumented
+
+8 requirements: 3 implemented, 3 verified, 0 documented</pre>
+<p>Three details are worth a closer look:</p>
+<ul>
+<li><strong>Decisions don&#39;t need tests.</strong> A decision record is never reported as unverified. Its question is whether code follows it.</li>
+<li><strong>Retired records are not gaps.</strong> An ADR marked superseded, deprecated or rejected stays in the list but never counts as a gap, so <code>tg trace --strict</code> in CI does not nag about decisions you replaced on purpose. A record that says <code>Supersedes [2. Use Postgres](0002-use-postgres.md)</code> becomes a <code>supersedes</code> edge in the graph.</li>
+<li><strong>Typos fail with a suggestion.</strong> I wrote <code>FR-01</code> on purpose:</li>
+</ul>
+<pre>- src/checkout.ts:11: @<span></span>tg: [[speckit:checkout#FR-01]] — no requirement &quot;FR-01&quot; in Spec Kit &quot;001-checkout&quot; — did you mean '[[speckit:001-checkout#FR-001]]'?</pre>
+<h2>Two labels on every requirement</h2>
+<p>Every project that <code>tg init</code> sets up gets a small <em>code ontology</em>: a list of the types of things in the graph and the links allowed between them. In it, <code>implements</code> links code to a <code>Requirement</code> or a <code>Decision</code>, and <code>verifies</code> links a test to a <code>Requirement</code> or a <code>Scenario</code>. Each project owns that file and can edit it, so a new framework must not need a change to it. But a user story is not just any requirement. It has a priority, a title and acceptance scenarios, and you want to ask questions about exactly those.</p>
+<p>So every node <code>tg</code> reads from a spec file carries two labels:</p>
+<ul>
+<li>the base label the code ontology already allows: <code>Requirement</code>, <code>Scenario</code> or <code>Decision</code>;</li>
+<li>the label of its own framework: <code>UserStory</code>, <code>FunctionalRequirement</code>, <code>SuccessCriterion</code>, <code>AcceptanceCriterion</code>, <code>Story</code> or <code>ADR</code>.</li>
+</ul>
+<p><code>implements</code> works unchanged, and Cypher queries can be as specific as you like:</p>
+<pre>$ tg cypher &quot;MATCH (s:Scenario)&lt;-[:contains]-(u:UserStory {priority: 'P1'})
+             OPTIONAL MATCH (t)-[:verifies]-&gt;(s)
+             RETURN s.scenario, s.text, count(t) AS tests&quot;
+s.scenario                          | s.text                                                                                     | tests
+------------------------------------+--------------------------------------------------------------------------------------------+------
+speckit:001-checkout#US1#Scenario 1 | Given a cart with items, When the shopper pays with a valid card, Then an order is created | 1
+speckit:001-checkout#US1#Scenario 2 | Given a declined card, When the shopper pays, Then the cart is kept and an error is shown  | 0</pre>
+<p>That is every P1 acceptance scenario and how many tests prove it, in one query. Spec Kit marks open questions with <code>[NEEDS CLARIFICATION]</code>, and those become a property too:</p>
+<pre>$ tg cypher &quot;MATCH (r:FunctionalRequirement) WHERE r.clarification = 'needed' RETURN r.requirement, r.text&quot;
+r.requirement               | r.text
+----------------------------+----------------------------------------------------------------------------
+speckit:001-checkout#FR-003 | System MUST reject expired coupons via [NEEDS CLARIFICATION: grace period?]</pre>
+<p>An agent that runs this before implementing knows to ask first.</p>
+<p>Kiro criteria carry their EARS pattern, so <code>MATCH (c:AcceptanceCriterion {ears: &quot;unwanted&quot;})</code> lists every <code>IF … THEN</code> error path, which are exactly the cases people forget to test. ADRs carry their status and date, so <code>MATCH (c:CodeSymbol)-[:implements]-&gt;(d:ADR)</code> shows which code depends on which decision.</p>
+<p>The framework labels are declared in <code>Types/spec-types.md</code>. <code>tg init</code> writes that file with only the frameworks you chose, and merges what they share: Spec Kit and Kiro both have a <code>Feature</code>, which is declared once. <code>tg init</code> owns this file and rewrites it on every run. Your own vocabulary stays in <code>Types/code-types.md</code>, which <code>tg</code> never overwrites.</p>
+<h2>The skills follow the frameworks</h2>
+<p>The <code>tg-trace</code> skill that <code>tg init</code> installs used to be an OpenSpec manual. Now it is written for the frameworks you picked. A Spec Kit project&#39;s skill explains <code>FR-</code> ids, user stories and <code>[NEEDS CLARIFICATION]</code>. It says nothing about Kiro criteria, because that project has none.</p>
+<p>The same goes for:</p>
+<ul>
+<li>the instruction block in <code>CLAUDE.md</code> or <code>AGENTS.md</code> and the Cursor rules;</li>
+<li>the <code>tg-audit</code> skill, which now tells an agent how to fix a stale spec the way that framework does it: an OpenSpec change, an edited Spec Kit spec, or a new ADR that supersedes the old one.</li>
+</ul>
+<h2>What it does not do</h2>
+<p><code>tg</code> does not write your specs. The framework&#39;s own skills do that, and <code>tg</code> only adds the steps that keep them traceable.</p>
+<p>Two things are not done yet:</p>
+<ul>
+<li><strong>Task lists are not read.</strong> Spec Kit&#39;s <code>T012 [US1]</code> lines and Kiro&#39;s <code>_Requirements: 1.1_</code> are not graph edges yet. Agents read them, but <code>tg</code> doesn&#39;t.</li>
+<li><strong>Some BMAD and GSD skill names are unconfirmed.</strong> If a name is wrong, that skill is simply not patched; nothing breaks.</li>
+</ul>
+<p>If your team uses a format that is not on the list, the <a href="spec-frameworks.html">spec frameworks page</a> explains how a new one is added.</p>
+<h2>Try it</h2>
+<pre>npm i -g @typedgraph/cli
+tg init</pre>
+<p>In a terminal, <code>tg init</code> asks which framework you use. In CI, use <code>tg init --spec &lt;framework&gt;</code>.</p>
+<p class="note"><em>All output in this article comes from a real run of the built CLI on a new project, with Spec Kit 1.x installed by <code>tg init</code>. Star counts are approximate, taken from GitHub in October 2026.</em></p>
+
+    <div class="next">Related: <a href="spec-frameworks.html">Supported spec frameworks, and how to add yours →</a></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Typed Graph · MIT · by Volodymyr Pavlyshyn. Not affiliated with Obsidian, LadybugDB or lat.md.</span>
+      <span><a href="docs.html">Docs</a> · <a href="blog.html">Blog</a> · <a href="https://github.com/Volland/typedgraph">GitHub</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="agb.html">AGB</a></span>
+    </div>
+  </footer>
+  <script src="assets/site.js"></script>
+</body>
+</html>

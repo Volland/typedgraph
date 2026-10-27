@@ -704,3 +704,5 @@ footer .wrap {
   .map-canvas { height: 420px; }
   .trail-side #trail-text { min-height: 0; }
 }
+.spec-panel > p { color: var(--muted); margin: 6px 0 12px; }
+.spec-panel .two-col pre { margin: 0; }

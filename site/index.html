@@ -193,6 +193,81 @@ function legacyCheck() {}</pre>
       </div>
     </section>
 
+    <section id="spec-frameworks">
+      <div class="wrap">
+        <h2>Bring your spec framework</h2>
+        <p class="section-lead"><code>tg</code> traces requirements to the code that implements them, the tests that prove them and the docs that explain them, whichever framework you write them in. <code>tg init</code> asks which one you use, and installs it if you have none.</p>
+        <div class="map-tabs" role="tablist" aria-label="Spec framework">
+          <button type="button" role="tab" id="spec-tab-openspec" aria-controls="spec-panel-openspec" data-spec="openspec" aria-selected="true">OpenSpec</button>
+          <button type="button" role="tab" id="spec-tab-speckit" aria-controls="spec-panel-speckit" data-spec="speckit" aria-selected="false">Spec Kit</button>
+          <button type="button" role="tab" id="spec-tab-kiro" aria-controls="spec-panel-kiro" data-spec="kiro" aria-selected="false">Kiro</button>
+          <button type="button" role="tab" id="spec-tab-bmad" aria-controls="spec-panel-bmad" data-spec="bmad" aria-selected="false">BMAD</button>
+          <button type="button" role="tab" id="spec-tab-gsd" aria-controls="spec-panel-gsd" data-spec="gsd" aria-selected="false">GSD</button>
+          <button type="button" role="tab" id="spec-tab-adr" aria-controls="spec-panel-adr" data-spec="adr" aria-selected="false">ADRs</button>
+        </div>
+        <div class="spec-panel" role="tabpanel" id="spec-panel-openspec" aria-labelledby="spec-tab-openspec">
+          <p>Capability specs, plus change proposals with deltas. Best for evolving an existing codebase.</p>
+          <div class="two-col">
+<pre>tg init --spec openspec --install-spec
+# runs: openspec init --tools claude</pre>
+<pre>// @<span></span>tg: implements:: [[openspec:auth#Login]]
+// @<span></span>tg: verifies:: [[openspec:auth#Login#Valid password]]</pre>
+          </div>
+        </div>
+        <div class="spec-panel" role="tabpanel" id="spec-panel-speckit" aria-labelledby="spec-tab-speckit" hidden>
+          <p>GitHub Spec Kit: one folder per feature, with user stories, FR-### requirements and acceptance scenarios. Best for building new features end to end.</p>
+          <div class="two-col">
+<pre>tg init --spec speckit --install-spec
+# runs: specify init --here --force --integration claude
+#   or: uvx --from specify-cli specify init …</pre>
+<pre>// @<span></span>tg: implements:: [[speckit:001-checkout#FR-001]]
+// @<span></span>tg: verifies:: [[speckit:001-checkout#US1#Scenario 1]]</pre>
+          </div>
+        </div>
+        <div class="spec-panel" role="tabpanel" id="spec-panel-kiro" aria-labelledby="spec-tab-kiro" hidden>
+          <p>Kiro-style requirements with EARS acceptance criteria, shared by the Kiro IDE, cc-sdd and spec-workflow-mcp.</p>
+          <div class="two-col">
+<pre>tg init --spec kiro --install-spec
+# runs: npx -y cc-sdd@latest --claude-skills
+# adds: .kiro/steering/tg.md</pre>
+<pre>// @<span></span>tg: implements:: [[kiro:reports#Requirement 2]]
+// @<span></span>tg: verifies:: [[kiro:reports#Requirement 2#2.1]]</pre>
+          </div>
+        </div>
+        <div class="spec-panel" role="tabpanel" id="spec-panel-bmad" aria-labelledby="spec-tab-bmad" hidden>
+          <p>BMAD Method: agent personas write a PRD with FR-# items, then story files with acceptance criteria.</p>
+          <div class="two-col">
+<pre>tg init --spec bmad --install-spec
+# runs: npx -y bmad-method@latest install …</pre>
+<pre>// @<span></span>tg: implements:: [[bmad:prd#FR-1]]
+// @<span></span>tg: verifies:: [[bmad:epic-1#Story 1.2#AC1]]</pre>
+          </div>
+        </div>
+        <div class="spec-panel" role="tabpanel" id="spec-panel-gsd" aria-labelledby="spec-tab-gsd" hidden>
+          <p>Get Shit Done: one REQUIREMENTS.md with CATEGORY-NN ids and a roadmap in phases.</p>
+          <div class="two-col">
+<pre>tg init --spec gsd
+# in a terminal it offers: npx -y get-shit-done-cc@latest</pre>
+<pre>// @<span></span>tg: implements:: [[gsd:requirements#AUTH-01]]</pre>
+          </div>
+        </div>
+        <div class="spec-panel" role="tabpanel" id="spec-panel-adr" aria-labelledby="spec-tab-adr" hidden>
+          <p>Architecture decision records in MADR, Nygard or log4brains format. Use them next to any of the others.</p>
+          <div class="two-col">
+<pre>tg init --spec openspec,adr
+# writes: docs/adr/0001-record-architecture-decisions.md
+#         docs/adr/template.md</pre>
+<pre>// @<span></span>tg: implements:: [[adr:0003]]
+// @<span></span>tg: -contradicts:: [[adr:0002]] {ticket: "PAY-7"}</pre>
+          </div>
+        </div>
+        <div class="buttons" style="margin-top:20px">
+          <a class="btn primary" href="spec-frameworks.html">All frameworks, and adding yours →</a>
+          <a class="btn" href="blog-spec-frameworks.html">Read: bring your own spec framework</a>
+        </div>
+      </div>
+    </section>
+
     <section class="soft">
       <div class="wrap">
         <h2>How it fits together</h2>
@@ -239,6 +314,7 @@ function legacyCheck() {}</pre>
         <h2>Learn more</h2>
         <p class="section-lead">Articles, a gallery of ready-made ontologies and a vault to explore.</p>
         <div class="grid">
+          <a class="post-card" href="blog-spec-frameworks.html"><div class="meta">Blog · Developers</div><h2>Bring your own spec framework</h2><p>OpenSpec, Spec Kit, Kiro-style specs, BMAD, GSD and ADRs, traced to code and tests by one command.</p></a>
           <a class="post-card" href="blog-shared-space.html"><div class="meta">Blog · Manifesto</div><h2>A shared space for agents and humans</h2><p>Why coding agents need the same documented, checked knowledge as people, in plain files.</p></a>
           <a class="post-card" href="blog-claude-code-memory.html"><div class="meta">Blog · Tutorial</div><h2>Give Claude Code a memory in five minutes</h2><p>Install tg, run tg init, write a typed link, and let the agent search, query and check.</p></a>
           <a class="post-card" href="compare.html"><div class="meta">Comparison</div><h2>Typed Graph and the alternatives</h2><p>Next to lat.md, plain Obsidian and vector-only memory, including where each is better.</p></a>

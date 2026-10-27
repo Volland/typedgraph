@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spec frameworks — OpenSpec, Spec Kit, Kiro, BMAD, GSD and ADRs with Typed Graph</title>
+  <meta name="description" content="The spec-driven development frameworks tg traces to code, tests and docs: OpenSpec, GitHub Spec Kit, Kiro-style specs, BMAD, Get Shit Done and architecture decision records. How to choose one, install it with tg init, and add your own.">
+  <meta property="og:title" content="Spec frameworks with Typed Graph">
+  <meta property="og:description" content="OpenSpec, Spec Kit, Kiro-style specs, BMAD, Get Shit Done and ADRs: traced to code, tests and docs by tg. Choose, install, or add your own.">
+  <meta property="og:image" content="https://typedgraph.org/assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/logo.svg" alt="">Typed Graph</a>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="agents.html">Agents</a>
+        <a href="obsidian.html">Obsidian</a>
+        <a href="teams.html">Teams</a>
+        <a href="docs.html">Docs</a>
+        <a href="demo.html">Demo</a>
+        <a href="example.html">Example</a>
+        <a href="ontologies.html">Ontologies</a>
+        <a href="blog.html">Blog</a>
+        <a href="https://github.com/Volland/typedgraph">GitHub</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap post">
+    <div class="meta"><a href="docs.html#cli-agents">Docs</a> · CLI · Spec frameworks</div>
+    <h1>Spec frameworks</h1>
+    <p class="standfirst">Write requirements with whichever spec-driven development framework your team already uses. <code>tg</code> reads its files, gives every requirement an id that code and tests can point at, and reports what is implemented, verified and documented. If your format is missing, you can map it onto one that is supported, or add a reader.</p>
+
+    <h2 id="supported">Supported frameworks</h2>
+    <p>Each framework has its own id prefix, so their ids never clash with each other or with your <code>lat.md</code> sections. The ids are the ones the framework already writes.</p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Framework</th><th>Detected by</th><th>Files tg reads</th><th>Ids</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://github.com/Fission-AI/OpenSpec">OpenSpec</a></td><td><code>openspec/</code></td><td><code>openspec/specs/&lt;capability&gt;/spec.md</code> and the deltas of open changes</td><td><code>openspec:auth#Login</code>, <code>openspec:auth#Login#Valid password</code></td></tr>
+        <tr><td><a href="https://github.com/github/spec-kit">GitHub Spec Kit</a></td><td><code>.specify/</code></td><td><code>specs/&lt;feature&gt;/spec.md</code></td><td><code>speckit:001-checkout#FR-001</code>, <code>#US1</code>, <code>#US1#Scenario 2</code>, <code>#SC-001</code></td></tr>
+        <tr><td>Kiro-style specs (<a href="https://kiro.dev">Kiro</a>, <a href="https://github.com/gotalab/cc-sdd">cc-sdd</a>, <a href="https://github.com/Pimzino/spec-workflow-mcp">spec-workflow-mcp</a>)</td><td><code>.kiro/</code>, <code>.spec-workflow/</code></td><td><code>.kiro/specs/&lt;feature&gt;/requirements.md</code>, <code>.spec-workflow/specs/&lt;feature&gt;/requirements.md</code></td><td><code>kiro:reports#Requirement 2</code>, <code>#Requirement 2#2.1</code></td></tr>
+        <tr><td><a href="https://github.com/bmad-code-org/BMAD-METHOD">BMAD Method</a></td><td><code>_bmad/</code>, <code>.bmad-core/</code>, <code>_bmad-output/</code></td><td>The PRD (<code>_bmad-output/planning-artifacts/prd.md</code>, <code>docs/prd.md</code>) and story files</td><td><code>bmad:prd#FR-1</code>, <code>bmad:epic-1#Story 1.2#AC1</code></td></tr>
+        <tr><td><a href="https://github.com/gsd-build/get-shit-done">Get Shit Done</a></td><td><code>.planning/</code></td><td><code>.planning/REQUIREMENTS.md</code></td><td><code>gsd:requirements#AUTH-01</code></td></tr>
+        <tr><td>Architecture decision records (<a href="https://adr.github.io/madr/">MADR</a>, Nygard / adr-tools, log4brains)</td><td>A numbered record in <code>docs/adr</code>, <code>doc/adr</code>, <code>docs/decisions</code>, …; <code>.adr-dir</code>; <code>.log4brains.yml</code></td><td><code>NNNN-title.md</code> in that folder</td><td><code>adr:0003</code> (also <code>adr:3</code>, the slug or the title)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Lookups ignore case and extra spaces, and aliases resolve:</p>
+    <ul>
+      <li>a Spec Kit feature without its number (<code>speckit:checkout#FR-001</code>);</li>
+      <li>a user story's title;</li>
+      <li>a bare criterion number (<code>kiro:reports#2#1</code>);</li>
+      <li>an ADR number without leading zeros.</li>
+    </ul>
+    <p>A misspelled id fails <code>tg check</code> with a did-you-mean.</p>
+
+    <h2 id="annotate">Point code and tests at requirements</h2>
+    <p>The comment grammar is the same for every framework. Put an <code>implements</code> line above the code that realizes a requirement or a decision, and a <code>verifies</code> line above the test that proves a scenario or acceptance criterion.</p>
+<pre>// @<span></span>tg: implements:: [[speckit:checkout#FR-001]], implements:: [[adr:2]]
+export function pay(orderId: string, card: string) { … }
+
+// @<span></span>tg: verifies:: [[kiro:reports#Requirement 2#2.1]] {level: integration}
+it('downloads a CSV when the analyst clicks export', () => { … });</pre>
+    <p>Docs say what they explain in their frontmatter. <code>openspec:</code> takes bare OpenSpec capabilities, and <code>specs:</code> takes ids of any framework:</p>
+<pre>---
+type: Decision
+specs: ["speckit:001-checkout", "adr:0002"]
+---</pre>
+    <p>Then <code>tg trace</code> reports every framework at once. Narrow it with <code>tg trace speckit:001-checkout</code> or <code>tg trace adr</code>, and fail CI on gaps with <code>--gaps --strict</code>.</p>
+    <p>Two kinds of records never count as gaps:</p>
+    <ul>
+      <li><strong>Decision records</strong> need no test, so they never count as unverified.</li>
+      <li><strong>Retired records</strong> are listed but never reported as gaps: superseded, deprecated or rejected ADRs, and out-of-scope GSD items.</li>
+    </ul>
+
+    <h2 id="graph">In the graph</h2>
+    <p>Every requirement keeps the base type the code ontology knows (<code>Requirement</code>, <code>Scenario</code> or <code>Decision</code>), so <code>implements</code> and <code>verifies</code> work without changing your schema. It also gets its framework's own label:</p>
+    <ul>
+      <li><code>UserStory</code> with its <code>priority</code>, <code>FunctionalRequirement</code> and <code>SuccessCriterion</code> (Spec Kit);</li>
+      <li><code>AcceptanceCriterion</code> with its EARS pattern (Kiro, BMAD), for example <code>ears: unwanted</code> for <code>IF … THEN</code> criteria;</li>
+      <li><code>Story</code> (BMAD);</li>
+      <li><code>ADR</code> with <code>adrStatus</code> and <code>date</code>. A <code>Supersedes [...]</code> line in a record becomes a <code>supersedes</code> edge.</li>
+    </ul>
+<pre>tg cypher "MATCH (u:UserStory {priority: 'P1'})-[:contains]->(s:Scenario)
+           OPTIONAL MATCH (t)-[:verifies]->(s)
+           RETURN s.scenario, count(t) AS tests"</pre>
+    <p><code>tg init</code> declares these labels in <code>Types/spec-types.md</code>, for the frameworks you chose only, and rewrites the file on every run. Your own vocabulary stays in <code>Types/code-types.md</code>, which tg never overwrites.</p>
+
+    <h2 id="choose">Choose and install with <code>tg init</code></h2>
+    <p>Run <code>tg init</code> in a terminal. After the agents and the parts, it shows a checklist of the six frameworks:</p>
+    <ul>
+      <li><strong>Detects:</strong> the frameworks it finds are ticked and marked <em>found</em>.</li>
+      <li><strong>Recommends:</strong> if it finds none, it ticks one and shows why. A project with existing code gets OpenSpec, because change proposals with deltas suit an evolving codebase. A new project gets Spec Kit, because feature specs, plans and tasks suit greenfield work. Tick ADRs as well if you want decision records next to either.</li>
+      <li><strong>Installs:</strong> for each ticked framework that is not set up yet, <code>tg init</code> offers to run the framework's own installer. Each option shows its exact command, and you can always skip.</li>
+    </ul>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Framework</th><th>What <code>tg init</code> runs</th></tr></thead>
+      <tbody>
+        <tr><td>OpenSpec</td><td><code>openspec init --tools &lt;your agents&gt;</code>, or once with <code>npx -y @fission-ai/openspec@latest</code>, or after <code>npm install -g @fission-ai/openspec@latest</code></td></tr>
+        <tr><td>Spec Kit</td><td><code>specify init --here --force --integration &lt;agent&gt;</code>, or once with <code>uvx --from specify-cli specify …</code>, or after <code>uv tool install specify-cli</code></td></tr>
+        <tr><td>Kiro-style specs</td><td><code>npx -y cc-sdd@latest --claude-skills</code> (in the Kiro IDE, create specs from its Specs panel instead)</td></tr>
+        <tr><td>BMAD</td><td><code>npx -y bmad-method@latest install</code></td></tr>
+        <tr><td>Get Shit Done</td><td><code>npx -y get-shit-done-cc@latest</code>, in a terminal only, because it asks questions</td></tr>
+        <tr><td>ADRs</td><td>No tool: tg writes <code>docs/adr/0001-record-architecture-decisions.md</code> and <code>docs/adr/template.md</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Installers run before tg plans its files, so the skills they write get their tg steps in the same run. That covers Spec Kit's <code>speckit-specify</code>, <code>-plan</code>, <code>-tasks</code> and <code>-implement</code>, cc-sdd's <code>kiro-spec-*</code>, BMAD's story skills, and OpenSpec's propose, apply, archive and explore. Kiro gets an always-included steering file, <code>.kiro/steering/tg.md</code>. The <code>tg-trace</code> skill and the instruction block in <code>CLAUDE.md</code> or <code>AGENTS.md</code> describe only the frameworks you chose.</p>
+    <p>In scripts and CI nothing is asked and nothing is installed unless you say so:</p>
+<pre>tg init --spec openspec,adr                 # wire OpenSpec and ADRs; print installer commands
+tg init --spec speckit --install-spec       # also run the Spec Kit installer
+tg init --spec none                         # no spec framework
+tg init --spec kiro --dry-run               # show the diff and the commands, change nothing</pre>
+
+    <h2 id="add-your-own">Add your own</h2>
+    <p>Most teams can use a format they already have without touching tg's code. Try the routes in this order.</p>
+
+    <h3>1. Write the requirements in lat.md</h3>
+    <p>Typed docs work today with any Markdown. Give a <code>lat.md</code> file the type <code>Requirement</code> (or <code>Decision</code>) and one section per requirement. Code points at the section, and <code>tg check</code>, <code>tg cypher</code> and the coverage rules for test specs all apply:</p>
+<pre>---
+type: Requirement
+---
+# Payments
+
+## Charge once per order
+
+A retried request never charges a card twice.
+
+- refines:: [[product#Checkout]]</pre>
+<pre>// @<span></span>tg: implements:: [[payments#Charge once per order]]
+export function pay(orderId: string, card: string) { … }</pre>
+    <p>Use this when your requirements live in a wiki or a tracker today and you want them next to the code. You keep tg's graph and checks. What you give up is <code>tg trace</code>'s per-requirement report, which reads only spec frameworks.</p>
+
+    <h3>2. Use a supported format as the target</h3>
+    <p>If your tool exports or generates Markdown, have it write one of the formats above. The Kiro format is the easiest to emit: a <code>### Requirement N</code> heading, a <code>**User Story:**</code> line and a numbered list under <code>#### Acceptance Criteria</code>, in <code>.kiro/specs/&lt;feature&gt;/requirements.md</code>. For decisions, any numbered Markdown file with a <code>status:</code> line in a folder named in <code>.adr-dir</code> is read as an ADR.</p>
+
+    <h3>3. Add a reader to tg</h3>
+    <p>A framework with its own files and its own ids deserves its own reader. A reader is a small, pure function in <code>packages/core</code>, and the pull request touches six places:</p>
+    <ol>
+      <li><strong>Register it.</strong> Add an entry to <code>SPEC_FRAMEWORKS</code> in <code>packages/core/src/openspec/frameworks.ts</code> (id, display name, scheme <code>&lt;id&gt;:</code>, and <code>flat: true</code> when records are addressed without a group, as ADRs are), and add the id to the <code>SpecFrameworkId</code> type.</li>
+      <li><strong>Locate its files.</strong> Teach <code>locateSpecFile</code> the path pattern, and return the group: the folder that becomes the middle of the id, such as a feature or epic.</li>
+      <li><strong>Parse them.</strong> Write <code>parse&lt;Name&gt;(path, text, group)</code> and call it from <code>parseSpecFile</code>. It returns one <code>SpecRequirement</code> per requirement, with:
+        <ul>
+          <li><code>name</code>: the id the framework already uses;</li>
+          <li><code>aliases</code>: titles and short forms;</li>
+          <li><code>labels</code>: framework types such as <code>Story</code>;</li>
+          <li><code>props</code>: priority, status and the like;</li>
+          <li><code>scenarios</code>: acceptance criteria;</li>
+          <li><code>status</code>: <code>pending</code> or <code>retired</code> when the format says so.</li>
+        </ul></li>
+      <li><strong>Wire up the CLI.</strong> In <code>packages/cli/src/specs.mts</code>:
+        <ul>
+          <li>add a <code>SPEC_SETUPS</code> entry: the line shown in the wizard, example ids, and the skill and command names to patch per stage;</li>
+          <li>add a marker to <code>detectSpecs</code>;</li>
+          <li>add the file list to <code>specFiles</code>;</li>
+          <li>add install commands to <code>installOptions</code>;</li>
+          <li>add the ontology types to <code>FRAGMENTS</code>.</li>
+        </ul>
+        Then write the skill section <code>packages/cli/templates/specs/&lt;id&gt;.md</code>.</li>
+      <li><strong>Specify and test it.</strong> Add a requirement for the reader to the <code>spec-frameworks</code> capability in an OpenSpec change, with scenarios taken from a real file of that framework. Put <code>verifies</code> on each test, and add a section per test to <code>lat.md/tests/spec-frameworks.md</code>.</li>
+      <li><strong>Check.</strong> <code>npm test</code>, <code>tg check</code>, <code>tg ontology check</code> and <code>tg trace spec-frameworks --gaps</code> must all pass.</li>
+    </ol>
+    <p>A reader for a hypothetical <code>rfcs/0012-title.md</code> format, with <code>REQ-1:</code> lines, looks like this:</p>
+<pre>// @<span></span>tg: implements:: [[openspec:spec-frameworks#RFC reader]]
+export function parseRfc(path: string, text: string, group: string): SpecRequirement[] {
+  const out: SpecRequirement[] = [];
+  for (const [line, i] of prose(text)) {          // skips fenced code
+    const m = /^\s*[-*]?\s*(REQ-\d+):\s*(.+)$/.exec(line);
+    if (m) out.push(requirement('rfc', group, m[1]!, path, i + 1, { text: strip(m[2]!), labels: ['RfcRequirement'] }));
+  }
+  return out;
+}</pre>
+    <p>Good readers follow five rules:</p>
+    <ul>
+      <li><strong>Keep the framework's own ids</strong> and make titles aliases, because people retitle more often than they renumber.</li>
+      <li><strong>Skip lines you don't understand</strong> instead of failing.</li>
+      <li><strong>Keep the base label</strong> (<code>Requirement</code>, <code>Scenario</code>, <code>Decision</code>) and add yours beside it.</li>
+      <li><strong>Retire, don't drop:</strong> a record the format marks obsolete stays in the trace as retired.</li>
+      <li><strong>Never read a folder another tool might own</strong> without that tool's own marker. Spec Kit's <code>specs/</code> is read only when <code>.specify/</code> exists.</li>
+    </ul>
+    <p>Not ready to write the reader yourself? <a href="https://github.com/Volland/typedgraph/issues/new">Open an issue</a> with a real example file and where your tool writes it.</p>
+
+    <div class="next">Read next: <a href="blog-spec-frameworks.html">Bring your own spec framework →</a></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Typed Graph · MIT · by Volodymyr Pavlyshyn. Not affiliated with Obsidian, LadybugDB or lat.md.</span>
+      <span><a href="install.html">Install</a> · <a href="docs.html">Docs</a> · <a href="demo.html">Demo</a> · <a href="ontologies.html">Ontologies</a> · <a href="https://github.com/Volland/typedgraph">GitHub</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="agb.html">AGB</a></span>
+    </div>
+  </footer>
+  <script src="assets/site.js"></script>
+</body>
+</html>

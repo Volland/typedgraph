@@ -36,3 +36,29 @@
     v.controls = true;
   });
 })();
+
+// Spec framework picker on the home page: tabs that show one framework's setup and ids.
+(function () {
+  const tabs = Array.from(document.querySelectorAll('[data-spec]'));
+  if (!tabs.length) return;
+  const pick = (tab) => {
+    for (const t of tabs) {
+      const on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      const panel = document.getElementById(t.getAttribute('aria-controls'));
+      if (panel) panel.hidden = !on;
+    }
+  };
+  tabs.forEach(function (t, i) {
+    t.tabIndex = i === 0 ? 0 : -1;
+    t.addEventListener('click', function () { pick(t); });
+    t.addEventListener('keydown', function (e) {
+      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      const next = tabs[(i + step + tabs.length) % tabs.length];
+      pick(next);
+      next.focus();
+    });
+  });
+})();
