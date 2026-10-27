@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 // @ts-expect-error plain ESM script without types
 import { ASSETS, checkInstall, installUrls, manifestProblems } from '../../../scripts/check-plugin-install.mjs';
+// @ts-expect-error plain ESM script without types
+import { changelogSection } from '../../../scripts/release-notes.mjs';
 
 const REPO_ROOT = join(__dirname, '../../..');
 const PLUGIN = join(__dirname, '..');
@@ -93,6 +95,20 @@ describe('Plugin install', () => {
     const workflow = readFileSync(join(REPO_ROOT, '.github/workflows/release.yml'), 'utf8');
     const create = workflow.slice(workflow.indexOf('gh release create'));
     for (const a of ASSETS) expect(create).toContain(`packages/plugin/dist/${a}`);
+  });
+
+  // @tg: verifies:: [[tests/plugin-install#Plugin Install Tests#Release notes from the changelog]] {since: "2026-10-27", level: unit}
+  // @lat: [[tests/plugin-install#Plugin Install Tests#Release notes from the changelog]]
+  // @tg: verifies:: [[openspec:plugin-install#Release notes from the changelog#Section for the tagged version]]
+  it('takes the release notes from the version\'s changelog section', () => {
+    const log = '# Changelog\n\nIntro.\n\n## 0.21.0 — 2026-10-27\n\nLead.\n\n### Added\n\n- New.\n\n## 0.20.0 — 2026-10-16\n\n- Old.\n';
+    expect(changelogSection(log, '0.21.0')).toBe('Lead.\n\n### Added\n\n- New.');
+    expect(changelogSection(log, '0.20.0')).toBe('- Old.');
+    expect(changelogSection(log, '0.2.0')).toBeNull();
+    expect(changelogSection(readFileSync(join(REPO_ROOT, 'CHANGELOG.md'), 'utf8'), rootManifest.version)).toBeTruthy();
+    const create = readFileSync(join(REPO_ROOT, '.github/workflows/release.yml'), 'utf8');
+    expect(create).toContain('node scripts/release-notes.mjs "${GITHUB_REF_NAME}" > release-notes.md');
+    expect(create.slice(create.indexOf('gh release create'))).toContain('--notes-file release-notes.md --generate-notes');
   });
 
   // @tg: verifies:: [[tests/plugin-install#Plugin Install Tests#Bundle loads in Obsidian]] {since: "2026-10-08", level: unit}

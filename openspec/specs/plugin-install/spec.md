@@ -19,6 +19,13 @@ A pushed tag equal to the manifest version SHALL produce a release that attaches
 - **WHEN** the release workflow's release step is inspected
 - **THEN** it attaches `main.js`, `manifest.json` and `styles.css` from the plugin build
 
+### Requirement: Release notes from the changelog
+The release SHALL take its body from the version's section of `CHANGELOG.md` (the text under `## <version>` up to the next `## ` heading), followed by GitHub's generated pull request list; when the changelog has no section for the version the release SHALL still be created, with generated notes only and a workflow warning.
+
+#### Scenario: Section for the tagged version
+- **WHEN** the changelog has `## 0.21.0 — 2026-10-27` followed by `## 0.20.0 — 2026-10-16`
+- **THEN** the notes for `0.21.0` are the text between the two headings, and a version with no heading yields none
+
 ### Requirement: Bundle loads in Obsidian
 The built `main.js`, installed in a vault's `.obsidian/plugins/typed-graph/` and evaluated as CommonJS with only Obsidian host modules available, SHALL export a `Plugin` subclass whose `onload` registers its views, commands and settings and whose `onunload` runs without error.
 

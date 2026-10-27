@@ -15,6 +15,10 @@ The root `manifest.json` passes the directory's rules, matches `packages/plugin/
 
 The release workflow's `gh release create` attaches `main.js`, `manifest.json` and `styles.css` from the plugin build, the three files Obsidian downloads.
 
+## Release notes from the changelog
+
+The release body is the tagged version's section of `CHANGELOG.md`, cut at the next version heading; a version without a section yields no notes, and the release step passes them with `--notes-file` before GitHub's generated list.
+
 ## Bundle loads in Obsidian
 
 `main.js`, installed in a temporary vault's `.obsidian/plugins/typed-graph/` and evaluated as CommonJS with only host modules, exports a `Plugin` subclass.
