@@ -18,3 +18,9 @@ articles/*.html
 articles/*_files/
 site/assets/ontology-map.js
 .gstack/
+
+# Bundled search evaluation
+eval/search/.out/
+
+# tg derived vector cache (tg search, npm run eval:search)
+/.tg/

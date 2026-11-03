@@ -142,3 +142,89 @@ it('recreates a deleted cache and reuses unchanged vectors on reindex', async ()
   expect(r.code).toBe(0);
   expect(readdirSync(join(dir, '.tg'))).toContain('vectors.json');
 });
+
+/** Sections that share words with identifier queries without containing the identifiers. */
+function identProject(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'tg-search-ident-'));
+  mkdirSync(join(dir, 'lat.md'));
+  const put = (p: string, t: string) => writeFileSync(join(dir, 'lat.md', p), t);
+  put('lat.md', '# Lat\n\nIndex.\n\n- [[mirror]] — m\n- [[diff]] — d\n- [[ranking]] — r\n- [[paths]] — p\n');
+  put('mirror.md', '# Mirror\n\nKeeps the store in step with the vault.\n\n## Sync\n\nEach run calls `diffMirror` and applies the result.\n');
+  put('diff.md', '# Diff Mirror\n\nA diff of the mirror, diff by diff, mirror by mirror.\n');
+  put('ranking.md', '# Ranking\n\nThe ranking lives in `packages/core/src/latmd/search.ts`.\n');
+  put('paths.md', '# Packages Core Src Search\n\nPackages, core, src, latmd and search: search the packages in core src for latmd.\n');
+  return dir;
+}
+
+type Hit = { id: string; tier: string; ranks: { lexical?: number; vector?: number }; similarity?: number };
+const hitsOf = (out: string): Hit[] => (JSON.parse(out) as { hits: Hit[] }).hits;
+
+// @tg: verifies:: [[tests/tg-search#Exact identifiers#Symbol beats close matches]] {since: "2026-11-03", level: unit}
+// @lat: [[tests/tg-search#Exact identifiers#Symbol beats close matches]]
+// @tg: verifies:: [[openspec:tg-search#Exact identifiers rank first#Symbol beats close matches]]
+it('ranks the section containing a camelCase symbol first, in both modes', async () => {
+  const dir = identProject();
+  // Vectors favor the section about diffs and mirrors over the one that names the symbol.
+  const impl = (async (_url: string | URL | Request, init?: RequestInit) => {
+    const { input } = JSON.parse(String(init?.body)) as { input: string[] };
+    const vec = (t: string): number[] => (/^lat\.md\/diff/.test(t) || /^diffMirror$/.test(t) ? [1, 0.01] : [0.2, 1]);
+    return new Response(JSON.stringify({ embeddings: input.map(vec) }), { status: 200 });
+  }) as typeof fetch;
+  for (const [env, f] of [[{}, undefined], [{ TG_EMBED_PROVIDER: 'ollama' }, impl]] as const) {
+    const hits = hitsOf((await tg(dir, env, f, 'search', 'diffMirror', '--json')).out);
+    expect(hits[0]!.id).toBe('lat.md/mirror#Mirror#Sync');
+    expect(hits[0]!.tier).toBe('exact');
+    expect(hits.slice(1).every((h) => h.tier === 'fused')).toBe(true);
+  }
+});
+
+// @tg: verifies:: [[tests/tg-search#Exact identifiers#File path]] {since: "2026-11-03", level: unit}
+// @lat: [[tests/tg-search#Exact identifiers#File path]]
+// @tg: verifies:: [[openspec:tg-search#Exact identifiers rank first#File path]]
+// @tg: verifies:: [[openspec:tg-search#Exact identifiers rank first#Bare file name]]
+it('ranks the section that mentions a file path first, also for its bare file name', async () => {
+  const dir = identProject();
+  for (const q of ['packages/core/src/latmd/search.ts', '`search.ts`']) {
+    const r = await tg(dir, {}, undefined, 'search', q);
+    expect(r.out.indexOf('[[lat.md/ranking#Ranking]] (exact match)')).toBeGreaterThan(0);
+    expect(r.out.indexOf('[[lat.md/ranking#Ranking]]')).toBeLessThan(r.out.indexOf('[[lat.md/paths#Packages Core Src Search]]'));
+  }
+});
+
+// @tg: verifies:: [[tests/tg-search#Exact identifiers#Plain words have no tier]] {since: "2026-11-03", level: unit}
+// @lat: [[tests/tg-search#Exact identifiers#Plain words have no tier]]
+// @tg: verifies:: [[openspec:tg-search#Exact identifiers rank first#Plain words have no tier]]
+it('gives plain-word queries no exact tier', async () => {
+  const hits = hitsOf((await tg(project(), {}, undefined, 'search', 'edge syntax', '--json')).out);
+  expect(hits.length).toBeGreaterThan(1);
+  expect(hits.every((h) => h.tier === 'fused')).toBe(true);
+});
+
+// @tg: verifies:: [[tests/tg-search#Exact identifiers#Prompt hook]] {since: "2026-11-03", level: unit}
+// @lat: [[tests/tg-search#Exact identifiers#Prompt hook]]
+it('puts exact identifier hits first in the prompt hook', async () => {
+  let out = '';
+  const code = await run(['hook', 'claude', 'UserPromptSubmit'], { cwd: identProject(), out: (t) => (out += t), err: () => {}, env: {}, stdin: () => JSON.stringify({ prompt: 'packages/core/src/latmd/search.ts' }) });
+  expect(code).toBe(0);
+  const context = (JSON.parse(out) as { hookSpecificOutput: { additionalContext: string } }).hookSpecificOutput.additionalContext;
+  const results = context.slice(context.indexOf('Search results for the user prompt'));
+  expect(results.split('\n').find((l) => l.startsWith('* [['))).toContain('[[lat.md/ranking#Ranking]]');
+});
+
+// @tg: verifies:: [[tests/tg-search#Search output#Rank details in JSON]] {since: "2026-11-03", level: unit}
+// @lat: [[tests/tg-search#Search output#Rank details in JSON]]
+// @tg: verifies:: [[openspec:tg-search#Search output#JSON output]]
+it('reports tier, per-list ranks and similarity in JSON output', async () => {
+  const dir = project();
+  const lexical = JSON.parse((await tg(dir, {}, undefined, 'search', 'edge syntax', '--json', '--lexical')).out) as { mode: string; hits: (Hit & { file: string; startLine: number; endLine: number; score: number })[] };
+  expect(lexical.mode).toBe('lexical');
+  expect(lexical.hits.length).toBeLessThanOrEqual(5);
+  expect(lexical.hits.map((h) => h.ranks.lexical)).toEqual(lexical.hits.map((_, i) => i + 1));
+  for (const h of lexical.hits) {
+    expect(h).toMatchObject({ tier: 'fused', file: expect.any(String), startLine: expect.any(Number), endLine: expect.any(Number), score: expect.any(Number) });
+    expect(h.similarity).toBeUndefined();
+  }
+  const hybrid = hitsOf((await tg(dir, { TG_EMBED_PROVIDER: 'ollama' }, fakeFetch().impl, 'search', 'login', '--json')).out);
+  expect(hybrid[0]!.ranks.vector).toBe(1);
+  expect(hybrid[0]!.similarity).toBeGreaterThan(0.9);
+});

@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { buildSearchDocs, fuseRanks, LexicalIndex, vectorRank, type SearchHit } from '@obsigraph/core';
+import { buildSearchDocs, exactMatches, LexicalIndex, rankSections, vectorRank, type RankedHit } from '@obsigraph/core';
 import { EXIT_ERROR, EXIT_FINDINGS, EXIT_OK, register, type Command, type Ctx } from '../cli.mjs';
 import { embedConfig, VectorCache, type EmbedConfig } from '../embed.mjs';
 import { NoLatDir, Project } from '../project.mjs';
@@ -45,7 +45,8 @@ export const search: Command = {
         return EXIT_ERROR;
       }
     }
-    let hits: (SearchHit & { sources?: number })[] = lexical.slice(0, limit);
+    const exact = exactMatches(docs, query);
+    let hits: RankedHit[] = rankSections({ exact, lists: { lexical }, limit });
     let mode = 'lexical';
     let notice: string | null = null;
     if (config) {
@@ -53,15 +54,16 @@ export const search: Command = {
         const cache = new VectorCache(join(ctx.root, '.tg'));
         const { vectors } = await cache.vectorsFor(docs, config);
         const [q] = await config.provider.embed([query]);
-        const semantic = vectorRank(docs, vectors, q!);
-        hits = fuseRanks([lexical, semantic], limit);
+        const vector = vectorRank(docs, vectors, q!);
+        hits = rankSections({ exact, lists: { lexical, vector }, limit });
         mode = 'hybrid';
       } catch (e) {
         notice = `embeddings unavailable (${(e as Error).message}); showing lexical results`;
       }
     }
     if (ctx.json) {
-      ctx.out(`${JSON.stringify({ mode, notice, query, hits: hits.map((h) => ({ id: h.id, score: h.score, file: h.doc.file, startLine: h.doc.startLine, endLine: h.doc.endLine, summary: h.doc.summary })) })}\n`);
+      const out = hits.map((h) => ({ id: h.id, score: h.score, file: h.doc.file, startLine: h.doc.startLine, endLine: h.doc.endLine, summary: h.doc.summary, tier: h.tier, ranks: h.ranks, ...(h.similarity === undefined ? {} : { similarity: h.similarity }) }));
+      ctx.out(`${JSON.stringify({ mode, notice, query, hits: out })}\n`);
       return hits.length ? EXIT_OK : EXIT_FINDINGS;
     }
     if (!hits.length) {
@@ -70,7 +72,7 @@ export const search: Command = {
     }
     const label = mode === 'hybrid' ? 'hybrid match' : 'lexical match';
     const lines = [`## Search results for "${query}":`, ''];
-    for (const h of hits) lines.push(`* Section: [[${h.id}]] (${label})`, `  Defined in ${h.doc.file}:${h.doc.startLine}-${h.doc.endLine}`, '', quote(h.doc.summary), '');
+    for (const h of hits) lines.push(`* Section: [[${h.id}]] (${h.tier === 'exact' ? 'exact match' : label})`, `  Defined in ${h.doc.file}:${h.doc.startLine}-${h.doc.endLine}`, '', quote(h.doc.summary), '');
     lines.push('## To navigate further:', '', '* `tg section "section#id"` — show full content with outgoing/incoming refs', '* `tg search "new query"` — search for something else');
     if (notice) lines.push('', `Note: ${notice}`);
     ctx.out(`${lines.join('\n')}\n`);

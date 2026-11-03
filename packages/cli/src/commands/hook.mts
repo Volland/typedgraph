@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { buildSearchDocs, checkLattice, LexicalIndex, SOURCE_EXTENSIONS } from '@obsigraph/core';
+import { buildSearchDocs, checkLattice, exactMatches, LexicalIndex, rankSections, SOURCE_EXTENSIONS } from '@obsigraph/core';
 import { run, EXIT_OK, register, type Command, type Ctx, type Io } from '../cli.mjs';
 import { Project } from '../project.mjs';
 import { existingDocsDir, findRoot } from '../root.mjs';
@@ -41,7 +41,8 @@ async function promptSubmit(ctx: Ctx, root: string | null): Promise<string> {
     }
     try {
       const project = new Project(root);
-      const hits = new LexicalIndex(buildSearchDocs(project.index(), (p) => project.text(p))).search(prompt, 3);
+      const docs = buildSearchDocs(project.index(), (p) => project.text(p));
+      const hits = rankSections({ exact: exactMatches(docs, prompt), lists: { lexical: new LexicalIndex(docs).search(prompt, 50) }, limit: 3 });
       if (hits.length) {
         parts.push('', `Search results for the user prompt (${hits.length} matches):`, '', ...hits.map((h) => `* [[${h.id}]] (${h.doc.file}:${h.doc.startLine}-${h.doc.endLine}) — ${h.doc.summary.split('\n')[0]}`));
       }

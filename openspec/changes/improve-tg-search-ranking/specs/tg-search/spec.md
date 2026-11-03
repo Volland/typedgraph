@@ -35,6 +35,10 @@ When a query is a single identifier-like token (containing `_ . / : # @ -`, writ
 - **WHEN** the query is `packages/core/src/latmd/search.ts`
 - **THEN** the sections that mention that path rank first
 
+#### Scenario: Bare file name
+- **WHEN** the query is `search.ts` and a section mentions `packages/core/src/latmd/search.ts`
+- **THEN** that section has tier `exact`
+
 #### Scenario: Plain words have no tier
 - **WHEN** the query is `edge syntax`
 - **THEN** every hit has tier `fused`

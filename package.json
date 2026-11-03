@@ -20,7 +20,8 @@
     "build:vscode": "npm run build -w typegraph-vscode",
     "package:vscode": "npm run package -w typegraph-vscode",
     "release:vscode": "node scripts/release-vscode.mjs",
-    "check:install": "node scripts/check-plugin-install.mjs"
+    "check:install": "node scripts/check-plugin-install.mjs",
+    "eval:search": "node eval/search/build.mjs"
   },
   "devDependencies": {
     "@asciidoctor/core": "^4.1.1",
