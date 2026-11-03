@@ -2,7 +2,18 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
-## 0.22.0 — 2026-11-03
+## 0.23.0 — 2026-11-03
+
+### Changed
+
+- **`tg search` ranks exact identifiers first.** When the query is one identifier — a camelCase symbol, a path, a variable such as `TG_EMBED_PROVIDER` — every section containing it ranks above all other results, in lexical and hybrid mode and in the prompt hook, and is labeled `exact match`. Symbols inside links and bare file names count: `LexicalIndex` and `search.ts` find a section linking `packages/core/src/latmd/search.ts#LexicalIndex`. Plain-word queries rank as before.
+- `tg search --json` hits gain `tier` (`exact` or `fused`), `ranks` (the 1-based rank in each list) and `similarity` for vector hits. `score` is now the fused rank score in lexical mode too.
+
+### Added
+
+- **Search evaluation.** `npm run eval:search` scores 44 labeled queries over this repository's `lat.md/` (MRR@10, nDCG@10, recall@5 per query kind) for the previous and current ranking, hybrid when a provider is configured and against `lat search` with `--lat`. CI fails when held-out lexical MRR@10 drops below the recorded baseline.
+
+## 0.22.0 — 2026-10-27
 
 ### Added
 
