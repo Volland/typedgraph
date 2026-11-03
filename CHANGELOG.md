@@ -6,6 +6,12 @@ All notable changes to the Typed Graph plugin, the `tg` CLI, the core library an
 
 ### Added
 
+- **Manuscript ontology.** A new gallery ontology for writing a book in AsciiDoc:
+  - Chapters, parts and the master file are typed `.adoc` notes, ordered by their `include::` lines.
+  - Chapters introduce and rely on ideas, and cite sources with a CiTO `intent`.
+  - Research notes, outlines and editorial reviews are Markdown notes. Each review comment is a `comments_on` edge with a `kind`, `severity` and `status`, so a review doubles as a checklist.
+  - Types carry FaBiO, DoCO, SKOS and Dublin Core IRIs.
+  - `cites` moves into `core`, since Zettelkasten uses it too.
 - **Spec frameworks beyond OpenSpec.** `tg` now reads requirements from:
   - GitHub Spec Kit (`speckit:001-auth#FR-001`, `#US1#Scenario 1`).
   - Kiro-format specs from Kiro, cc-sdd and spec-workflow-mcp (`kiro:auth#Requirement 1#1.2`, with each criterion's EARS pattern).

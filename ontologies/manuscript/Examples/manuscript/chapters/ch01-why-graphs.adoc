@@ -1,0 +1,25 @@
+////
+type: Chapter
+role: chapter
+number: 1
+status: revising
+words: 4200
+target_words: 6000
+////
+= Why Graphs
+
+// @tg: introduces:: [[Property graph]]
+// @tg: relies_on:: [[Typed edge]]
+// @tg: cites:: [[singhal2012]] {intent: citesAsEvidence}
+
+Every manuscript is already a graph: chapters point at sources, ideas lean on earlier ideas, and editors point at paragraphs.
+
+== Graphs everywhere
+
+Search engines moved from strings to things <<singhal2012>>.
+A typed edge says _how_ two things relate, not only that they do.
+
+// @tg: cites:: [[robinson2015]] {intent: obtainsBackgroundFrom, page: 4}
+== Nodes, relationships, properties
+
+A property graph stores facts on nodes and on the relationships between them <<robinson2015,p. 4>>.

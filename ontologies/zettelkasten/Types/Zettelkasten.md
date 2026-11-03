@@ -136,7 +136,6 @@ edgeTypes:
     to: PermanentNote
     properties: {luhmann: text}
     visualization: {color: "#f59e0b", line: dotted}
-  cites: {from: [LiteratureNote, PermanentNote, PaperSource], to: [BookSource, ArticleSource, PaperSource], properties: {page: text}}
   based_on: {from: LiteratureNote, to: Highlight}
   processed_into: {from: FleetingNote, to: [LiteratureNote, PermanentNote]}
   indexes: {from: StructureNote, to: [PermanentNote, StructureNote], properties: {order: number}}

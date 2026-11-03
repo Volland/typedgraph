@@ -3,7 +3,7 @@ import { join, relative } from 'node:path';
 import Ajv from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
-import { checkOkf, exportOkf, Graph, schemasFromGraph, splitFrontmatter, validateSchemas, type NoteInput } from '../src/index.js';
+import { BuiltinEngine, checkOkf, exportOkf, Graph, planNewNote, schemasFromGraph, splitFrontmatter, validateSchemas, type NoteInput } from '../src/index.js';
 import { exportShacl } from '../src/shacl.js';
 
 const ROOT = join(__dirname, '../../../ontologies');
@@ -16,30 +16,36 @@ function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : [join(dir, f)]));
 }
 
-/** The notes of one gallery ontology; `README.md` is documentation and is left out. */
+/** The notes of one gallery ontology, Markdown and AsciiDoc; `README.md` is documentation and is left out. */
 function load(id: string): NoteInput[] {
   const dir = join(ROOT, id);
   return files(dir)
-    .filter((f) => f.endsWith('.md') && !f.endsWith('README.md'))
+    .filter((f) => (f.endsWith('.md') || f.endsWith('.adoc')) && !f.endsWith('README.md'))
     .sort()
     .map((f) => {
       const text = readFileSync(f, 'utf8');
+      if (f.endsWith('.adoc')) return { path: relative(dir, f), text, frontmatter: null };
       const { yaml } = splitFrontmatter(text);
       return { path: relative(dir, f), text, frontmatter: yaml === null ? null : (parseYaml(yaml) as Record<string, unknown>) };
     });
 }
 
-function check(notes: NoteInput[]) {
-  const paths = new Set(notes.map((n) => n.path));
-  const graph = new Graph((l) => [...paths].find((p) => p === `${l}.md` || p.endsWith(`/${l}.md`)) ?? null);
+function build(notes: NoteInput[]): Graph {
+  const paths = [...new Set(notes.map((n) => n.path))];
+  const graph = new Graph((l) => paths.find((p) => p === l || ['.md', '.adoc'].some((ext) => p === `${l}${ext}` || p.endsWith(`/${l}${ext}`))) ?? null, undefined, { parseYaml });
   for (const n of notes) graph.upsertNote(n);
+  return graph;
+}
+
+function check(notes: NoteInput[]) {
+  const graph = build(notes);
   const set = schemasFromGraph(graph, 'Types/');
   return { set, diagnostics: [...set.diagnostics, ...validateSchemas(graph, set)].map((d) => `${d.path}:${d.line ?? ''} ${d.message}`) };
 }
 
 describe('ontology gallery', () => {
-  it('has the five ontologies and the shared core', () => {
-    expect(ALL).toEqual(['agents', 'core', 'library', 'okf', 'requirements', 'zettelkasten']);
+  it('has the six ontologies and the shared core', () => {
+    expect(ALL).toEqual(['agents', 'core', 'library', 'manuscript', 'okf', 'requirements', 'zettelkasten']);
   });
 
   // @tg: verifies:: [[tests/ontology-gallery#Each ontology stands alone]] {since: "2026-10-06", level: unit}
@@ -59,7 +65,7 @@ describe('ontology gallery', () => {
   it('core declares the shared edge types and nothing else', () => {
     const { set, diagnostics } = check(load('core'));
     expect(diagnostics).toEqual([]);
-    expect([...set.edgeTypes.keys()].sort()).toEqual(['contradicts', 'derived_from']);
+    expect([...set.edgeTypes.keys()].sort()).toEqual(['cites', 'contradicts', 'derived_from']);
     expect(set.schemas.size).toBe(0);
   });
 
@@ -75,6 +81,53 @@ describe('ontology gallery', () => {
     const { diagnostics } = check([...load('core'), ...notes, orphanLiterature, orphanHighlight]);
     expect(diagnostics.some((d) => /Missing required edge 'cites' for type LiteratureNote/.test(d))).toBe(true);
     expect(diagnostics.some((d) => /Missing required edge 'highlighted_in' for type Highlight/.test(d))).toBe(true);
+  });
+
+  // @tg: verifies:: [[tests/ontology-gallery#Manuscript chapters, research and reviews]] {since: "2026-10-27", level: unit}
+  // @lat: [[tests/ontology-gallery#Manuscript chapters, research and reviews]]
+  // @tg: verifies:: [[openspec:ontology-gallery#Manuscript ontology#Review comment checked]]
+  it('reads AsciiDoc chapters in include order and answers manuscript, research and review questions', () => {
+    const notes = [...load('core'), ...load('manuscript')];
+    const used = new Set(notes.flatMap((n) => [n.frontmatter?.type].flat().filter(Boolean) as string[]));
+    for (const t of ['ResearchNote', 'Source', 'Outline', 'Idea', 'Review', 'Reviewer']) expect(used.has(t), t).toBe(true);
+    const graph = build(notes);
+    const rows = (q: string) => new BuiltinEngine(graph).run(q).rows;
+    expect(rows('MATCH (m:Manuscript)-[r:includes]->(c:Chapter) RETURN c.title, r.order ORDER BY r.order')).toEqual([
+      ['Why Graphs', 1],
+      ['Typed Edges', 2],
+      ['Asking the Graph', 3],
+      ['Bibliography', 4],
+    ]);
+    // An idea a chapter relies on before the chapter that introduces it, in reading order.
+    expect(
+      rows('MATCH (m:Manuscript)-[a:includes]->(c:Chapter)-[:relies_on]->(i:Idea)<-[:introduces]-(d:Chapter)<-[b:includes]-(m) WHERE b.order > a.order RETURN c.title, i.title, d.title'),
+    ).toEqual([['Why Graphs', 'Typed edge', 'Typed Edges']]);
+    expect(rows("MATCH (r:Review)-[e:comments_on]->(c) WHERE e.status = 'open' AND e.severity IN ['blocker', 'major'] RETURN c.title ORDER BY c.title")).toEqual([['Asking the Graph'], ['Why Graphs']]);
+    expect(rows("MATCH (c:Chapter)-[e:cites]->(s:Source) WHERE e.intent = 'obtainsBackgroundFrom' RETURN DISTINCT s.citekey ORDER BY s.citekey")).toEqual([['hogan2021'], ['robinson2015']]);
+
+    const unsigned: NoteInput = {
+      path: 'Examples/reviews/Anonymous.md',
+      text: '---\ntype: Review\nstage: beta\n---\n## Links\n\n- comments_on:: [[ch02-typed-edges]] {status: maybe}\n',
+      frontmatter: { type: 'Review', stage: 'beta' },
+    };
+    const { diagnostics } = check([...notes, unsigned]);
+    expect(diagnostics.some((d) => /Missing required edge 'reviewed_by' for type Review/.test(d))).toBe(true);
+    expect(diagnostics.some((d) => /maybe/.test(d))).toBe(true);
+
+    // Chapters, parts and the manuscript are created as AsciiDoc from their templates, the rest as Markdown.
+    const { set } = check(notes);
+    for (const t of set.schemas.values()) {
+      const templatePath = t.template!.replace(/^\[\[|\]\]$/g, '');
+      const template = notes.find((n) => n.path === templatePath || n.path === `${templatePath}.md`)!;
+      expect(template, t.type).toBeTruthy();
+      const linkedBody = template.path.endsWith('.adoc') ? template.text : splitFrontmatter(template.text).body;
+      const plan = planNewNote({ schema: t, title: 'Fresh', linkedBody, templatePath: template.path, schemaBody: '', graph });
+      expect(plan.fileName, t.type).toBe(['Manuscript', 'Part', 'Chapter'].includes(t.type) ? 'Fresh.adoc' : 'Fresh.md');
+      const fresh: NoteInput = { path: `Examples/${plan.fileName}`, text: plan.content, frontmatter: plan.fileName.endsWith('.md') ? (parseYaml(splitFrontmatter(plan.content).yaml ?? '') as Record<string, unknown>) : null };
+      const found = check([...notes, fresh]).diagnostics.filter((d) => d.startsWith(fresh.path) && !/Missing required/.test(d));
+      expect(found, t.type).toEqual([]);
+      expect(build([fresh]).node(fresh.path)!.labels, t.type).toEqual([t.type]);
+    }
   });
 
   // @tg: verifies:: [[tests/ontology-gallery#Ontologies compose]] {since: "2026-10-06", level: unit}

@@ -1,0 +1,13 @@
+////
+type: Chapter
+role: bibliography
+status: draft
+////
+= Bibliography
+
+[bibliography]
+== References
+
+* [[[hogan2021]]] Aidan Hogan et al. _Knowledge Graphs_. ACM Computing Surveys 54(4), 2021.
+* [[[robinson2015]]] Ian Robinson, Jim Webber, Emil Eifrem. _Graph Databases_. 2nd ed. O'Reilly, 2015.
+* [[[singhal2012]]] Amit Singhal. _Introducing the Knowledge Graph: things, not strings_. Google blog, 2012.

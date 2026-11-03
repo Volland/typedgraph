@@ -1,7 +1,7 @@
 # ontology-gallery Specification
 
 ## Purpose
-Ships ready-made Typed Graph ontologies (`zettelkasten`, `library`, `requirements`, `agents`, `okf` and the shared `core`) as plain Markdown vaults that load on their own, compose with each other and are offered for download on the website.
+Ships ready-made Typed Graph ontologies (`zettelkasten`, `library`, `manuscript`, `requirements`, `agents`, `okf` and the shared `core`) as plain Markdown vaults that load on their own, compose with each other and are offered for download on the website.
 
 ## Requirements
 
@@ -40,6 +40,13 @@ The Zettelkasten ontology SHALL give every note type a time-ordered `uid`, SHALL
 #### Scenario: Walkthrough notes exist
 - **WHEN** the walkthrough steps are checked against the examples
 - **THEN** every named note exists in `ontologies/zettelkasten/Examples/` and appears in exactly one step
+
+### Requirement: Manuscript ontology
+The manuscript ontology SHALL type AsciiDoc chapters, parts and the master file and order them by their `include::` lines, SHALL require every review to name its reviewer, SHALL restrict review comment status, kind and severity to declared values, and SHALL give every type a template that produces a valid note, AsciiDoc for the manuscript, parts and chapters and Markdown otherwise.
+
+#### Scenario: Review comment checked
+- **WHEN** a `Review` has no `reviewed_by` edge and a `comments_on` edge with a status that is not declared
+- **THEN** both are reported, while the example book reads in include order with no diagnostics
 
 ### Requirement: OKF ontology exports conformant
 The example notes of the `okf` ontology SHALL export as an Open Knowledge Format bundle that passes the conformance check, with typed edges kept as prose using bundle-absolute links.

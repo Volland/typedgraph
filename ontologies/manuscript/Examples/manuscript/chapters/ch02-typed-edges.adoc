@@ -1,0 +1,25 @@
+////
+type: Chapter
+role: chapter
+number: 2
+status: draft
+words: 5100
+target_words: 6000
+////
+= Typed Edges
+
+// @tg: builds_on:: [[ch01-why-graphs]]
+// @tg: introduces:: [[Typed edge]]
+// @tg: introduces:: [[Edge property]]
+// @tg: relies_on:: [[Property graph]]
+
+A link that only says "related" leaves the reader to guess. A typed edge names the relation.
+
+// @tg: cites:: [[hogan2021]] {intent: obtainsBackgroundFrom, page: 7}
+== Naming the relation
+
+Knowledge graphs give every edge a label drawn from a vocabulary <<hogan2021>>.
+
+== Facts about the relation
+
+When a fact belongs to the relation itself, such as the page a quote came from, it goes on the edge.

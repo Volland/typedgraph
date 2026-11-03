@@ -1,0 +1,18 @@
+////
+role: chapter
+number:
+status: outline
+words:
+target_words:
+due:
+////
+= {{title}}
+
+////
+Write each typed edge as its own line comment, two slashes then "@tg:", so Asciidoctor never renders it:
+builds_on [[earlier chapter]], introduces and relies_on [[Idea]], cites [[citekey]] {intent: citesAsEvidence, page: 12}.
+////
+
+The promise of the chapter in one paragraph: what the reader can do at the end.
+
+== First section

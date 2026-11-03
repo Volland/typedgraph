@@ -19,6 +19,12 @@ The Zettelkasten examples use every note, source (book, article, paper) and high
 
 Every note the website's Zettelkasten walkthrough names is an example note of the ontology, appears in one step only, and each step has text to show.
 
+## Manuscript chapters, research and reviews
+
+The manuscript examples read as AsciiDoc chapters in include order and answer the idea-order, open-comment and citation-intent queries.
+
+A review without a reviewer or with an unknown comment status is reported, and every type's template makes a valid note in its format.
+
 ## Ontologies compose
 
 All ontologies placed in one schema folder, with a note labelled by two ontologies at once, produce no diagnostics and the combined type count is the sum of the parts.

@@ -1,11 +1,12 @@
 # Ontology gallery
 
-Ready-made Typed Graph ontologies. Each one is a folder of plain Markdown: schema notes in `Types/` that declare node types, edge types and their properties in the open [Typed Graph Schema](https://typedgraph.org/spec/tgs/v0.1/) format, and a few example notes so the graph is not empty on first open.
+Ready-made Typed Graph ontologies. Each one is a folder of plain Markdown (and, for `manuscript`, AsciiDoc chapters): schema notes in `Types/` that declare node types, edge types and their properties in the open [Typed Graph Schema](https://typedgraph.org/spec/tgs/v0.1/) format, and a few example notes so the graph is not empty on first open.
 
 | Folder | For |
 |---|---|
 | `zettelkasten/` | atomic notes, sources and topics |
 | `library/` | book management: books, authors, series, genres, quotes |
+| `manuscript/` | writing a book in AsciiDoc: manuscript, parts, chapters, ideas, outlines, sources, research notes and editorial reviews |
 | `requirements/` | coding and requirement management: requirements, decisions, constraints, releases, risks |
 | `agents/` | a catalogue of prompts, agents, tools, skills, knowledge and evals |
 | `okf/` | a data catalog (tables, metrics, dashboards, terms, runbooks) that exports as an Open Knowledge Format bundle |

@@ -1,0 +1,23 @@
+////
+type: Manuscript
+status: revising
+publisher: Example Press
+deadline: 2027-03-01
+target_words: 60000
+////
+= Graphs for Working Writers
+:doctype: book
+:toc:
+:sectnums:
+:chapters: chapters
+
+A short sample manuscript: three chapters and a bibliography, assembled with `include::`.
+Each include becomes an ordered `includes` edge, so the graph knows the reading order.
+
+include::{chapters}/ch01-why-graphs.adoc[leveloffset=+1]
+
+include::{chapters}/ch02-typed-edges.adoc[leveloffset=+1]
+
+include::{chapters}/ch03-asking-the-graph.adoc[leveloffset=+1]
+
+include::{chapters}/bibliography.adoc[leveloffset=+1]

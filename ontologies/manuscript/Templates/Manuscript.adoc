@@ -1,0 +1,13 @@
+////
+status: drafting
+target_words:
+deadline:
+////
+= {{title}}
+:doctype: book
+:toc:
+:sectnums:
+:chapters: chapters
+
+// One include per part or chapter, in reading order. Each becomes an ordered includes edge.
+// include::{chapters}/ch01.adoc[leveloffset=+1]
