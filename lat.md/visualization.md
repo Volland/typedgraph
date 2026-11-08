@@ -14,6 +14,14 @@ Both use [[packages/graph-ui/src/graph-renderer.ts#GraphRenderer]]. Inline block
 
 The leaf opens from the command palette or a ribbon button. The button and the leaf's tab use a custom "TG" icon registered in [[packages/plugin/src/icon.ts#registerTgIcon]], so they don't look like the core Graph view's icon.
 
+## Active note in queries
+
+The Graph view binds `$activeFile` to the last active Markdown note's vault-relative path, so a query can follow that note beyond its immediate neighbors.
+
+For example, `MATCH p = (n {path: $activeFile})-[:KNOWS*1..2]->(y) RETURN p` draws outgoing `KNOWS` paths up to two hops from the active note. Opening another Markdown note reruns the query with its path; moving focus away from Markdown keeps the last path. Before any note is active, the parameter is `null`. This binding belongs to the full-pane Graph view.
+
+- motivated_by:: [[visualization#Surfaces]]
+
 ## Shared renderer
 
 The renderer, styler, style sheet and view-state live in the host-independent `graph-ui` package so the Obsidian plugin and the VS Code extension draw identical graphs.

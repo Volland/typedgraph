@@ -5,11 +5,19 @@ lat:
 ---
 # Graph View Tests
 
-Test specifications for the pure view-state logic of the full-pane Graph view described in [[visualization#Surfaces]]; the Obsidian leaf itself is verified manually.
+Test specifications for the full-pane Graph view described in [[visualization#Surfaces]], covering pure view-state logic and the active-note query lifecycle with a stubbed Obsidian shell.
 
 ## Neighborhood of active note
 
 The default content is the active note plus its incident edges in both directions and its direct neighbors; an unknown note yields an empty graph.
+
+## Active file query parameter
+
+A query anchored to `$activeFile` draws A to B to C without unrelated D to E, follows a switch to B, and keeps B when focus leaves Markdown.
+
+## Active file before a note is opened
+
+Before any note is active, `$activeFile` is bound to null and a path query returns an empty graph instead of a missing-parameter error.
 
 ## Expansion keeps existing elements
 
