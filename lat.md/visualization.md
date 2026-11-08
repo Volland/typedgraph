@@ -20,6 +20,8 @@ The Graph view binds `$activeFile` to the last active Markdown note's vault-rela
 
 For example, `MATCH p = (n {path: $activeFile})-[:KNOWS*1..2]->(y) RETURN p` draws outgoing `KNOWS` paths up to two hops from the active note. Opening another Markdown note reruns the query with its path; moving focus away from Markdown keeps the last path. Before any note is active, the parameter is `null`. This binding belongs to the full-pane Graph view.
 
+The view passes the tracked path through the engine's parameter map rather than inserting it into query text, so paths remain data. Every entered query reruns on Markdown note changes, avoiding query-text inspection just to suppress refreshes.
+
 - motivated_by:: [[visualization#Surfaces]]
 
 ## Shared renderer

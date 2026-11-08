@@ -71,25 +71,37 @@ async function openView(activeFile: string | null) {
 
 describe('graph view $activeFile', () => {
   // @tg: verifies:: [[tests/graph-view#Active file query parameter]] {level: unit}
-  it('anchors paths to the active note and follows note changes while the query stays open', async () => {
-    const { view, run, shown, fileOpen } = await openView('A.md');
+  // @tg: verifies:: [[openspec:graph-view#Active file query parameter#Paths anchored to the active note]] {level: unit}
+  it('anchors paths to the active note without unrelated nodes', async () => {
+    const { run, shown } = await openView('A.md');
     expect(run.mock.lastCall?.[1]).toEqual({ activeFile: 'A.md' });
     expect(shown().nodes.map((n) => n.id).sort()).toEqual(['A.md', 'B.md', 'C.md']);
     expect(shown().edges).toHaveLength(2);
+  });
 
+  // @tg: verifies:: [[openspec:graph-view#Active file query parameter#Query follows a different Markdown note]] {level: unit}
+  it('follows note changes while the query stays open', async () => {
+    const { run, shown, fileOpen } = await openView('A.md');
     fileOpen({ path: 'B.md', extension: 'md' });
     expect(run.mock.lastCall?.[1]).toEqual({ activeFile: 'B.md' });
     expect(shown().nodes.map((n) => n.id).sort()).toEqual(['B.md', 'C.md']);
     expect(shown().edges).toHaveLength(1);
+  });
 
+  // @tg: verifies:: [[openspec:graph-view#Active file query parameter#Retain the last Markdown note]] {level: unit}
+  it('retains the last Markdown note when focus moves away', async () => {
+    const { view, run, fileOpen } = await openView('B.md');
     // Moving focus away from Markdown must keep the last note as the query anchor.
     fileOpen(null);
+    view.submit();
+    expect(run.mock.lastCall?.[1]).toEqual({ activeFile: 'B.md' });
     fileOpen({ path: 'image.png', extension: 'png' });
     view.submit();
     expect(run.mock.lastCall?.[1]).toEqual({ activeFile: 'B.md' });
   });
 
   // @tg: verifies:: [[tests/graph-view#Active file before a note is opened]] {level: unit}
+  // @tg: verifies:: [[openspec:graph-view#Active file query parameter#No active note]] {level: unit}
   it('binds null and returns an empty graph when no note has been active', async () => {
     const { run, shown } = await openView(null);
     expect(run.mock.lastCall?.[1]).toEqual({ activeFile: null });

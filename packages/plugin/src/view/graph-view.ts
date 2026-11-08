@@ -36,6 +36,7 @@ const MIN_DETAILS_WIDTH = 160;
 // @tg: implements:: [[openspec:code-layer#Visible on demand]]
 // @tg: implements:: [[openspec:graph-view#Graph view leaf]]
 // @tg: implements:: [[visualization#Active note in queries]]
+// @tg: implements:: [[openspec:graph-view#Active file query parameter]]
 export class GraphView extends ItemView {
   private renderer: GraphRenderer | null = null;
   private input!: HTMLTextAreaElement;
