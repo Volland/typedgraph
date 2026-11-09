@@ -35,6 +35,8 @@ const MIN_DETAILS_WIDTH = 160;
 // @lat: [[visualization#Surfaces]]
 // @tg: implements:: [[openspec:code-layer#Visible on demand]]
 // @tg: implements:: [[openspec:graph-view#Graph view leaf]]
+// @tg: implements:: [[visualization#Active note in queries]]
+// @tg: implements:: [[openspec:graph-view#Active file query parameter]]
 export class GraphView extends ItemView {
   private renderer: GraphRenderer | null = null;
   private input!: HTMLTextAreaElement;
@@ -113,7 +115,7 @@ export class GraphView extends ItemView {
     this.register(this.plugin.onStylesChanged(() => this.refresh()));
     this.registerEvent(
       this.app.workspace.on('file-open', (file) => {
-        if (this.query || !file || file.extension !== 'md') return;
+        if (!file || file.extension !== 'md') return;
         this.focus = file.path;
         this.expanded.clear();
         this.removed.clear();
@@ -150,7 +152,7 @@ export class GraphView extends ItemView {
     if (this.query) {
       let result;
       try {
-        result = this.plugin.index.engine.run(this.query);
+        result = this.plugin.index.engine.run(this.query, { activeFile: this.focus });
       } catch (e) {
         if (!(e instanceof CypherError)) throw e;
         this.showError(`${e.message}${e.line > 0 ? ` (line ${e.line}, column ${e.column})` : ''}`);
