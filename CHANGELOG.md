@@ -2,6 +2,14 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## 0.24.0 — 2026-11-09
+
+A contribution from @djanjanin: the Graph view's query can follow the active note (#13).
+
+### Added
+
+- **`$activeFile` in Graph view queries.** A Cypher query in the full-pane Graph view can use `$activeFile`, bound to the vault-relative path of the active Markdown note, so `MATCH p = (n {path: $activeFile})-[:KNOWS*1..2]->(y) RETURN p` draws paths from whichever note you are on. Opening another Markdown note reruns the query with its path; moving focus to a non-Markdown file or the query box keeps the last note. Before any note has been active the parameter is `null` and the query returns an empty graph. The path is passed as a query parameter, never spliced into the query text.
+
 ## 0.23.0 — 2026-11-03
 
 ### Changed
