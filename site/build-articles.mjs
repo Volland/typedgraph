@@ -67,8 +67,16 @@ POSTS.push(
     date: '27 October 2026',
     related: ['spec-frameworks.html', 'Supported spec frameworks, and how to add yours'],
   },
+  {
+    src: 'articles/one-file-or-a-graph.md',
+    out: 'site/blog-one-file-or-a-graph.html',
+    title: 'One Big File or a Graph?',
+    description: 'What about sixty papers, benchmarks and vendor reports say about agent context: one monolithic Markdown or XML file, or small typed files fetched on demand, and the layered design the evidence points to.',
+    date: '9 November 2026',
+    related: ['blog-shared-space.html', 'A shared space for agents and humans'],
+  },
 );
-const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html', 'bring-your-own-spec-framework.md': 'blog-spec-frameworks.html' };
+const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html', 'bring-your-own-spec-framework.md': 'blog-spec-frameworks.html', 'one-file-or-a-graph.md': 'blog-one-file-or-a-graph.html' };
 const DATE = '6 October 2026';
 
 const escape = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

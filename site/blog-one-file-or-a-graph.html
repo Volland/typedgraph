@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>One Big File or a Graph?</title>
+  <meta name="description" content="What about sixty papers, benchmarks and vendor reports say about agent context: one monolithic Markdown or XML file, or small typed files fetched on demand, and the layered design the evidence points to.">
+  <meta property="og:title" content="One big file or a graph of small ones?">
+  <meta property="og:description" content="What about sixty papers, benchmarks and vendor reports say about agent context: one monolithic Markdown or XML file, or small typed files fetched on demand, and the layered design the evidence points to.">
+  <meta property="og:image" content="https://typedgraph.org/assets/og.png">
+  <meta property="og:type" content="article">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/logo.svg" alt="">Typed Graph</a>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="agents.html">Agents</a>
+        <a href="obsidian.html">Obsidian</a>
+        <a href="teams.html">Teams</a>
+        <a href="docs.html">Docs</a>
+        <a href="demo.html">Demo</a>
+        <a href="example.html">Example</a>
+        <a href="ontologies.html">Ontologies</a>
+        <a href="blog.html" class="active">Blog</a>
+        <a href="https://github.com/Volland/typedgraph">GitHub</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap post">
+    <div class="meta"><a href="blog.html">Blog</a> · 9 November 2026 · Volodymyr Pavlyshyn</div>
+    <h1>One big file or a graph of small ones?</h1>
+    <p class="standfirst">What about sixty papers, benchmarks and vendor reports say about feeding context to agents: one monolithic Markdown or XML file, or many small typed files fetched on demand. Where each one wins, and the layered design the evidence points to.</p>
+
+<h2>The question</h2>
+<p>Every team that works with coding agents ends up writing context for them. It usually starts as one file: a <code>CLAUDE.md</code>, an <code>AGENTS.md</code>, a <code>.cursorrules</code>. It grows by small additions. Someone adds the architecture, then the test commands, then the reason the auth module looks the way it does. A few months later it is a long document that every session loads in full.</p>
+<p>The other end of the spectrum is older than agents. Tools such as Repomix pack a whole repository into one file, XML by default, so it can be pasted into a model. The <code>llms.txt</code> proposal has an <code>llms-full.txt</code> variant that puts a whole documentation site in one Markdown file. Context windows have reached a million tokens and more. So why not give the model everything and let attention sort it out?</p>
+<p>The alternative is the one this site argues for. Knowledge lives in many small files. Each section holds one idea, and typed links say how the ideas relate: this decision <code>supersedes</code> that one, this constraint <code>constrains</code> that module, this function <code>implements</code> that requirement. An agent loads a small core every time and pulls the rest when it needs it.</p>
+<p>We build Typed Graph, so we have a stake in the answer. That is the reason for this article. Before telling people to split their context into a graph, we wanted to know what the research says, including the parts that cut against us. We read about sixty sources: peer-reviewed papers, 2026 preprints on agent context files, benchmarks of graph retrieval and agent memory, and the prompting guides of Anthropic, OpenAI and Google. We checked every number below against its source. Where a finding is from a vendor blog or a small study, we say so.</p>
+<p>The short version: neither extreme wins. The evidence points to a layered design: a small, stable, always-loaded core, a graph of small typed sections behind it, retrieval that is pushed to the agent rather than left to its initiative, and checks instead of prose for the rules that matter. The rest of this article is the case for that, finding by finding.</p>
+<h2>Finding 1: length is a cost in itself</h2>
+<p>The first argument for a monolith is that modern models can read it. They can, in the sense that it fits. Whether they use it well is a different question, and it has been measured many times.</p>
+<p><strong>Lost in the Middle</strong> (Liu et al., TACL 2024) found the now-famous U-shape: models use information best at the start and end of the context. With twenty retrieved documents, about four thousand tokens, GPT-3.5-Turbo did <em>worse</em> with the answer in the middle than with no documents at all.</p>
+<p>That was 2023 models. Newer models have fixed some of it. Chroma&#39;s <strong>Context Rot</strong> report (2025) tested eighteen models, including GPT-4.1, Claude 4, Gemini 2.5 and Qwen3, and found no notable effect of where the needle sat. What it did find is worse for the monolith: performance falls as input grows, even on simple tasks. One distractor hurts, four hurt more. On LongMemEval, a focused prompt of about 300 tokens beat the full prompt of about 113,000 tokens for every model tested.</p>
+<p>The benchmarks that look past literal matching agree. <strong>RULER</strong> (Hsieh et al., COLM 2024) tested seventeen models that score almost perfectly on the plain needle-in-a-haystack test. Only half of them held up at 32K tokens. <strong>NoLiMa</strong> (Modarressi et al., ICML 2025) removed the word overlap between question and needle, so the model has to make an association instead of finding a match. At 32K tokens, eleven of thirteen models fell below half of their short-context score. GPT-4o dropped from 99.3% to 69.7%.</p>
+<p>Length hurts even when there is nothing to distract. <strong>Same Task, More Tokens</strong> (Levy, Jacoby and Goldberg, ACL 2024) padded reasoning tasks and saw average accuracy fall from 0.92 to 0.68 by around 3,000 tokens, far below any context limit. <strong>Context Length Alone Hurts LLM Performance Despite Perfect Retrieval</strong> (Du et al., Findings of EMNLP 2025) went further. They gave five models perfect retrieval and replaced the filler with whitespace, or masked it entirely. Performance still dropped by 13.9% to 85% as the input grew. And when the extra material <em>is</em> plausible but irrelevant, models are easily led astray (Shi et al., ICML 2023).</p>
+<p>The counter-evidence is real and worth stating. Gemini 1.5&#39;s technical report shows more than 99% recall up to ten million tokens. That is a single-needle test, the kind RULER and NoLiMa show to be the easy case. The lesson is not that long context is broken. It is that every token you add is a small tax on everything else, and the tax is larger when the task needs reasoning across the context rather than lookup.</p>
+<p>Anthropic&#39;s own guidance puts it plainly. Its engineering post on context engineering (September 2025) describes an <em>attention budget</em> and sets the goal as &quot;the smallest possible set of high-signal tokens&quot;.</p>
+<h2>Finding 2: rules files have an instruction budget</h2>
+<p>A context file is not only knowledge. It is mostly instructions: use <code>uv</code>, never touch the generated folder, run the linter before committing. Instructions have their own limits.</p>
+<p><strong>How Many Instructions Can LLMs Follow at Once?</strong> (Jaroslawicz et al., 2025) gave twenty models up to five hundred simultaneous instructions. The best frontier models reached 68% accuracy at the highest density, and models favoured the instructions that came first.</p>
+<p>The most direct study is a 2026 preprint by McMillan, <strong>Instruction Adherence in Coding Agent Configuration Files</strong>. It ran 1,650 Claude Code sessions and varied the file&#39;s size from 25 to 500 lines, the position of instructions, and whether the configuration was one file or several. The results surprise both camps:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>File size, 25 to 500 lines</td>
+<td>60.0%, 65.2%, 67.7%, 64.0% compliance; not significant</td>
+</tr>
+<tr>
+<td>One <code>CLAUDE.md</code> vs split into several always-loaded files</td>
+<td>67.7% vs 61.7% for the nested variant; not significant</td>
+</tr>
+<tr>
+<td>Position in the session</td>
+<td>odds of compliance fell about 5.6% per generated function</td>
+</tr>
+</tbody></table>
+<p>Splitting an always-loaded file into many always-loaded files did nothing measurable. The authors say so directly: their null result &quot;does not support distributing the configuration across multiple files as a remediation&quot;. The largest effect was time. Compliance decays as a session goes on, whatever the file looks like. Their recommendation is to move rules that matter into hooks, linters and CI.</p>
+<p>Two things follow. First, if a graph helps, it cannot be because it is <em>many files</em>. It can only be because the agent loads <em>less</em>, and loads the right part. McMillan did not test on-demand retrieval, so the question stays open. Second, the rules you cannot afford to have ignored should not be prose at all. They should be checks.</p>
+<p>Claude Code&#39;s documentation arrives at the same place from practice: it asks for a <code>CLAUDE.md</code> of under 200 lines, because &quot;longer files consume more context and reduce adherence&quot;. Its <code>@path</code> imports help organise a long file &quot;but don&#39;t reduce its context cost&quot;.</p>
+<h2>Finding 3: what the AGENTS.md studies actually found</h2>
+<p>2026 brought the first controlled studies of repository context files, and the headline is sobering for everyone who writes them.</p>
+<p><strong>Evaluating AGENTS.md</strong> (Gloaguen, Mündler, Müller, Raychev and Vechev, ETH Zurich) ran Claude Code, Codex and Qwen Code on SWE-bench Lite and on a benchmark of real repositories with developer-written context files. Context files &quot;do not generally improve task success rates&quot; and raise inference cost by over 20%. Files written by an LLM changed the resolve rate by −0.5 and −2 points; files written by developers added +2.4. None of these differences was significant, although human files beat generated ones in a direct comparison. Agents did obey the files: when a file mentioned <code>uv</code>, they used it. But repository overviews did not get them to the relevant files any faster. When the authors removed all other documentation, generated files <em>helped</em>, which suggests the files mostly repeat the README.</p>
+<p>Two other studies point in different directions. Lulla et al. (2026) looked at 124 pull requests and found that an <code>AGENTS.md</code> came with a 28.64% lower median runtime and 16.58% fewer output tokens, at similar completion. Khatri (2026) ran 288 sessions with Claude Code and Codex and found that context strategy &quot;does not measurably change correctness&quot;. The failures came from implementation skill, not missing knowledge of the repository.</p>
+<p>Studies of what people put in these files explain part of it. Across 2,303 context files from 1,925 repositories, Chatlatanagulchai et al. found that they grow through &quot;frequent, small additions&quot; and become hard to read. Three quarters specify testing, but only about one in seven says anything about security or performance. A PostHog essay from August 2026 turns this into a rule of thumb: if you cannot name the failure a line prevents, delete it. They found one stale line that misled agents for twenty-one hours.</p>
+<p>Then there is the result most often quoted <em>for</em> the monolith. Vercel&#39;s evals on Next.js 16 (January 2026) compared an always-loaded <code>AGENTS.md</code> against an on-demand skill:</p>
+<table>
+<thead>
+<tr>
+<th>Setup</th>
+<th>Pass rate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>No docs</td>
+<td>53%</td>
+</tr>
+<tr>
+<td>Skill, default</td>
+<td>53%</td>
+</tr>
+<tr>
+<td>Skill with explicit instructions to use it</td>
+<td>79%</td>
+</tr>
+<tr>
+<td>Docs index in <code>AGENTS.md</code></td>
+<td>100%</td>
+</tr>
+</tbody></table>
+<p>In 56% of cases the skill was never invoked. The agent did not know it needed what it did not have. That is the strongest argument against pure on-demand retrieval in this whole review. Read the details, though. What won was not the documentation pasted into one file. It was an 8KB <em>index of pointers</em> to the documentation files, compressed from 40KB with no loss. The agent always saw the map and fetched the territory. That is not a monolith. It is the first layer of a graph.</p>
+<p>The honest summary of this finding: always-loaded context files give small, mostly non-significant gains at a measurable cost. What is in them matters far more than how big they are. Human-written, non-redundant content beats generated content. And an always-on index that tells the agent <em>where</em> things are beats both a wall of text and a retrieval tool the agent forgets to call.</p>
+<h2>Finding 4: XML, Markdown, JSON — format matters, but not the way people argue</h2>
+<p>The format debate is loud. The evidence is mixed, model-specific, and smaller in effect than the evidence on size and relevance.</p>
+<p>Format can matter a lot for a given model. <strong>FormatSpread</strong> (Sclar et al., ICLR 2024) found that meaning-preserving changes to prompt formatting swing few-shot accuracy by up to 76 points on LLaMA-2-13B. <strong>Does Prompt Formatting Have Any Impact on LLM Performance?</strong> (He et al., 2024) compared plain text, Markdown, JSON and YAML. GPT-3.5 varied by up to 40% on one task. GPT-4 was more robust, yet GPT-4-32k on HumanEval still scored 76.2 with plain text and 21.95 with JSON. Format preferences barely carried over between model families.</p>
+<p>When the data itself is structured, rankings flip with the shape of the data. <strong>Table Meets LLM</strong> (Sui et al., WSDM 2024) found that markup helps on structural tasks, but XML won one task and Markdown another. Two blog-grade tests by ImprovingAgents (2025) make the point sharply. On deeply nested configuration data, XML came <em>last</em> for GPT-5 Nano and Gemini 2.5 Flash Lite, and cost about 80–90% more tokens than Markdown. On flat tables, XML came <em>second</em> of eleven formats, behind a Markdown key-value layout. Both tests used small models and were tuned to land in a mid-range accuracy band, so treat them as hints.</p>
+<p>The vendors agree more than the folklore suggests:</p>
+<ul>
+<li><strong>Anthropic</strong> recommends XML tags to separate parts of a prompt, and wrapping each long document in <code>&lt;document&gt;</code> with its source. Put long documents at the top and the question at the end; this &quot;can improve response quality by up to 30 percent&quot;, especially with many documents.</li>
+<li><strong>OpenAI</strong>&#39;s GPT-4.1 guide recommends Markdown as the starting point. For large document sets, &quot;XML performed well in our long context testing&quot;, a simple <code>ID: | TITLE: | CONTENT:</code> layout also did well, and &quot;JSON performed particularly poorly&quot;. It suggests placing instructions both before and after long context.</li>
+<li><strong>Google</strong>&#39;s Gemini guide says XML-style tags or Markdown headings both work, and asks you to choose one and use it consistently. Context first, the question at the end.</li>
+</ul>
+<p>So the practical rule is short. Write Markdown: it is what people read and edit, and it is the cheapest in tokens. Use tags at the boundaries when you put several documents into one prompt, with an id on each so the model can cite it. Do not use JSON for prose. Be consistent. And remember the scale: format effects are a few points on strong models, while the size and relevance effects in Finding 1 are tens of points.</p>
+<p>For this repository, wrapping each of the 994 sections of our <code>lat.md/</code> folder in a <code>&lt;section&gt;</code> element that carries its id adds 36% to the character count. That is a cost worth paying at the boundary of a prompt, around a handful of retrieved sections. It is not a format worth storing a knowledge base in.</p>
+<h2>Finding 5: long context against retrieval is a fair fight</h2>
+<p>If length is a tax, retrieval is the obvious way to pay less. But the comparison is closer than retrieval advocates like to admit.</p>
+<p><strong>Retrieval Augmented Generation or Long-Context LLMs?</strong> (Li et al., EMNLP 2024) found that &quot;when resourced sufficiently, LC consistently outperforms RAG&quot; on average. RAG is far cheaper, and their Self-Route method, which lets the model choose per query, keeps long-context quality at a fraction of the cost. Google&#39;s <strong>LOFT</strong> benchmark (Lee et al., 2024) found long-context models can rival dedicated retrieval systems, but struggle with compositional, SQL-like reasoning.</p>
+<p>On the other side, <strong>Retrieval meets Long Context LLMs</strong> (Xu et al., ICLR 2024) found that retrieval <em>plus</em> a long window beat the long window alone. <strong>OP-RAG</strong> (Yu et al., 2024) scored 47.25 F1 with 48K tokens of retrieved chunks where the full 117K-token context scored 34.26. And <strong>Long-Context LLMs Meet RAG</strong> (Jin et al., ICLR 2025) explains why both camps are partly right. Quality rises as you retrieve more passages, then falls. The cause is &quot;hard negatives&quot;: passages that look relevant and are not. Stronger retrievers produce more convincing hard negatives.</p>
+<p>Granularity matters for retrieval as much as for reading. <strong>Dense X Retrieval</strong> (Chen et al., EMNLP 2024) indexed propositions, one fact each, instead of passages, and raised Recall@20 by 10.1 points for unsupervised retrievers. Chroma&#39;s chunking study (2024) found that 200-token chunks matched 800-token chunks on recall while raising precision from 1.4% to 7.0%. Small units are easier to find exactly.</p>
+<p>Put together: retrieval wins on cost and on precision, and loses when it misses. Long context wins when you can afford it and the task needs breadth. The best results come from retrieving a <em>small, precise</em> set and reading it well.</p>
+<h2>Finding 6: graphs help with relations, not with lookups</h2>
+<p>This is where a typed graph has to earn its keep, and the evidence is the most mixed of all.</p>
+<p>Graph-based retrieval has real wins. Microsoft&#39;s <strong>GraphRAG</strong> (Edge et al., 2024) beat vector RAG on &quot;global&quot; questions over a million-token corpus, with comprehensiveness win rates of 72–83%. <strong>HippoRAG</strong> (Gutiérrez et al., NeurIPS 2024) improved multi-hop QA by up to 20% while being 10–30 times cheaper than iterative retrieval. <strong>A-MEM</strong> (Xu et al., NeurIPS 2025), an agent memory of Zettelkasten-style atomic notes with links, shows what the links are worth: removing them dropped its multi-hop score from 27.02 to 9.65.</p>
+<p>The losses are just as real, and they cluster around simple lookups and cost:</p>
+<ul>
+<li>HippoRAG 2 (ICML 2025) says in its abstract that structure-augmented RAG &quot;performs worse on basic factual memory&quot;. In its own tables a strong dense retriever beats GraphRAG, RAPTOR and LightRAG on average.</li>
+<li><strong>RAG vs. GraphRAG</strong> (Han et al., 2025) found the two complementary. GraphRAG won temporal questions, RAG won unanswerable ones, and each answered queries the other could not. Building the graph took 40–57 times longer than building the vector index. Only about 66% of answer entities made it into the extracted graph at all.</li>
+<li><strong>GraphRAG-Bench</strong> (Xiang et al., 2025) says GraphRAG &quot;frequently underperforms vanilla RAG on many real-world tasks&quot;. It wins complex reasoning and summarisation, but loses fact retrieval, and some variants spend 100,000–331,000 tokens per query against 879 for plain RAG.</li>
+<li><strong>StructRAG</strong> (Li et al., ICLR 2025), which is a pro-structure paper, found that forcing a graph onto every task scored 22.71 where plain chunks scored 53.92. Structure has to match the question.</li>
+</ul>
+<p>Agent memory tells the same story. In Mem0&#39;s own paper, full context scored highest on LoCoMo. Letta found that an agent with nothing but <code>grep</code> and file tools over raw history scored 74.0%, ahead of the best graph memory. An independent 2026 testbed (Wolff and Bennati) measured Graphiti and cognee at 55–56% where mem0, RAG and full context reached 77–81%. Most of these numbers come from vendors measuring each other, and LoCoMo&#39;s methodology is disputed, but the direction is consistent.</p>
+<p>In code, graphs help most where the question is relational. <strong>RepoGraph</strong> (ICLR 2025) added about two points to SWE-bench Lite. <strong>CodexGraph</strong> (NAACL 2025), whose agent queries a typed code graph, matched a strong baseline rather than beating it. <strong>LocAgent</strong> (ACL 2025), which navigates a graph of files, classes and functions with import, invoke and inherit edges, reached 92.7% file-level localisation, the strongest code result in this group.</p>
+<p>There is a distinction running through all of this that the benchmarks rarely name. Almost every graph that loses is <strong>extracted</strong>: an LLM reads a corpus and guesses the entities and relations. That is slow, expensive and lossy, and the losses show up as missed answers. The graphs that do well on precise questions are <strong>authored</strong>: built from an AST, or written deliberately against a fixed schema.</p>
+<p>Two small 2026 studies speak to that directly, and we report them with their limits. <strong>Ontology-Grounded Project Memory for Coding Agents</strong> (Adam, NeSy 2026) stored 835 typed records of decisions, constraints and rationales, linked by supersession. On questions such as &quot;what replaced this decision&quot;, &quot;list all of them&quot; and &quot;which ones do <em>not</em> apply&quot;, it scored 0.98–1.00, against 6–27% for top-k retrieval from a vector memory. Relevance recall and token cost were about the same. The author built the system and the benchmark. <strong>Does Your Agent&#39;s Memory Survive a Model Upgrade?</strong> (Goyal and Ray, 2026) found that a fixed-schema knowledge graph gave the same answers after the model behind it was swapped, while free-form model-written notes moved by +9.91 or −13.28 points. That study is small: 48 synthetic histories and models under 10B parameters.</p>
+<p>And one more, which matters for anyone hoping agents will organise their own memory: <strong>StructMemEval</strong> (Shutova et al., 2026) found that agents solve ledger, list and tree tasks reliably when they are told how to structure memory, but do not recognise the needed structure on their own. A declared schema is that telling.</p>
+<p>The honest summary: <strong>no controlled study isolates typed edges against untyped ones.</strong> What the evidence supports is narrower. Graph structure pays off for multi-hop, temporal, &quot;what changed&quot; and &quot;what is missing&quot; questions. It loses or ties on single-fact lookups, where lexical or vector search over small units is the right tool. Extracted graphs carry a heavy construction cost and miss things. Authored graphs with a fixed schema avoid most of that, and the early evidence says they make answers more complete and more stable.</p>
+<h2>Finding 7: where the monolith wins</h2>
+<p>An article that only lists the monolith&#39;s failures would be advertising. There are five situations where one file is the right answer or part of it.</p>
+<p><strong>Caching.</strong> Agents read far more than they write; Manus reports about a hundred input tokens per output token, and calls the KV-cache hit rate &quot;the single most important metric&quot;. Cached input is roughly ten times cheaper on Anthropic&#39;s API, and a cache hit needs an identical prefix. A stable always-loaded file is the cheapest context there is. Anything spliced into the system prompt per task breaks the cache for everything after it.</p>
+<p><strong>No retrieval miss.</strong> Vercel&#39;s 56% is the number to remember. Context the agent does not know it needs will not be fetched.</p>
+<p><strong>Small projects.</strong> If everything you would write fits in a couple of thousand tokens, a graph is overhead. Our <a href="blog-typed-graph-for-coders.html">deep dive for developers</a> says the same thing: write five typed links, and if they tell you nothing new, stop.</p>
+<p><strong>Breadth tasks with budget.</strong> When the model must consider everything (summarise the whole design, find every place a term appears), long context beats retrieval, as Li et al. and Mem0&#39;s own full-context baseline show.</p>
+<p><strong>Do not over-compress.</strong> <strong>Agentic Context Engineering</strong> (Zhang et al., ICLR 2026) found that repeatedly rewriting a context into a summary collapsed an 18,282-token playbook to 122 tokens and dropped accuracy from 66.7 to 57.1, below having no playbook at all. They call it <em>brevity bias</em>. Their fix is itemised, incremental updates rather than rewrites. That is an argument for small addressable units edited in place, and against an aggressive &quot;keep it short&quot; rule.</p>
+<p>The one detailed account of a large real system follows the same shape. <strong>Codified Context</strong> (Vasilopoulos, 2026) describes a 108,000-line C# codebase built over 283 agent sessions. It ran on a &quot;constitution&quot; of about 660 lines loaded every session, plus 34 specification documents fetched on demand through a keyword-matching server: 1,478 retrieval calls, no embeddings. Its main failure mode was stale specs, and keeping them current took one to two hours a week. Karpathy&#39;s <em>LLM Wiki</em> pattern (April 2026), an interlinked Markdown wiki with an index, a log and a lint step, has the same parts.</p>
+<h2>Our own numbers</h2>
+<p>We measured what the two extremes would cost on this repository&#39;s own design docs, the <code>lat.md/</code> folder that Typed Graph is built from.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Files of intent</td>
+<td>65</td>
+</tr>
+<tr>
+<td>Sections</td>
+<td>994</td>
+</tr>
+<tr>
+<td>Total</td>
+<td>276,017 characters, about 69,000 tokens</td>
+</tr>
+<tr>
+<td>Median section</td>
+<td>147 characters</td>
+</tr>
+<tr>
+<td>90th percentile section</td>
+<td>610 characters</td>
+</tr>
+<tr>
+<td>Always-loaded <code>CLAUDE.md</code></td>
+<td>134 lines, about 2,000 tokens</td>
+</tr>
+<tr>
+<td>One <code>tg search</code> plus one <code>tg section</code></td>
+<td>about 3,700 characters, about 900 tokens</td>
+</tr>
+<tr>
+<td>Same docs wrapped in <code>&lt;section&gt;</code> elements with ids</td>
+<td>+36% characters</td>
+</tr>
+</tbody></table>
+<p>Token counts use the usual four characters per token, so they are approximate. Loaded whole, the docs would sit at about 69,000 tokens: past the 32K mark where RULER and NoLiMa see most models degrade, and that is before a single line of code is read. A typical lookup brings in about 1.3% of that.</p>
+<p>We have not run the experiment that would settle the question for this repository, the same tasks with the monolith and with the graph. Nobody has published it for any repository. So treat this table as a cost estimate, not a quality result.</p>
+<h2>The recommendation: a layered context</h2>
+<p>Here is the design we would give a team starting today. Each layer answers one of the findings above.</p>
+<p><strong>1. A small, stable core, always loaded.</strong> Under 200 lines. Commands, the few conventions that cannot be checked by a tool, and above all a <em>map</em>: one line per area of the knowledge base, saying what lives where. Vercel&#39;s index and the Codified Context constitution are both this. Keep it stable so it stays cached. Delete any line whose failure you cannot name.</p>
+<p><strong>2. Behind it, a graph of small sections.</strong> One idea per section. Give each a short lead paragraph that can stand alone as its summary; Typed Graph enforces 250 characters. The summary is what search returns and what the agent reads first, which gives progressive disclosure for free: map, then summary, then section, then the code it points to. Small units are what Dense X and the chunking studies say retrieve best.</p>
+<p><strong>3. Type the relations you will ask about.</strong> Do not type everything. Type the edges that answer the questions that graphs are good at and search is bad at: <code>supersedes</code> (what replaced this?), <code>constrains</code> (what limits this module?), <code>implements</code> and <code>verifies</code> (what code realises this requirement, what test proves it?), <code>-contradicts</code> (what known debt is here?). Declare them in a schema so they mean the same thing to every reader, human or model, and to the next model you switch to. Write them by hand or from the AST; do not extract them with an LLM.</p>
+<p><strong>4. Push retrieval, do not wait for it.</strong> The agent will not fetch what it does not know it lacks. Run a search on every prompt and <em>append</em> the top few summaries to the conversation, never splicing them into the system prompt, so the cached prefix survives. Let the agent pull more with search, section reads and graph queries when the pushed context points somewhere.</p>
+<p><strong>5. Use the right retrieval for the question.</strong> Lexical and vector search over small sections for lookups, where they beat graphs. Graph traversal for relational questions, where they lose. Plain <code>grep</code> as the baseline everything else must beat.</p>
+<p><strong>6. Mind the format at the boundary.</strong> Markdown in the files. When several sections go into one prompt, wrap each in a tag with its id and source, put them before the question, and keep JSON out of prose.</p>
+<p><strong>7. Turn rules into checks.</strong> Compliance decays within a session and file layout does not fix it. The rules that matter belong in hooks, linters and CI: a check that fails when a link breaks, a section loses its code, or a requirement has no test. Stale context is the failure mode every multi-file system reports; a check is the only thing that catches it on the day it happens.</p>
+<p><strong>8. Measure on your own tasks.</strong> Format preferences do not transfer between model families, and every result above may shift with the next model. Keep a small set of real tasks and run it against the monolith, against <code>grep</code>, and against your graph.</p>
+<p>Here is the same advice as a table:</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Choose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Everything fits in a few thousand tokens</td>
+<td>One file. Stop there.</td>
+</tr>
+<tr>
+<td>Rules the agent must always follow</td>
+<td>A short always-loaded core, plus hooks and CI to enforce them</td>
+</tr>
+<tr>
+<td>Knowledge that grows past ~10K tokens</td>
+<td>Small sections behind an always-loaded map</td>
+</tr>
+<tr>
+<td>&quot;Where is X?&quot; or &quot;what does X say?&quot;</td>
+<td>Lexical or vector search over small sections</td>
+</tr>
+<tr>
+<td>&quot;What replaced X?&quot;, &quot;what does X constrain?&quot;, &quot;what is untested?&quot;</td>
+<td>Typed edges and a graph query</td>
+</tr>
+<tr>
+<td>A one-off question over everything</td>
+<td>Long context, if you can pay for it</td>
+</tr>
+<tr>
+<td>Many documents in one prompt</td>
+<td>Markdown inside, tags with ids at the boundary, question last</td>
+</tr>
+</tbody></table>
+<p>This is what Typed Graph does, and we built it this way because of evidence like the above, not the other way round. <code>tg init</code> writes the short core into <code>CLAUDE.md</code> and <code>AGENTS.md</code>, keeps the knowledge in typed Markdown sections with a lead-paragraph rule, installs a prompt hook that searches the docs and appends the top matches, and installs a stop hook that will not let the agent finish while <code>tg check</code> fails. You do not need Typed Graph to follow the recommendation. You need the layers.</p>
+<h2>What the evidence does not show</h2>
+<p>We would rather end on the gaps than on a claim.</p>
+<ul>
+<li><strong>No controlled study compares a monolithic context file with a graph of retrieved files</strong> on coding-agent task success. The pieces are measured separately. The whole is not.</li>
+<li><strong>No study isolates typed edges from untyped links.</strong> The evidence for types is indirect: complete answers on supersession and negation questions, stability across model upgrades, agents doing better when told the structure. All of it comes from small studies.</li>
+<li><strong>Much of the memory literature is vendors measuring vendors</strong>, on a benchmark whose methodology is disputed.</li>
+<li><strong>The 2026 context-file studies are early.</strong> Two find no effect on success, one finds efficiency gains, and they disagree on cost.</li>
+<li><strong>Models change faster than papers.</strong> The lost-in-the-middle effect largely went away in two years. Some of today&#39;s limits will too. The cost of tokens and the value of knowing <em>why</em> a decision was made will not.</li>
+</ul>
+<p>If you run the missing experiment, we would like to read it.</p>
+<h2>Sources</h2>
+<h3>Long context and length</h3>
+<ul>
+<li>Liu et al., <em>Lost in the Middle: How Language Models Use Long Contexts</em>, TACL 2024. <a href="https://arxiv.org/abs/2307.03172">arXiv:2307.03172</a></li>
+<li>Hong, Troynikov and Huber, <em>Context Rot: How Increasing Input Tokens Impacts LLM Performance</em>, Chroma, 2025. <a href="https://www.trychroma.com/research/context-rot">trychroma.com/research/context-rot</a></li>
+<li>Hsieh et al., <em>RULER: What&#39;s the Real Context Size of Your Long-Context Language Models?</em>, COLM 2024. <a href="https://arxiv.org/abs/2404.06654">arXiv:2404.06654</a></li>
+<li>Modarressi et al., <em>NoLiMa: Long-Context Evaluation Beyond Literal Matching</em>, ICML 2025. <a href="https://arxiv.org/abs/2502.05167">arXiv:2502.05167</a></li>
+<li>Levy, Jacoby and Goldberg, <em>Same Task, More Tokens</em>, ACL 2024. <a href="https://arxiv.org/abs/2402.14848">arXiv:2402.14848</a></li>
+<li>Du et al., <em>Context Length Alone Hurts LLM Performance Despite Perfect Retrieval</em>, Findings of EMNLP 2025. <a href="https://arxiv.org/abs/2510.05381">arXiv:2510.05381</a></li>
+<li>Shi et al., <em>Large Language Models Can Be Easily Distracted by Irrelevant Context</em>, ICML 2023. <a href="https://arxiv.org/abs/2302.00093">arXiv:2302.00093</a></li>
+<li>Gemini Team, <em>Gemini 1.5</em> technical report, 2024. <a href="https://arxiv.org/abs/2403.05530">arXiv:2403.05530</a></li>
+</ul>
+<h3>Instructions and agent context files</h3>
+<ul>
+<li>Jaroslawicz et al., <em>How Many Instructions Can LLMs Follow at Once?</em>, 2025. <a href="https://arxiv.org/abs/2507.11538">arXiv:2507.11538</a></li>
+<li>McMillan, <em>Instruction Adherence in Coding Agent Configuration Files</em>, 2026. <a href="https://arxiv.org/abs/2605.10039">arXiv:2605.10039</a></li>
+<li>Gloaguen, Mündler, Müller, Raychev and Vechev, <em>Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?</em>, 2026. <a href="https://arxiv.org/abs/2602.11988">arXiv:2602.11988</a></li>
+<li>Lulla et al., <em>On the Impact of AGENTS.md Files on the Efficiency of AI Coding Agents</em>, 2026. <a href="https://arxiv.org/abs/2601.20404">arXiv:2601.20404</a></li>
+<li>Khatri, <em>Do Context Files Help Coding Agents? A Two-Agent Ablation Study on Real Repositories</em>, 2026. <a href="https://arxiv.org/abs/2607.27250">arXiv:2607.27250</a></li>
+<li>Chatlatanagulchai et al., <em>Agent READMEs: An Empirical Study of Context Files for Agentic Coding</em>, 2025. <a href="https://arxiv.org/abs/2511.12884">arXiv:2511.12884</a></li>
+<li>Vasilopoulos, <em>Codified Context: Infrastructure for AI Agents in a Complex Codebase</em>, 2026. <a href="https://arxiv.org/abs/2602.20478">arXiv:2602.20478</a></li>
+<li>Zhang et al., <em>Agentic Context Engineering</em>, ICLR 2026. <a href="https://arxiv.org/abs/2510.04618">arXiv:2510.04618</a></li>
+<li>Gao, <em>AGENTS.md outperforms skills in our agent evals</em>, Vercel, January 2026. <a href="https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals">vercel.com/blog</a></li>
+<li>Yoon, <em>Your AGENTS.md is holding you back</em>, PostHog, August 2026. <a href="https://newsletter.posthog.com/p/your-agentsmd-is-holding-you-back">newsletter.posthog.com</a></li>
+</ul>
+<h3>Prompt format</h3>
+<ul>
+<li>Sclar et al., <em>Quantifying Language Models&#39; Sensitivity to Spurious Features in Prompt Design</em>, ICLR 2024. <a href="https://arxiv.org/abs/2310.11324">arXiv:2310.11324</a></li>
+<li>He et al., <em>Does Prompt Formatting Have Any Impact on LLM Performance?</em>, 2024. <a href="https://arxiv.org/abs/2411.10541">arXiv:2411.10541</a></li>
+<li>Sui et al., <em>Table Meets LLM</em>, WSDM 2024. <a href="https://arxiv.org/abs/2305.13062">arXiv:2305.13062</a></li>
+<li>Fatemi, Halcrow and Perozzi, <em>Talk like a Graph: Encoding Graphs for Large Language Models</em>, ICLR 2024. <a href="https://arxiv.org/abs/2310.04560">arXiv:2310.04560</a></li>
+<li>ImprovingAgents, <em>Which nested data format do LLMs understand best?</em> and <em>Which table format do LLMs understand best?</em>, 2025. <a href="https://www.improvingagents.com/blog/best-nested-data-format/">improvingagents.com</a></li>
+</ul>
+<h3>Long context against retrieval, and granularity</h3>
+<ul>
+<li>Li et al., <em>Retrieval Augmented Generation or Long-Context LLMs?</em>, EMNLP 2024. <a href="https://arxiv.org/abs/2407.16833">arXiv:2407.16833</a></li>
+<li>Lee et al., <em>Can Long-Context Language Models Subsume Retrieval, RAG, SQL, and More?</em> (LOFT), 2024. <a href="https://arxiv.org/abs/2406.13121">arXiv:2406.13121</a></li>
+<li>Xu et al., <em>Retrieval meets Long Context Large Language Models</em>, ICLR 2024. <a href="https://arxiv.org/abs/2310.03025">arXiv:2310.03025</a></li>
+<li>Jin et al., <em>Long-Context LLMs Meet RAG</em>, ICLR 2025. <a href="https://arxiv.org/abs/2410.05983">arXiv:2410.05983</a></li>
+<li>Yu, Xu and Akkiraju, <em>In Defense of RAG in the Era of Long-Context Language Models</em>, 2024. <a href="https://arxiv.org/abs/2409.01666">arXiv:2409.01666</a></li>
+<li>Chen et al., <em>Dense X Retrieval: What Retrieval Granularity Should We Use?</em>, EMNLP 2024. <a href="https://arxiv.org/abs/2312.06648">arXiv:2312.06648</a></li>
+<li>Smith and Troynikov, <em>Evaluating Chunking Strategies for Retrieval</em>, Chroma, 2024. <a href="https://www.trychroma.com/research/evaluating-chunking">trychroma.com/research/evaluating-chunking</a></li>
+</ul>
+<h3>Graphs and memory</h3>
+<ul>
+<li>Edge et al., <em>From Local to Global: A Graph RAG Approach to Query-Focused Summarization</em>, 2024. <a href="https://arxiv.org/abs/2404.16130">arXiv:2404.16130</a></li>
+<li>Gutiérrez et al., <em>HippoRAG</em>, NeurIPS 2024. <a href="https://arxiv.org/abs/2405.14831">arXiv:2405.14831</a></li>
+<li>Gutiérrez et al., <em>From RAG to Memory: Non-Parametric Continual Learning for Large Language Models</em>, ICML 2025. <a href="https://arxiv.org/abs/2502.14802">arXiv:2502.14802</a></li>
+<li>Han et al., <em>RAG vs. GraphRAG: A Systematic Evaluation and Key Insights</em>, 2025. <a href="https://arxiv.org/abs/2502.11371">arXiv:2502.11371</a></li>
+<li>Xiang et al., <em>When to use Graphs in RAG</em> (GraphRAG-Bench), 2025. <a href="https://arxiv.org/abs/2506.05690">arXiv:2506.05690</a></li>
+<li>Li et al., <em>StructRAG</em>, ICLR 2025. <a href="https://arxiv.org/abs/2410.08815">arXiv:2410.08815</a></li>
+<li>Xu et al., <em>A-MEM: Agentic Memory for LLM Agents</em>, NeurIPS 2025. <a href="https://arxiv.org/abs/2502.12110">arXiv:2502.12110</a></li>
+<li>Chhikara et al., <em>Mem0</em>, 2025. <a href="https://arxiv.org/abs/2504.19413">arXiv:2504.19413</a></li>
+<li>Letta, <em>Benchmarking AI Agent Memory: Is a Filesystem All You Need?</em>, 2025. <a href="https://www.letta.com/blog/benchmarking-ai-agent-memory">letta.com/blog</a></li>
+<li>Wolff and Bennati, <em>Cost and Accuracy of Long-Term Memory in Distributed Multi-Agent Systems</em>, 2026. <a href="https://arxiv.org/abs/2601.07978">arXiv:2601.07978</a></li>
+<li>Shutova et al., <em>Evaluating Memory Structure in LLM Agents</em>, 2026. <a href="https://arxiv.org/abs/2602.11243">arXiv:2602.11243</a></li>
+<li>Goyal and Ray, <em>Does Your Agent&#39;s Memory Survive a Model Upgrade?</em>, 2026. <a href="https://arxiv.org/abs/2609.05339">arXiv:2609.05339</a></li>
+<li>Adam, <em>Ontology-Grounded Project Memory for Coding Agents</em>, NeSy 2026. <a href="https://arxiv.org/abs/2608.13662">arXiv:2608.13662</a></li>
+<li>Ouyang et al., <em>RepoGraph</em>, ICLR 2025. <a href="https://arxiv.org/abs/2410.14684">arXiv:2410.14684</a></li>
+<li>Liu et al., <em>CodexGraph</em>, NAACL 2025. <a href="https://arxiv.org/abs/2408.03910">arXiv:2408.03910</a></li>
+<li>Chen et al., <em>LocAgent</em>, ACL 2025. <a href="https://aclanthology.org/2025.acl-long.426">aclanthology.org/2025.acl-long.426</a></li>
+</ul>
+<h3>Vendor and practitioner guidance</h3>
+<ul>
+<li>Anthropic, <em>Effective context engineering for AI agents</em>, September 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering</a></li>
+<li>Anthropic, <em>Equipping agents for the real world with Agent Skills</em>, October 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering</a></li>
+<li>Anthropic, Claude prompting best practices and prompt caching. <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices">platform.claude.com/docs</a></li>
+<li>Claude Code, <em>Manage Claude&#39;s memory</em>. <a href="https://code.claude.com/docs/en/memory">code.claude.com/docs/en/memory</a></li>
+<li>OpenAI, <em>GPT-4.1 Prompting Guide</em>, April 2025. <a href="https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide">developers.openai.com/cookbook</a></li>
+<li>Google, <em>Gemini prompting strategies</em>. <a href="https://aistudio.google.com/docs/prompting-strategies">aistudio.google.com/docs</a></li>
+<li>Ji, <em>Context Engineering for AI Agents: Lessons from Building Manus</em>, July 2025. <a href="https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus">manus.im/blog</a></li>
+<li>Karpathy, <em>LLM Wiki</em>, April 2026. <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">gist.github.com/karpathy</a></li>
+</ul>
+<p class="note"><em>Typed Graph and the <code>tg</code> CLI are open source (MIT). Docs and the other articles are at <a href="https://typedgraph.org/">typedgraph.org</a>. We are not affiliated with any of the authors, vendors or tools cited here. Numbers are as stated in each source on 9 November 2026; benchmarks move with every model release.</em></p>
+
+    <div class="next">Related: <a href="blog-shared-space.html">A shared space for agents and humans →</a></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Typed Graph · MIT · by Volodymyr Pavlyshyn. Not affiliated with Obsidian, LadybugDB or lat.md.</span>
+      <span><a href="docs.html">Docs</a> · <a href="blog.html">Blog</a> · <a href="https://github.com/Volland/typedgraph">GitHub</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="agb.html">AGB</a></span>
+    </div>
+  </footer>
+  <script src="assets/site.js"></script>
+</body>
+</html>
