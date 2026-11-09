@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.1
+
+- **Faster indexing of large workspaces.** Building the graph is now linear in notes and links. Before, every new note re-resolved the links of every note that pointed at any missing note, so a workspace of thousands of linked notes took minutes to index. The fix is in the shared core (Typed Graph 0.25.0, #11).
+
 ## 0.13.0
 
 - **Live force layout.** The graph panel lays nodes out with a force simulation instead of a one-shot layout: nodes keep settling, a node lying across an edge is pushed off it and overlapping labels move apart. Drag a node to pin it where you drop it and shift-click to toggle a pin; pinned nodes get an accent border. Right-click still expands a node. Default node size, link thickness and label fade are smaller.
