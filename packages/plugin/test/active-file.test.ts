@@ -71,6 +71,7 @@ async function openView(activeFile: string | null) {
 
 describe('graph view $activeFile', () => {
   // @tg: verifies:: [[tests/graph-view#Active file query parameter]] {level: unit}
+  // @lat: [[tests/graph-view#Active file query parameter]]
   // @tg: verifies:: [[openspec:graph-view#Active file query parameter#Paths anchored to the active note]] {level: unit}
   it('anchors paths to the active note without unrelated nodes', async () => {
     const { run, shown } = await openView('A.md');
@@ -101,6 +102,7 @@ describe('graph view $activeFile', () => {
   });
 
   // @tg: verifies:: [[tests/graph-view#Active file before a note is opened]] {level: unit}
+  // @lat: [[tests/graph-view#Active file before a note is opened]]
   // @tg: verifies:: [[openspec:graph-view#Active file query parameter#No active note]] {level: unit}
   it('binds null and returns an empty graph when no note has been active', async () => {
     const { run, shown } = await openView(null);
