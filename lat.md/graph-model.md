@@ -51,3 +51,15 @@ With the `linkEdges` graph option, every plain wikilink or markdown link to a no
 The option is off by default so existing vaults keep their graphs and queries; it is the third argument of [[packages/core/src/graph/graph.ts#Graph]] and is passed to the parser. Lines that already produce typed edges, fenced and inline code, frontmatter and image embeds (`![..](..)`, `![[..]]`) never yield link edges; missing targets become stubs as usual. The sidecar turns it on with `OBSIGRAPH_LINK_EDGES=1`.
 
 In the Obsidian plugin both options are settings, "Plain links as links_to edges" and "Frontmatter links as edges", off by default; changing either re-indexes the vault. See [[tests/edge-settings]].
+
+## Indexed folders
+
+The Obsidian plugin indexes the whole vault unless its settings narrow it: "Indexed folders" (one per line, empty means all), "Excluded folders", and "Follow Obsidian's excluded files", off by default.
+
+A note outside the scope is not a node and its edges are not read. The plugin's link resolver treats it as missing, so links into an excluded folder end at stubs; stubs skip schema checks, so excluding a folder adds no diagnostics. Notes in the schema folder are always indexed, so a broad exclusion never drops the types. The scope is the predicate from [[packages/plugin/src/note-scope.ts#noteScope]]; Obsidian's "Excluded files" are read through [[packages/plugin/src/note-scope.ts#obsidianIgnored]]. Changing a folder setting re-indexes the vault once typing pauses, and re-indexing removes notes that left the scope. Obsidian sends no event when its own exclusions change, so the "Re-index vault" command applies them. The VS Code extension's `typegraph.roots` and `typegraph.ignore` are the same idea ([[vscode]]). See [[tests/vault-indexing]].
+
+## Indexing a large vault
+
+Building the graph takes time linear in notes and links, so a vault of thousands of long notes with plain links as edges indexes in seconds, not minutes.
+
+A stub is indexed by the file name a note needs to satisfy it (last path segment, without fragment or note extension, case-folded). A new note re-resolves only the links to stubs with its name, in [[packages/core/src/graph/graph.ts#Graph]]; see [[architecture#Stub re-resolution by name]]. The plugin reads files a few at a time ahead of indexing and yields to the UI whenever a slice of work passes about 12 ms, at startup and on re-index ([[packages/plugin/src/vault-index.ts#VaultIndex]]). The status bar shows node and edge counts on every change but counts whole-vault diagnostics only once changes settle ([[packages/plugin/src/status-count.ts#statusCount]]). Parsed notes are not cached between sessions; see [[architecture#No parse cache yet]].

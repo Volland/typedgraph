@@ -25,3 +25,21 @@ Packages share one model: `core` (no Obsidian APIs), `plugin` (Obsidian UI), `si
 Markdown files are the only source of truth; every other store (in-memory index, Ladybug mirror, vector index) is derived and rebuildable.
 
 See [[ladybug-mirror#One-way mirror]] for why writes never flow from a database back into notes.
+
+## Stub re-resolution by name
+
+A new note re-resolves only the links whose stubs carry its file name. Before, it re-resolved every note linking to any stub, which made indexing quadratic.
+
+- motivated_by:: [[graph-model#Nodes]] {weight: primary, since: "0.25.0", note: "stubs are keyed by link text"}
+- motivated_by:: [[architecture#Source of truth]] {weight: secondary, note: "the index is rebuilt from the files at every start, so build time is felt every time"}
+
+Every host's resolver (Obsidian's metadata cache, [[packages/core/src/graph/resolve.ts#pathResolver]], the lat.md name map) resolves a link only to a note whose file name matches the link's last segment, case-insensitively. That makes the file name a safe key. Names that share a key by accident only cost an extra re-resolve. In issue #11, a vault of 5,600 notes and 230,000 edges took about 20 minutes to index. On a synthetic vault of that shape, core indexing went from about 12 minutes (extrapolated from 5.2 s for 500 notes and 21.8 s for 1,000) to 1.2 s.
+
+## No parse cache yet
+
+The plugin re-reads and re-parses every indexed note at startup instead of persisting parsed results keyed by modification time and size.
+
+- motivated_by:: [[architecture#Source of truth]] {weight: primary, since: "0.25.0", note: "a persisted parse is one more derived store that can go stale"}
+- motivated_by:: [[architecture#Stub re-resolution by name]] {weight: secondary, note: "with linear indexing the remaining startup cost is reading files"}
+
+Revisit this when startup on a large vault, measured after the linear fix, is still slow. The cache would need to cover edges, diagnostics, embeds and AsciiDoc sections, and be rebuilt whenever an edge setting or the cache format changes.

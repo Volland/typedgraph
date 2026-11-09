@@ -149,3 +149,45 @@ describe('graph model', () => {
     expect(graph.node('Bob')).toBeUndefined();
   });
 });
+
+describe('stub re-resolution', () => {
+  // @tg: verifies:: [[openspec:graph-model#Incremental updates#New note re-resolves only its name]] {since: "0.25.0", level: unit}
+  // @lat: [[tests/graph-store#New note re-resolves only its name]]
+  it('re-resolves only the notes linking to the new note name, in any folder', () => {
+    const { graph, put } = vault();
+    put({ path: 'X.md', text: 'knows:: [[Alpha]]' });
+    put({ path: 'Y.md', text: 'knows:: [[Beta]]' });
+    put({ path: 'Z.md', text: 'knows:: [[sub/Beta]]' });
+    const changed: string[][] = [];
+    graph.onChange((p) => changed.push(p));
+    put({ path: 'Beta.md', text: '' });
+    expect(changed).toHaveLength(1);
+    expect([...changed[0]!].sort()).toEqual(['Beta.md', 'Y.md', 'Z.md']);
+    expect(graph.outEdges('Y.md')[0]!.target).toBe('Beta.md');
+    expect(graph.outEdges('X.md')[0]!.target).toBe('Alpha');
+    put({ path: 'sub/Beta.md', text: '' });
+    expect(graph.outEdges('Z.md')[0]!.target).toBe('sub/Beta.md');
+    expect(graph.node('sub/Beta')).toBeUndefined();
+  });
+
+  // @lat: [[tests/graph-store#Build is linear in links]]
+  it('resolves each link a bounded number of times while notes with unresolved links are added', () => {
+    let calls = 0;
+    const existing = new Set<string>();
+    const graph = new Graph((link) => {
+      calls++;
+      return existing.has(`${link}.md`) ? `${link}.md` : null;
+    });
+    const notes = 300;
+    const links = 10;
+    for (let i = 0; i < notes; i++) {
+      const path = `Note ${i}.md`;
+      existing.add(path);
+      const text = Array.from({ length: links }, (_, k) => `cites:: [[${k % 3 === 0 ? `Note ${(i * 7 + k) % notes}` : `Missing ${i}-${k}`}]]`).join('\n');
+      graph.upsertNote({ path, text });
+    }
+    // Once per written link, plus one re-resolve of each source per note that newly satisfies its links.
+    expect(calls).toBeLessThanOrEqual(notes * links * 3);
+    expect([...graph.nodes()].filter((n) => n.stub && n.id.startsWith('Note'))).toEqual([]);
+  });
+});

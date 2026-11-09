@@ -46,3 +46,11 @@ Deleting a note that others link to re-points those edges to a stub node named b
 ## Stubs released when unreferenced
 
 A stub disappears once its last referencing edge is gone, including after a rename or deletion of the source.
+
+## New note re-resolves only its name
+
+Creating `Beta.md` re-resolves the notes linking to `Beta` or `sub/Beta` and no note linking to another missing name; their edges then point to the new note.
+
+## Build is linear in links
+
+Adding notes whose links are mostly unresolved resolves each written link a bounded number of times, and links between the notes end at real nodes.

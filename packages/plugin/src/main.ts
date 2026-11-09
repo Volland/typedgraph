@@ -10,6 +10,11 @@ import { VaultIndex } from './vault-index';
 import { GraphView, VIEW_TYPE_GRAPH } from './view/graph-view';
 import { DiagnosticsModal, registerSchemaCommands } from './schema-commands';
 import { registerTgIcon, TG_ICON } from './icon';
+import { noteScope, obsidianIgnored } from './note-scope';
+import { statusCount, type StatusCount } from './status-count';
+
+/** Pause after the last folder-setting edit before the vault is re-indexed. */
+const REINDEX_DELAY_MS = 800;
 
 // @tg: implements:: [[architecture#Standalone plugin]] {since: "2026-10-03"}
 // @lat: [[architecture#Standalone plugin]]
@@ -19,6 +24,10 @@ export default class ObsigraphPlugin extends Plugin {
   private readonly styleListeners = new Set<() => void>();
   private readonly iconUris = new Map<string, string | null>();
   private readonly editors = new Set<EditorView>();
+  private status: HTMLElement | null = null;
+  private counts: StatusCount | null = null;
+  private reindexTimer: number | null = null;
+  private reindexing: Promise<void> = Promise.resolve();
 
   // @tg: implements:: [[openspec:graph-query-block#Block structure]]
   async onload(): Promise<void> {
@@ -36,6 +45,11 @@ export default class ObsigraphPlugin extends Plugin {
       () => this.settings.asciidoc,
       parseYaml,
       () => this.settings.linkEdges,
+      () =>
+        noteScope(
+          { include: this.settings.indexFolders, exclude: this.settings.excludeFolders, obsidianExcluded: this.settings.obsidianExcluded, schemaFolder: this.settings.schemaFolder },
+          obsidianIgnored(this.app),
+        ),
     );
     this.addSettingTab(new ObsigraphSettingTab(this.app, this));
 
@@ -47,6 +61,8 @@ export default class ObsigraphPlugin extends Plugin {
     this.registerView(VIEW_TYPE_GRAPH, (leaf) => new GraphView(leaf, this));
     this.addCommand({ id: 'open-graph-view', name: 'Open graph view', callback: () => this.openGraphView() });
     this.addRibbonIcon(TG_ICON, 'Open graph view', () => this.openGraphView());
+    // Obsidian sends no event when its "Excluded files" change, so this applies them on demand.
+    this.addCommand({ id: 'reindex-vault', name: 'Re-index vault', callback: () => void this.reindexVault() });
     registerSchemaCommands(this);
 
     // lat.md ids such as [[file#Heading#Sub]] are not Obsidian heading links; resolve them with the lat resolver.
@@ -78,25 +94,59 @@ export default class ObsigraphPlugin extends Plugin {
 
     this.app.workspace.onLayoutReady(async () => {
       for (const ref of this.index.watch()) this.registerEvent(ref);
-      const status = this.addStatusBarItem();
+      const status = (this.status = this.addStatusBarItem());
       status.addClass('mod-clickable');
       status.addEventListener('click', () =>
         new DiagnosticsModal(this.app, this.index.diagnostics(), (p, line) => this.openNoteAt(p, line)).open(),
       );
-      const update = () => {
-        const { nodes, edges } = this.index.graph.size;
-        const issues = this.settings.showDiagnostics ? this.index.diagnostics().length : 0;
-        status.setText(`Typed Graph: ${nodes} nodes, ${edges} edges${issues ? ` · ${issues} issues` : ''}`);
-      };
-      this.register(this.index.onChange(update));
-      this.register(this.onStylesChanged(update));
+      // Whole-vault diagnostics are recounted once changes settle, not after every keystroke.
+      const counts = (this.counts = statusCount(
+        (text) => status.setText(text),
+        () => this.index.graph.size,
+        () => this.index.diagnostics().length,
+        () => this.settings.showDiagnostics,
+      ));
+      this.register(() => counts.dispose());
+      this.register(this.index.onChange(() => counts.update()));
+      this.register(this.onStylesChanged(() => counts.update()));
       await this.index.build((done, total) => status.setText(`Typed Graph: indexing ${done}/${total}`));
-      update();
+      counts.update();
     });
   }
 
   onunload(): void {
+    if (this.reindexTimer !== null) window.clearTimeout(this.reindexTimer);
     this.index?.destroy();
+  }
+
+  /** Re-read the vault with the current settings, showing progress in the status bar. */
+  reindexVault(): Promise<void> {
+    // Startup indexing read the old settings; ask again once it is done.
+    if (!this.index.ready) {
+      this.requestReindex();
+      return Promise.resolve();
+    }
+    // One at a time, so two passes never interleave.
+    this.reindexing = this.reindexing
+      .then(() => this.index.reindex((done, total) => this.status?.setText(`Typed Graph: re-indexing ${done}/${total}`)))
+      .then(() => this.counts?.update())
+      .catch((e: unknown) => console.error('Typed Graph: re-index failed', e));
+    return this.reindexing;
+  }
+
+  /** Re-index once folder-setting edits pause. */
+  requestReindex(): void {
+    if (this.reindexTimer !== null) window.clearTimeout(this.reindexTimer);
+    this.reindexTimer = window.setTimeout(() => {
+      this.reindexTimer = null;
+      void this.reindexVault();
+    }, REINDEX_DELAY_MS);
+  }
+
+  /** True when any folder setting narrows the indexed notes. */
+  hasScope(): boolean {
+    const s = this.settings;
+    return s.indexFolders.trim() !== '' || s.excludeFolders.trim() !== '' || s.obsidianExcluded;
   }
 
   async loadSettings(): Promise<void> {

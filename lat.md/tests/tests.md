@@ -9,6 +9,7 @@ Test specifications whose leaf sections must each be referenced by exactly one `
 - [[tg-migrate]] — tg migrate, the lat.md to typed graph migration
 - [[frontmatter-edges]] — links in frontmatter properties read as typed edges
 - [[edge-settings]] — plugin settings for `links_to` and frontmatter link edges
+- [[vault-indexing]] — indexed folders, time-sliced indexing and the deferred diagnostics count in the plugin
 - [[cypher-query]] — query behaviors from the cypher-query spec
 - [[graph-query-block]] — block pipeline behaviors from the graph-query-block spec
 - [[graph-view]] — view-state behaviors from the graph-view spec
