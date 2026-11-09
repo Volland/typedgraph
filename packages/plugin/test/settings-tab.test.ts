@@ -11,6 +11,8 @@ function tab() {
     settings: { ...DEFAULT_SETTINGS },
     saveSettings: vi.fn(async () => {}),
     setCodeMode: vi.fn(async () => {}),
+    requestReindex: vi.fn(),
+    hasScope: vi.fn(() => false),
     index: { reindex, invalidate: vi.fn(), code: { refresh } },
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

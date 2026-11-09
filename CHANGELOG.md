@@ -2,6 +2,25 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+Large vaults index in seconds, not minutes (#11).
+
+### Fixed
+
+- **Indexing was quadratic in the number of notes.** Every new note re-resolved the links of every note that linked to any missing note, so a vault of 5,600 long notes with plain links as edges took about 20 minutes to index at each start, and Obsidian lagged meanwhile. A new note now re-resolves only the links to its own name. A synthetic vault of that shape (5,600 notes, 224,000 edges) builds in about 1.2 s in core, down from roughly 12 minutes.
+- **Sidecar Docker image builds again.** The Dockerfile now copies the `node-vault` package the sidecar depends on. The fix sat unmerged on the `release/0.5.1` branch since October.
+
+### Added
+
+- **Indexed folders, excluded folders and Obsidian's excluded files.** New settings under Indexing choose which notes enter the graph: "Indexed folders" (one per line, empty means the whole vault), "Excluded folders", and "Follow Obsidian's excluded files" (off by default). Links into a left-out folder end at stub nodes, as links to missing notes do, and add no diagnostics. The schema folder is always indexed. Changing a folder setting re-indexes the vault once you stop typing.
+- **Re-index vault command**, for example after changing Obsidian's own excluded files.
+
+### Changed
+
+- Startup indexing and re-indexing yield to the editor every ~12 ms of work instead of every 100 notes, read a few files ahead, and show progress in the status bar.
+- The status bar's issue count is computed once changes settle instead of after every change; node and edge counts still update at once.
+
 ## 0.24.0 — 2026-11-09
 
 A contribution from @djanjanin: the Graph view's query can follow the active note (#13).

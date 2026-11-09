@@ -4,10 +4,12 @@ FROM node:22-slim AS build
 WORKDIR /src
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/core/package.json packages/core/
+COPY packages/node-vault/package.json packages/node-vault/
 COPY packages/plugin/package.json packages/plugin/
 COPY packages/sidecar/package.json packages/sidecar/
 RUN npm ci --workspace @obsigraph/sidecar --include-workspace-root --ignore-scripts
 COPY packages/core packages/core
+COPY packages/node-vault packages/node-vault
 COPY packages/sidecar packages/sidecar
 RUN npm run build -w @obsigraph/sidecar
 

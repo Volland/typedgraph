@@ -35,7 +35,16 @@ export interface ObsigraphSettings {
   codeMode: CodeMode;
   /** Vault folder scanned for source files; empty means the whole vault. */
   codeRoot: string;
+  /** Folders whose notes are indexed, one per line; empty means the whole vault. */
+  indexFolders: string;
+  /** Folders whose notes are never indexed, one per line. */
+  excludeFolders: string;
+  /** Also leave out what Obsidian's "Excluded files" option hides. */
+  obsidianExcluded: boolean;
 }
+
+/** Settings that choose which notes are indexed; a change re-indexes the vault. */
+export const SCOPE_KEYS = new Set(['indexFolders', 'excludeFolders', 'obsidianExcluded']);
 
 export const DEFAULT_SETTINGS: ObsigraphSettings = {
   maxElements: 500,
@@ -54,7 +63,14 @@ export const DEFAULT_SETTINGS: ObsigraphSettings = {
   linkEdges: false,
   codeMode: 'off',
   codeRoot: '',
+  indexFolders: '',
+  excludeFolders: '',
+  obsidianExcluded: false,
 };
+
+const INDEX_FOLDERS_DESC = 'Only notes in these folders are indexed, one folder per line. Leave empty to index the whole vault. The schema folder is always indexed.';
+const EXCLUDE_FOLDERS_DESC = 'Notes in these folders are not indexed, one folder per line. Links into them end at stub nodes, as links to missing notes do. Re-indexes the vault when changed.';
+const OBSIDIAN_EXCLUDED_DESC = "Also leave out the files hidden by Obsidian's Files and links › Excluded files option. Re-indexes the vault when changed.";
 
 // @tg: implements:: [[openspec:graph-model#Edge options as plugin settings]] {since: "2026-10-13"}
 export class ObsigraphSettingTab extends PluginSettingTab {
@@ -218,6 +234,27 @@ export class ObsigraphSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName('Indexed folders')
+      .setDesc(INDEX_FOLDERS_DESC)
+      .addTextArea((t) => {
+        t.inputEl.rows = 3;
+        t.setPlaceholder('Records').setValue(this.plugin.settings.indexFolders).onChange((v) => this.setControlValue('indexFolders', v));
+      });
+
+    new Setting(containerEl)
+      .setName('Excluded folders')
+      .setDesc(EXCLUDE_FOLDERS_DESC)
+      .addTextArea((t) => {
+        t.inputEl.rows = 3;
+        t.setPlaceholder('Scratch').setValue(this.plugin.settings.excludeFolders).onChange((v) => this.setControlValue('excludeFolders', v));
+      });
+
+    new Setting(containerEl)
+      .setName("Follow Obsidian's excluded files")
+      .setDesc(OBSIDIAN_EXCLUDED_DESC)
+      .addToggle((t) => t.setValue(this.plugin.settings.obsidianExcluded).onChange((v) => this.setControlValue('obsidianExcluded', v)));
+
+    new Setting(containerEl)
       .setName('Show diagnostics')
       .setDesc('Show the number of parse and schema issues in the status bar.')
       .addToggle((t) =>
@@ -319,6 +356,15 @@ export class ObsigraphSettingTab extends PluginSettingTab {
       },
       {
         type: 'group',
+        heading: 'Indexing',
+        items: [
+          { name: 'Indexed folders', desc: INDEX_FOLDERS_DESC, control: { type: 'textarea', key: 'indexFolders', placeholder: 'Records', rows: 3 } },
+          { name: 'Excluded folders', desc: EXCLUDE_FOLDERS_DESC, aliases: ['ignore', 'exclude'], control: { type: 'textarea', key: 'excludeFolders', placeholder: 'Scratch', rows: 3 } },
+          { name: "Follow Obsidian's excluded files", desc: OBSIDIAN_EXCLUDED_DESC, control: { type: 'toggle', key: 'obsidianExcluded' } },
+        ],
+      },
+      {
+        type: 'group',
         heading: 'Types and styles',
         items: [
           { name: 'Schema folder', desc: 'Each note directly in this folder declares the schema for the type named by its title.', control: { type: 'folder', key: 'schemaFolder' } },
@@ -377,6 +423,10 @@ export class ObsigraphSettingTab extends PluginSettingTab {
     if (key === 'codeRoot') await this.plugin.index.code.refresh();
     // The edge options are read when a note is indexed, so existing notes need another pass.
     if (key === 'frontmatterEdges' || key === 'linkEdges' || key === 'asciidoc') await this.plugin.index.reindex();
+    // Folder lists are typed a key at a time, so their re-index waits for the typing to pause.
+    // @tg: implements:: [[openspec:graph-model#Indexed folders]] {since: "0.25.0"}
+    if (SCOPE_KEYS.has(key)) this.plugin.requestReindex();
+    else if (key === 'schemaFolder' && this.plugin.hasScope()) this.plugin.requestReindex();
   }
 
   /** JSON style editor with inline validation, shared by both style settings. */

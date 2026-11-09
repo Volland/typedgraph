@@ -71,6 +71,8 @@ export class Graph {
   /** Target node id -> source paths with at least one edge to it. */
   private readonly incoming = new Map<string, Set<string>>();
   private readonly stubRefs = new Map<string, number>();
+  /** Stub ids by the file name a note needs to satisfy them, so a new note re-resolves only links that can reach it. */
+  private readonly stubsByName = new Map<string, Set<string>>();
   private readonly listeners = new Set<(paths: string[]) => void>();
   /** Edge notes missing a field: no edge, no node, but still not a link target. */
   private readonly incompleteEdgeNotes = new Set<string>();
@@ -187,7 +189,7 @@ export class Graph {
 
     const touched = new Set([note.path]);
     // A new note may satisfy links that were stubs before; a former edge note, links that were refused.
-    if (isNew) this.reresolve(this.sourcesOfStubs(), touched);
+    if (isNew) this.reresolve(this.sourcesOfStubs(note.path), touched);
     if (wasEdgeNote) this.reresolve(new Set(this.incoming.get(note.path) ?? []), touched);
     this.emit(touched);
   }
@@ -220,7 +222,7 @@ export class Graph {
     this.addEdges(note.path);
 
     const touched = new Set([note.path]);
-    if (isNew) this.reresolve(this.sourcesOfStubs(), touched);
+    if (isNew) this.reresolve(this.sourcesOfStubs(note.path), touched);
     // Links to a former node now refuse it.
     if (wasNode && !wasEdgeNote) this.reresolve(new Set(this.incoming.get(note.path) ?? []), touched);
     this.emit(touched);
@@ -251,9 +253,15 @@ export class Graph {
 
   // ---- internals ---------------------------------------------------------
 
-  private sourcesOfStubs(): Set<string> {
+  /**
+   * Notes with a link to a stub that a new note at `path` may now satisfy. A link resolves only to a note
+   * whose file name matches its last segment, so only stubs with that name qualify; scanning every stub
+   * made each new note cost the whole vault and indexing quadratic.
+   */
+  // @tg: implements:: [[openspec:graph-model#Incremental updates]]
+  private sourcesOfStubs(path: string): Set<string> {
     const out = new Set<string>();
-    for (const stub of this.stubRefs.keys()) for (const s of this.incoming.get(stub) ?? []) out.add(s);
+    for (const stub of this.stubsByName.get(nameKey(path)) ?? []) for (const s of this.incoming.get(stub) ?? []) out.add(s);
     return out;
   }
 
@@ -369,6 +377,7 @@ export class Graph {
   // @tg: implements:: [[openspec:graph-model#Stub nodes for unresolved links]]
   private ensureStub(link: string): string {
     const id = stubId(link);
+    if (!this.stubRefs.has(id)) setAdd(this.stubsByName, nameKey(id), id);
     this.stubRefs.set(id, (this.stubRefs.get(id) ?? 0) + 1);
     if (!this.nodeMap.has(id)) {
       this.nodeMap.set(id, { id, labels: [], props: { title: titleOf(id), path: null }, stub: true });
@@ -384,6 +393,7 @@ export class Graph {
       return;
     }
     this.stubRefs.delete(id);
+    setDel(this.stubsByName, nameKey(id), id);
     if (this.nodeMap.get(id)?.stub) this.nodeMap.delete(id);
   }
 
@@ -444,6 +454,16 @@ export function titleOf(path: string): string {
 /** Node id of a stub: the link text without a note extension. */
 function stubId(link: string): string {
   return link.replace(/\.(?:md|adoc)$/, '');
+}
+
+/**
+ * The file name a link or note path is matched by: last path segment, without a `#` fragment or note
+ * extension, case-folded. A link and the note it resolves to always share it (resolution is by name or
+ * by path suffix, case-insensitively); unrelated names may share it too, which only costs a re-resolve.
+ */
+function nameKey(id: string): string {
+  const path = id.split('#')[0]!.trim();
+  return path.slice(path.lastIndexOf('/') + 1).replace(/\.(?:md|adoc)$/i, '').normalize('NFC').toLowerCase();
 }
 
 function setAdd<K, V>(m: Map<K, Set<V>>, k: K, v: V): void {
