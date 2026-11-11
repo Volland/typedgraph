@@ -69,7 +69,7 @@ The stdio server wraps the CLI.
 
 ### Cypher over docs and code
 
-The server lists the eight tools and `tg_cypher` returns the same `_type`-tagged result contract as the sidecar for a query over `Section` nodes.
+The server lists its ten tools, `tg_ontology` and `tg_trace` among them, and `tg_cypher` returns the same `_type`-tagged result contract as the sidecar for a query over `Section` nodes.
 
 ## Bundled skills
 

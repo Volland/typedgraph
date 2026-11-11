@@ -37,7 +37,7 @@
       <div class="wrap">
         <div>
           <h1>Give your coding agent a <span class="grad">memory it can query</span>.</h1>
-          <p class="lead">Stop re-explaining your architecture every session. Typed Graph gives Claude Code, Cursor and any MCP client a typed graph of your design docs and code, and a check that stops it from finishing with broken references.</p>
+          <p class="lead">Stop re-explaining your architecture every session. Typed Graph gives Claude Code, Cursor and any MCP client a typed graph of your design docs and code, an ontology that tells it what every type, link and block in your docs means, and a check that stops it from finishing with broken references.</p>
           <div class="buttons">
             <a class="btn primary" href="#claude-code">Set up Claude Code →</a>
             <a class="btn" href="install.html">All install options</a>
@@ -68,8 +68,9 @@ tg check             # does the documentation still match the code?</pre>
         <div>
           <h2>What the agent gets</h2>
           <ol class="steps">
+            <li><strong>Learn the vocabulary</strong>: <code>tg ontology</code> explains every type, edge and the blocks each kind of document holds, so the agent writes an <code>&lt;option&gt;</code> or a <code>&lt;rule&gt;</code> the way your team means it.</li>
             <li><strong>Search first</strong>: a prompt hook reminds it to search, expands <code>[[refs]]</code> in your prompt and adds the top lexical hits. It needs no model, key or network.</li>
-            <li><strong>Query the graph</strong>: <code>tg cypher</code> over sections and code symbols, or the eight tools of <code>tg mcp</code>.</li>
+            <li><strong>Query the graph</strong>: <code>tg cypher</code> over sections and code symbols, or the ten tools of <code>tg mcp</code>.</li>
             <li><strong>Finish honestly</strong>: a stop hook blocks completion while <code>tg check</code> fails, or when several code lines changed with little change in the docs.</li>
           </ol>
         </div>
@@ -91,6 +92,66 @@ $ tg cypher "MATCH (c:CodeSymbol)-[:implements]->(s:Section)
           <div class="card"><div class="icon">✓</div><h3>Checked, not hoped for</h3><p>Links, symbols, section rules and test-spec coverage are validated in CI and by the agent hook.</p></div>
           <div class="card"><div class="icon">≈</div><h3>Search that runs anywhere</h3><p>Lexical search works in a fresh clone. Add Ollama or an OpenAI-compatible endpoint for hybrid search and cited GraphRAG.</p></div>
           <div class="card"><div class="icon">↗</div><h3>Compatible with lat.md</h3><p>It reads the same <code>lat.md/</code> folders and agrees with <code>lat check</code>, then adds typed edges, Cypher and a visual graph. <a href="blog-tg-vs-lat-md.html">Compared in detail</a>.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ontology">
+      <div class="wrap">
+        <h2>Docs that explain themselves to the agent</h2>
+        <p class="section-lead">An agent that guesses what a tag or a link means writes plausible nonsense. In Typed Graph the ontology says it in plain words, down to the blocks inside a document: a decision's options, a requirement's rules, a runbook's rollback. The agent reads the meaning, writes the part, and code can point at exactly that part.</p>
+        <div class="two-col">
+          <div>
+            <h3>What it reads before writing</h3>
+<pre>$ tg ontology
+  Decision  (Types/code-types.md)
+    A choice that was made, with its reason and
+    the alternatives rejected. An ADR is one.
+    ...
+    elements:
+      &lt;option&gt; — An alternative that was considered,
+        and why it won or lost. Give it an id when code
+        or a later decision must point at it.
+        attributes:
+          id (text) — Stable address, unique in the
+            file, linked as file#^id.
+          outcome (text, chosen|rejected|deferred) —
+            What happened to this option.</pre>
+          </div>
+          <div>
+            <h3>What it writes, and what catches a slip</h3>
+<pre>&lt;option id="jwt-rotation" outcome="chosen"&gt;
+
+Stateless JWTs with rotating refresh tokens.
+
+&lt;/option&gt;
+
+// @<span></span>tg: implements:: [[decisions#^jwt-rotation]]
+export function rotateRefreshToken(old: string) {}
+
+$ tg check
+- src/tokens.ts:1: @<span></span>tg: [[decisions#^jwt-rotaton]]
+  — no element with that id — did you mean
+  '[[lat.md/decisions#^jwt-rotation]]'?</pre>
+          </div>
+        </div>
+        <h3 style="margin-top:28px">Which options did we weigh, and what implements them?</h3>
+<pre>$ tg cypher 'MATCH (d:Decision)-[:contains]->(o:Element {tag: "option"})
+             OPTIONAL MATCH (c:CodeSymbol)-[:implements]->(o)
+             RETURN o.element, o.outcome, c.symbol'
+o.element                        | o.outcome | c.symbol
+---------------------------------+-----------+-------------------
+lat.md/decisions#^redis-sessions | rejected  | null
+lat.md/decisions#^jwt-rotation   | chosen    | rotateRefreshToken</pre>
+        <div class="grid" style="margin-top:28px">
+          <div class="card"><div class="icon">✎</div><h3>Knows what to write</h3><p>Every type, property, edge and block has a description. The tg skills tell the agent to read <code>tg ontology</code> first, and to mark a part only when something will point at it.</p></div>
+          <div class="card"><div class="icon">#</div><h3>Points at the exact part</h3><p>An element with an <code>id</code> is a node: code implements one option or one rule, and a typo fails <code>tg check</code> with the nearest id as a suggestion.</p></div>
+          <div class="card"><div class="icon">✓</div><h3>Corrected with reasons</h3><p><code>tg ontology check</code> reports a missing, repeated or mistyped block together with its description, so the agent learns what the part is for while it fixes it.</p></div>
+        </div>
+        <div class="buttons" style="margin-top:28px">
+          <a class="btn primary" href="blog-explainable-blocks.html">Read: explainable blocks →</a>
+          <a class="btn" href="blog-declaring-elements.html">Declare your own blocks</a>
+          <a class="btn" href="spec/tgs/v0.5/">Typed Graph Schema 0.5</a>
         </div>
       </div>
     </section>
