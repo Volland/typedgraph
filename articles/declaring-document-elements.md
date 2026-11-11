@@ -228,4 +228,4 @@ The full text is [Typed Graph Schema 0.5](https://typedgraph.org/spec/tgs/v0.5/)
 
 ---
 
-*The 0.26.0 listing and findings come from the released tg 0.26.0. The others come from the tg build that implements TGS 0.5, run on a fresh project set up with `tg init --yes` on 11 November 2026.*
+*The 0.26.0 listing and findings come from the released tg 0.26.0. The others come from tg 0.27.0, which implements TGS 0.5, run on a fresh project set up with `tg init --yes` on 11 November 2026.*

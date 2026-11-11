@@ -258,4 +258,4 @@ Then mark one rejected option in a decision you still get asked about, give it a
 
 ---
 
-*Every command output above comes from a real run of tg 0.26.0 on a fresh project, set up with `tg init --yes --spec adr`, on 11 November 2026. The two `tg ontology` listings were run again with the tg build that implements TGS 0.5, which shows elements in the shape of their YAML. 0.26.0 squeezed attributes into the tag, as `<step risk=safe|disruptive!>`.*
+*Every command output above comes from a real run of tg 0.26.0 on a fresh project, set up with `tg init --yes --spec adr`, on 11 November 2026. The two `tg ontology` listings were run again with tg 0.27.0, which implements TGS 0.5, which shows elements in the shape of their YAML. 0.26.0 squeezed attributes into the tag, as `<step risk=safe|disruptive!>`.*
