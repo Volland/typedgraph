@@ -1,5 +1,5 @@
 import { Parser, type Quad, type Term } from 'n3';
-import { BUILTIN_PREFIXES, DEFAULT_BASE_IRI, readElementDeclarations, readSectionDeclarations, type EdgeRule, type EdgeTypeSchema, type PropertyKind, type PropertySchema, type TypeSchema } from '../schema/schema.js';
+import { BUILTIN_PREFIXES, DEFAULT_BASE_IRI, TGS_FORMER_NAMESPACES, readElementDeclarations, readSectionDeclarations, type EdgeRule, type EdgeTypeSchema, type PropertyKind, type PropertySchema, type TypeSchema } from '../schema/schema.js';
 import { compact } from './export.js';
 import { DATATYPE_KIND, localName, RDF, SH, TGS, XSD } from './vocab.js';
 
@@ -38,6 +38,13 @@ type Index = Map<string, Map<string, Term[]>>;
 
 const key = (t: Term) => (t.termType === 'BlankNode' ? `_:${t.value}` : t.value);
 
+/** A `tgs:` term in a namespace of TGS 0.1 to 0.5, renamed to the current namespace (TGS 0.6 section 13.4). */
+// @tg: implements:: [[openspec:tgs-spec#Namespace IRI]]
+function currentTgs(iri: string): string {
+  for (const ns of TGS_FORMER_NAMESPACES) if (iri.startsWith(ns)) return TGS + iri.slice(ns.length);
+  return iri;
+}
+
 /** Predicates the import understands on a node shape and on a property shape. */
 const NODE_KNOWN = new Set([`${RDF}type`, `${SH}targetClass`, `${SH}name`, `${SH}property`, `${TGS}note`, `${TGS}edgesClosed`, `${TGS}template`, `${TGS}templateBody`, `${TGS}visualization`, `${SH}description`, `${TGS}elements`, `${TGS}sections`]);
 const PROP_KNOWN = new Set([`${RDF}type`, `${SH}path`, `${SH}name`, `${SH}datatype`, `${SH}nodeKind`, `${SH}class`, `${SH}node`, `${SH}or`, `${SH}minCount`, `${SH}maxCount`, `${SH}defaultValue`, `${SH}in`, `${SH}order`, `${SH}hasValue`, `${TGS}kind`, `${TGS}edge`, `${TGS}default`, `${SH}description`]);
@@ -67,9 +74,10 @@ export function importShacl(turtle: string, opts: ShaclImportOptions = {}): Shac
     const s = key(q.subject);
     let preds = index.get(s);
     if (!preds) index.set(s, (preds = new Map<string, Term[]>()));
-    const list = preds.get(q.predicate.value) ?? [];
+    const pred = currentTgs(q.predicate.value);
+    const list = preds.get(pred) ?? [];
     list.push(q.object);
-    preds.set(q.predicate.value, list);
+    preds.set(pred, list);
     if (q.predicate.value === `${SH}property`) objectsOfProperty.add(key(q.object));
   }
   const get = (node: string | Term, pred: string): Term[] => index.get(typeof node === 'string' ? node : key(node))?.get(pred) ?? [];
@@ -86,7 +94,8 @@ export function importShacl(turtle: string, opts: ShaclImportOptions = {}): Shac
   };
 
   const userPrefixes: Record<string, string> = {};
-  for (const [p, iri] of Object.entries(declared)) if (p && BUILTIN_PREFIXES[p] !== iri && iri !== base) userPrefixes[p] = iri;
+  // A former tgs: namespace is the built-in one, so an earlier export does not bring the old IRI back as a vault prefix.
+  for (const [p, iri] of Object.entries(declared)) if (p && BUILTIN_PREFIXES[p] !== currentTgs(iri) && iri !== base) userPrefixes[p] = iri;
   const allPrefixes = { ...BUILTIN_PREFIXES, ...userPrefixes };
   const uriFor = (iri: string, name: string): string | null => {
     if (iri === base + encodeURIComponent(name)) return null;

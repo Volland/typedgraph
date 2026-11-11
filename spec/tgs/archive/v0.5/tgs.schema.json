@@ -1,0 +1,579 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volland.github.io/obsigraph/spec/tgs/v0.5/tgs.schema.json",
+  "title": "Typed Graph Schema (TGS) 0.5 schema note frontmatter",
+  "description": "Validates the TGS keys of a schema note's YAML frontmatter, parsed to JSON. Other frontmatter keys are allowed. License: MIT.",
+  "type": "object",
+  "properties": {
+    "tgs": {
+      "type": [
+        "string",
+        "number"
+      ],
+      "pattern": "^0\\.[0-9]+$",
+      "description": "TGS version the note is written for, e.g. \"0.4\"."
+    },
+    "schema": {
+      "$ref": "#/$defs/typeDeclaration",
+      "description": "The type named by the note's title; the note body is its template."
+    },
+    "schemas": {
+      "type": "object",
+      "description": "Types declared in this note, by type name.",
+      "additionalProperties": {
+        "$ref": "#/$defs/typeDeclaration"
+      }
+    },
+    "edgeTypes": {
+      "type": "object",
+      "description": "Edge types declared in this note, by edge type name.",
+      "additionalProperties": {
+        "$ref": "#/$defs/edgeTypeDeclaration"
+      }
+    },
+    "prefixes": {
+      "type": "object",
+      "description": "CURIE prefixes for the whole vault.",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "names": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/name"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/name"
+          },
+          "minItems": 1
+        }
+      ]
+    },
+    "iri": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]*:\\S*$",
+      "description": "A full IRI or a CURIE such as schema:Person."
+    },
+    "scalar": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "text",
+        "number",
+        "boolean",
+        "date",
+        "datetime",
+        "link",
+        "list"
+      ]
+    },
+    "visualization": {
+      "type": "object",
+      "description": "Display hints; keys are host-specific."
+    },
+    "property": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/kind"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/kind"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "many": {
+              "type": "boolean"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/scalar"
+              }
+            },
+            "default": true,
+            "uri": {
+              "$ref": "#/$defs/iri"
+            },
+            "description": {
+              "$ref": "#/$defs/description"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "properties": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/property"
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/name"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "$ref": "#/$defs/name"
+                  },
+                  "kind": {
+                    "$ref": "#/$defs/kind"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "many": {
+                    "type": "boolean"
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/scalar"
+                    }
+                  },
+                  "default": true,
+                  "uri": {
+                    "$ref": "#/$defs/iri"
+                  },
+                  "description": {
+                    "$ref": "#/$defs/description"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "edgeEntry": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/names"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "target": {
+              "$ref": "#/$defs/names"
+            },
+            "many": {
+              "type": "boolean"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "description": {
+              "$ref": "#/$defs/description"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "edges": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/name"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/edgeEntry"
+          }
+        }
+      ]
+    },
+    "typeDeclaration": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "uri": {
+          "$ref": "#/$defs/iri"
+        },
+        "properties": {
+          "$ref": "#/$defs/properties"
+        },
+        "edges": {
+          "$ref": "#/$defs/edges"
+        },
+        "template": {
+          "type": "string",
+          "minLength": 1
+        },
+        "visualization": {
+          "$ref": "#/$defs/visualization"
+        },
+        "style": {
+          "$ref": "#/$defs/visualization"
+        },
+        "id": {
+          "description": "Identifiers generated when a note of this type is created (TGS 0.2).",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/idRule"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "uuid",
+                      "uuid7",
+                      "timestamp",
+                      "luhmann"
+                    ]
+                  },
+                  "property": {
+                    "$ref": "#/$defs/name"
+                  },
+                  "auto": {
+                    "type": "boolean"
+                  },
+                  "filename": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "property"
+                ],
+                "additionalProperties": false
+              }
+            }
+          ]
+        },
+        "description": {
+          "$ref": "#/$defs/description"
+        },
+        "elements": {
+          "$ref": "#/$defs/elements"
+        },
+        "sections": {
+          "$ref": "#/$defs/sections"
+        }
+      },
+      "additionalProperties": false
+    },
+    "edgeTypeDeclaration": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/names"
+        },
+        "to": {
+          "$ref": "#/$defs/names"
+        },
+        "properties": {
+          "$ref": "#/$defs/properties"
+        },
+        "uri": {
+          "$ref": "#/$defs/iri"
+        },
+        "visualization": {
+          "$ref": "#/$defs/visualization"
+        },
+        "style": {
+          "$ref": "#/$defs/visualization"
+        },
+        "description": {
+          "$ref": "#/$defs/description"
+        }
+      },
+      "additionalProperties": false
+    },
+    "idRule": {
+      "description": "One identifier generated for new notes of a type.",
+      "oneOf": [
+        {
+          "enum": [
+            "uuid",
+            "uuid7",
+            "timestamp",
+            "luhmann"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "uuid",
+                "uuid7",
+                "timestamp",
+                "luhmann"
+              ]
+            },
+            "property": {
+              "$ref": "#/$defs/name"
+            },
+            "auto": {
+              "type": "boolean"
+            },
+            "filename": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What a declaration means, for people and agents (TGS 0.4)."
+    },
+    "tagName": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+    },
+    "element": {
+      "description": "A block-level XML element a document of the type may contain (TGS 0.4; read as in TGS 0.5 sections 4.2 to 4.4).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/description"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "description": {
+              "$ref": "#/$defs/description"
+            },
+            "type": {
+              "$ref": "#/$defs/names"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "many": {
+              "type": "boolean"
+            },
+            "node": {
+              "type": "boolean"
+            },
+            "attributes": {
+              "$ref": "#/$defs/attributes"
+            },
+            "elements": {
+              "$ref": "#/$defs/elements"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "elements": {
+      "description": "Elements by tag name, or a list of tag names (TGS 0.4; normal form in TGS 0.5 section 4.9).",
+      "oneOf": [
+        {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/tagName"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/element"
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tagName"
+          }
+        }
+      ]
+    },
+    "section": {
+      "description": "A heading a document of the type has (TGS 0.4).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/description"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "description": {
+              "$ref": "#/$defs/description"
+            },
+            "required": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "sections": {
+      "description": "Sections by heading, or a list of headings (TGS 0.4).",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/section"
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/name"
+          }
+        }
+      ]
+    },
+    "attribute": {
+      "description": "An attribute of an element (TGS 0.5 section 4.3): null, a kind, or a mapping. Only kind, required, values and description have a meaning.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/kind"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/kind"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/scalar"
+              }
+            },
+            "description": {
+              "$ref": "#/$defs/description"
+            },
+            "many": {
+              "type": "boolean",
+              "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+            },
+            "default": {
+              "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+            },
+            "uri": {
+              "$ref": "#/$defs/iri",
+              "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "attributes": {
+      "description": "Attributes by name, or a list of names or of mappings with a name, as for properties (TGS 0.5 section 4.3).",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/attribute"
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/name"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "$ref": "#/$defs/name"
+                  },
+                  "kind": {
+                    "$ref": "#/$defs/kind"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/scalar"
+                    }
+                  },
+                  "description": {
+                    "$ref": "#/$defs/description"
+                  },
+                  "many": {
+                    "type": "boolean",
+                    "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+                  },
+                  "default": {
+                    "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+                  },
+                  "uri": {
+                    "$ref": "#/$defs/iri",
+                    "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

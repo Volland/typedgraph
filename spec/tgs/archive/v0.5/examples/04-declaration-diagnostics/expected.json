@@ -1,0 +1,95 @@
+{
+  "invalidAgainstJsonSchema": [
+    "Types/A.md",
+    "Types/Broken.md",
+    "Types/Future.md",
+    "Types/Next.md"
+  ],
+  "types": [
+    {
+      "name": "Broken",
+      "note": "Types/Broken.md",
+      "iri": "urn:tgs:Broken",
+      "properties": [],
+      "edges": null,
+      "template": null
+    },
+    {
+      "name": "Future",
+      "note": "Types/Future.md",
+      "iri": "urn:tgs:Future",
+      "properties": [
+        {
+          "name": "a",
+          "iri": "urn:tgs:a",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": null,
+      "template": null
+    },
+    {
+      "name": "Person",
+      "note": "Types/A.md",
+      "iri": "urn:tgs:Person",
+      "properties": [
+        {
+          "name": "mood",
+          "iri": "urn:tgs:mood",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": null,
+      "template": null
+    },
+    {
+      "name": "Thing",
+      "note": "Types/A.md",
+      "iri": "urn:tgs:Thing",
+      "properties": [],
+      "edges": null,
+      "template": null
+    }
+  ],
+  "edgeTypes": [],
+  "diagnostics": [
+    {
+      "path": "Types/A.md",
+      "line": null,
+      "diagnostic": "unknown-kind"
+    },
+    {
+      "path": "Types/A.md",
+      "line": null,
+      "diagnostic": "unknown-prefix"
+    },
+    {
+      "path": "Types/B.md",
+      "line": null,
+      "diagnostic": "duplicate-declaration"
+    },
+    {
+      "path": "Types/Broken.md",
+      "line": null,
+      "diagnostic": "invalid-declaration"
+    },
+    {
+      "path": "Types/Future.md",
+      "line": null,
+      "diagnostic": "unknown-key"
+    },
+    {
+      "path": "Types/Next.md",
+      "line": null,
+      "diagnostic": "unsupported-version"
+    }
+  ]
+}

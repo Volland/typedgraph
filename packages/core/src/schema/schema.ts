@@ -120,10 +120,12 @@ export const DEFAULT_SCHEMA_FOLDER = 'Types/';
 /** The Typed Graph Schema version this reader implements. */
 // @tg: implements:: [[openspec:tgs-spec#Versioning]]
 // @tg: implements:: [[openspec:tgs-spec#AsciiDoc notes in TGS 0.3]] {confidence: partial}
-// @tg: implements:: [[openspec:document-elements#TGS 0.5 published]]
-export const TGS_VERSION = '0.5';
+// @tg: implements:: [[openspec:tgs-spec#TGS 0.6 published]]
+export const TGS_VERSION = '0.6';
 // @tg: implements:: [[openspec:tgs-spec#Namespace IRI]]
-export const TGS_NAMESPACE = 'https://volland.github.io/obsigraph/ns/tgs#';
+export const TGS_NAMESPACE = 'https://typedgraph.org/ns/tgs#';
+/** Namespaces the `tgs:` terms had before TGS 0.6; SHACL import reads them as {@link TGS_NAMESPACE}. */
+export const TGS_FORMER_NAMESPACES: readonly string[] = ['https://volland.github.io/obsigraph/ns/tgs#'];
 export const DEFAULT_BASE_IRI = 'urn:tgs:';
 // @tg: implements:: [[openspec:schema-notes#Identifiers]]
 export const BUILTIN_PREFIXES: Readonly<Record<string, string>> = {

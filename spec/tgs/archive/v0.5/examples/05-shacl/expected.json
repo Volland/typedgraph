@@ -1,0 +1,112 @@
+{
+  "invalidAgainstJsonSchema": [],
+  "types": [
+    {
+      "name": "Company",
+      "note": "Types/Company.md",
+      "iri": "https://schema.org/Organization",
+      "properties": [
+        {
+          "name": "founded",
+          "iri": "urn:tgs:founded",
+          "kind": "date",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "public",
+          "iri": "urn:tgs:public",
+          "kind": "boolean",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": null,
+      "template": null
+    },
+    {
+      "name": "Person",
+      "note": "Types/Person.md",
+      "iri": "https://schema.org/Person",
+      "properties": [
+        {
+          "name": "name",
+          "iri": "https://schema.org/name",
+          "kind": "text",
+          "required": true,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "score",
+          "iri": "urn:tgs:score",
+          "kind": "number",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": 0
+        },
+        {
+          "name": "tags",
+          "iri": "urn:tgs:tags",
+          "kind": "list",
+          "required": false,
+          "many": true,
+          "values": null,
+          "default": [
+            "new"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "type": "worksAt",
+          "targets": [
+            "Company"
+          ],
+          "many": true,
+          "required": false
+        },
+        {
+          "type": "knows",
+          "targets": [
+            "Person"
+          ],
+          "many": true,
+          "required": false
+        }
+      ],
+      "template": "[[Templates/Person]]"
+    }
+  ],
+  "edgeTypes": [
+    {
+      "name": "worksAt",
+      "note": "Types/Company.md",
+      "iri": "https://schema.org/worksFor",
+      "from": [
+        "Person"
+      ],
+      "to": [
+        "Company"
+      ],
+      "properties": [
+        {
+          "name": "since",
+          "iri": "urn:tgs:since",
+          "kind": "date",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ]
+    }
+  ],
+  "diagnostics": []
+}

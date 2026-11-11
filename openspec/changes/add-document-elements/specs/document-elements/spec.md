@@ -134,7 +134,7 @@ The specification SHALL be published as TGS 0.5 with 0.4 archived unchanged. 0.5
 
 #### Scenario: Published 0.5
 - **WHEN** the spec folder is read
-- **THEN** `SPEC.md` is version 0.5 with sections 4.4 (nesting and scope) and 4.9 (normal form), `archive/v0.4/SPEC.md` is the unchanged 0.4 text, and the site builder publishes 0.5
+- **THEN** the 0.5 text, current or archived, has sections 4.4 (nesting and scope) and 4.9 (normal form) and a JSON Schema `$id` naming 0.5, and `archive/v0.4/SPEC.md` is the unchanged 0.4 text
 
 ### Requirement: Code ontology describes itself
 The bundled code ontology SHALL describe every type, property and edge type, declare the elements its types commonly hold, and the ADR framework type SHALL declare MADR's headings; none of them SHALL be required, so existing docs stay clean.

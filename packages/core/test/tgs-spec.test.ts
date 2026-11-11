@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
 import {
   DEFAULT_BASE_IRI,
+  TGS_NAMESPACE,
   Graph,
   iriOf,
   noteDocumentDiagnostics,
@@ -18,7 +19,7 @@ import {
   type NoteInput,
   type SchemaSet,
 } from '../src/index.js';
-import { exportShacl } from '../src/shacl.js';
+import { exportShacl, importShacl } from '../src/shacl.js';
 
 const SPEC = join(__dirname, '../../../spec/tgs');
 const WRITE = process.env.TGS_WRITE_EXPECTED === '1';
@@ -143,7 +144,7 @@ describe('TGS JSON Schema', () => {
     const src = ['export.ts', 'import.ts'].map((f) => readFileSync(join(__dirname, '../src/shacl', f), 'utf8')).join('\n');
     for (const m of src.matchAll(/\$\{TGS\}(\w+)/g)) used.add(m[1]!);
     expect([...used].sort()).toEqual(ns.terms.map((t) => t.term).sort());
-    expect(ns.namespace).toBe('https://volland.github.io/obsigraph/ns/tgs#');
+    expect(ns.namespace).toBe('https://typedgraph.org/ns/tgs#');
   });
 });
 
@@ -177,18 +178,41 @@ describe('TGS AsciiDoc notes', () => {
 
   // @tg: verifies:: [[openspec:document-elements#TGS 0.5 published#Published 0.5]] {level: unit}
   // @lat: [[tests/document-elements#TGS 0.5 published beside 0.4]]
-  it('publishes 0.5 as the current version with 0.4 archived', () => {
-    const spec = readFileSync(join(SPEC, 'SPEC.md'), 'utf8');
-    expect(spec).toContain('# Typed Graph Schema (TGS) 0.5');
-    expect(spec).toContain('spec/tgs/v0.5/');
-    expect(spec).toContain('### 4.4 Nesting and scope');
-    expect(spec).toContain('### 4.9 Normal form');
-    expect(JSON.parse(readFileSync(join(SPEC, 'tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.5/');
+  it('keeps 0.5, with element scope and the normal form, beside 0.4', () => {
+    const v05 = readFileSync(join(SPEC, 'archive/v0.5/SPEC.md'), 'utf8');
+    expect(v05).toContain('# Typed Graph Schema (TGS) 0.5');
+    expect(v05).toContain('### 4.4 Nesting and scope');
+    expect(v05).toContain('### 4.9 Normal form');
+    expect(JSON.parse(readFileSync(join(SPEC, 'archive/v0.5/tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.5/');
     const v04 = readFileSync(join(SPEC, 'archive/v0.4/SPEC.md'), 'utf8');
     expect(v04).toContain('# Typed Graph Schema (TGS) 0.4');
-    expect(v04).toContain('### 4.2 Elements and sections');
     expect(v04).not.toContain('### 4.4 Nesting and scope');
-    expect(JSON.parse(readFileSync(join(SPEC, 'archive/v0.4/tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.4/');
-    expect(readFileSync(join(__dirname, '../../../site/build-spec.mjs'), 'utf8')).toContain("const VERSION = '0.5'");
+  });
+
+  // @tg: verifies:: [[openspec:tgs-spec#TGS 0.6 published#Published 0.6 at typedgraph.org]] {level: unit}
+  // @lat: [[tests/tgs-spec#Version 0.6 published at typedgraph.org]]
+  it('publishes 0.6 with every identifier under typedgraph.org', () => {
+    const spec = readFileSync(join(SPEC, 'SPEC.md'), 'utf8');
+    expect(spec).toContain('# Typed Graph Schema (TGS) 0.6');
+    expect(spec).toContain('| **This version** | `https://typedgraph.org/spec/tgs/v0.6/` |');
+    expect(spec).toContain('| **Namespace** | `https://typedgraph.org/ns/tgs#` (prefix `tgs:`) |');
+    expect(JSON.parse(readFileSync(join(SPEC, 'tgs.schema.json'), 'utf8')).$id).toBe('https://typedgraph.org/spec/tgs/v0.6/tgs.schema.json');
+    expect(TGS_NAMESPACE).toBe('https://typedgraph.org/ns/tgs#');
+    expect(readFileSync(join(__dirname, '../../../site/build-spec.mjs'), 'utf8')).toContain("const VERSION = '0.6'");
+    // 0.5 stays as published, with its former addresses.
+    expect(readFileSync(join(SPEC, 'archive/v0.5/SPEC.md'), 'utf8')).toContain('`https://volland.github.io/obsigraph/spec/tgs/v0.5/`');
+  });
+
+  // @tg: verifies:: [[openspec:tgs-spec#Namespace IRI#Former namespace imported]] {level: unit}
+  // @lat: [[tests/tgs-spec#Former namespace imports unchanged]]
+  it('imports an export written with the former tgs: namespace as the same declarations', () => {
+    const current = readFileSync(join(SPEC, 'examples/05-shacl/shapes.ttl'), 'utf8');
+    expect(current).toContain('@prefix tgs: <https://typedgraph.org/ns/tgs#> .');
+    const former = current.replaceAll('https://typedgraph.org/ns/tgs#', 'https://volland.github.io/obsigraph/ns/tgs#');
+    const a = importShacl(current, { base: 'urn:tgs:' });
+    const b = importShacl(former, { base: 'urn:tgs:' });
+    expect(b).toEqual(a);
+    expect(b.prefixes).not.toHaveProperty('tgs');
+    expect(a.types.some((t) => t.template)).toBe(true);
   });
 });

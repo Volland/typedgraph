@@ -1,12 +1,13 @@
-# Typed Graph Schema (TGS) 0.5
+# Typed Graph Schema (TGS) 0.6
 
 | | |
 |---|---|
-| **Version** | 0.5 (published 2026-11-11; immutable) |
-| **Previous** | [0.4](../v0.4/) |
-| **This version** | `https://volland.github.io/obsigraph/spec/tgs/v0.5/` |
-| **JSON Schema** | `https://volland.github.io/obsigraph/spec/tgs/v0.5/tgs.schema.json` |
-| **Namespace** | `https://volland.github.io/obsigraph/ns/tgs#` (prefix `tgs:`) |
+| **Version** | 0.6 (published 2026-11-11; immutable) |
+| **Previous** | [0.5](../v0.5/) |
+| **This version** | `https://typedgraph.org/spec/tgs/v0.6/` |
+| **JSON Schema** | `https://typedgraph.org/spec/tgs/v0.6/tgs.schema.json` |
+| **Namespace** | `https://typedgraph.org/ns/tgs#` (prefix `tgs:`) |
+| **Latest version** | `https://typedgraph.org/spec/tgs/` |
 | **Editor** | Volodymyr Pavlyshyn |
 | **Source** | `spec/tgs/` in [github.com/Volland/typedgraph](https://github.com/Volland/typedgraph) |
 | **License** | Text: CC BY 4.0. JSON Schema and examples: MIT. |
@@ -158,7 +159,7 @@ A note of a type has parts: headings (section 4.5) and **elements**, block-level
 ```yaml
 # Types/Decision.md
 ---
-tgs: "0.5"
+tgs: "0.6"
 schema:
   description: A choice that was made, with its reason and the alternatives rejected.
   sections:
@@ -242,7 +243,7 @@ Elements nest. A declaration says where a tag *means* something, not where it ma
 ```yaml
 # Types/Runbook.md
 ---
-tgs: "0.5"
+tgs: "0.6"
 schema:
   description: How to operate one part of the system when something goes wrong.
   elements:
@@ -404,7 +405,7 @@ Every type, property and edge type has an IRI, so that schemas can be exchanged.
 
 - `uri` holds a full IRI (`https://schema.org/Person`, `urn:isbn:0451450523`) or a CURIE (`schema:Person`).
 - A value whose part after the first colon starts with `//` is a full IRI. Otherwise `p:local` expands to the IRI of prefix `p` followed by `local` when `p` is a known prefix, and is a full IRI when `p` is one of the schemes `http`, `https`, `urn`, `mailto`, `tag`, `did` and `file`.
-- Built-in prefixes: `rdf`, `rdfs`, `xsd`, `sh` (SHACL), `schema` (`https://schema.org/`), `foaf` and `tgs`. A `prefixes` key in any schema note adds prefixes for the whole vault and MAY override a built-in one.
+- Built-in prefixes: `rdf`, `rdfs`, `xsd`, `sh` (SHACL), `schema` (`https://schema.org/`), `foaf` and `tgs` (`https://typedgraph.org/ns/tgs#`). A `prefixes` key in any schema note adds prefixes for the whole vault and MAY override a built-in one.
 - A CURIE with an unknown prefix MUST be reported as `unknown-prefix`.
 - A declaration without `uri` is named by the **base IRI** followed by its percent-encoded name. The base IRI is a reader setting whose default is `urn:tgs:`.
 
@@ -485,7 +486,7 @@ A schema note MAY declare `tgs: "<major>.<minor>"`. A reader implementing versio
 - MUST report a note that declares another major version as `unsupported-version` and MUST NOT use its declarations;
 - MUST read notes without `tgs` as version 0.1.
 
-TGS 0.2 adds the `id` key (section 8.1) and the template tokens. TGS 0.3 adds AsciiDoc notes (section 2.1) and adds no schema key. TGS 0.4 adds `description` (section 4.1), `elements` and `sections` (sections 4.2 to 4.5) and document validation (section 4.8); unknown keys inside an element declaration are reported like those of a type. TGS 0.5 adds no key. It fixes how elements are declared and read: the attribute keys that have a meaning and the reserved `id` (section 4.3), the scope of nested declarations and counting per container (section 4.4), and one normal form for every shorthand (section 4.9). Every 0.1 note is a valid 0.2 note, every 0.2 note is a valid 0.3 note, every 0.3 note is a valid 0.4 note, and every 0.4 note is a valid 0.5 note.
+TGS 0.2 adds the `id` key (section 8.1) and the template tokens. TGS 0.3 adds AsciiDoc notes (section 2.1) and adds no schema key. TGS 0.4 adds `description` (section 4.1), `elements` and `sections` (sections 4.2 to 4.5) and document validation (section 4.8); unknown keys inside an element declaration are reported like those of a type. TGS 0.5 adds no key. It fixes how elements are declared and read: the attribute keys that have a meaning and the reserved `id` (section 4.3), the scope of nested declarations and counting per container (section 4.4), and one normal form for every shorthand (section 4.9). TGS 0.6 adds no key and changes no rule. It moves the identifiers of the specification to `https://typedgraph.org/`: the address of each version, the JSON Schema `$id`, and the `tgs:` namespace, which was `https://volland.github.io/obsigraph/ns/tgs#` in versions 0.1 to 0.5 (section 13.4). Every 0.1 note is a valid 0.2 note, every 0.2 note is a valid 0.3 note, every 0.3 note is a valid 0.4 note, every 0.4 note is a valid 0.5 note, and every 0.5 note is a valid 0.6 note.
 
 Minor versions only add optional keys. A published version never changes.
 
@@ -547,7 +548,7 @@ An edge type's `description` is the `sh:description` of its edge shape. The `rdf
 
 ### 13.4 Annotations
 
-What SHACL cannot express is kept as annotations, which SHACL engines ignore:
+What SHACL cannot express is kept as annotations in the namespace `https://typedgraph.org/ns/tgs#`, which SHACL engines ignore. Exporters MUST write that namespace. Versions 0.1 to 0.5 named it `https://volland.github.io/obsigraph/ns/tgs#`, an address that no longer resolves; importers MUST read a term in that former namespace as the same term in the current one, so exports made under earlier versions import unchanged.
 
 | Term | On | Value |
 |---|---|---|
@@ -570,7 +571,7 @@ An importer MUST read:
 - a property shape with `sh:datatype` (mapped back per section 5.2; integer, double and similar numeric types are `number`) or `sh:nodeKind sh:IRI` as a property;
 - a property shape with `sh:class`, `sh:node` (a shape with a target class), an `sh:or` of single `sh:class` alternatives, or `tgs:edge true`, as an edge of the type; its name is `sh:name`, else the name of the edge type with that predicate, else the local name of the path;
 - a node shape whose property shape on `rdf:predicate` has `sh:hasValue` as an edge type, named by `sh:name`, else by the local name of the predicate;
-- `sh:minCount` ≥ 1 as `required`, the absence of `sh:maxCount 1` as `many`, and the annotations of 13.4;
+- `sh:minCount` ≥ 1 as `required`, the absence of `sh:maxCount 1` as `many`, and the annotations of 13.4, in the current or the former namespace;
 - a `uri` whenever an IRI differs from the base IRI + name, written as a CURIE when a prefix matches.
 
 An importer MUST report, and otherwise skip, every construct outside this subset, including `sh:closed`, `sh:pattern`, `sh:minLength`, `sh:qualifiedValueShape`, `sh:sparql`, `sh:and`, `sh:xone`, `sh:not`, property paths other than a single IRI, unknown datatypes (read as `text`), `sh:maxCount` greater than 1 (read as many) and node shapes without a target class. It MUST import the rest of each shape.
@@ -600,7 +601,7 @@ SHACL cases also have a `shapes.ttl` that an exporter's output must be isomorphi
 
 ## 15. JSON Schema
 
-`tgs.schema.json` (JSON Schema draft 2020-12) validates the TGS keys of a schema note's frontmatter. It is strict about TGS 0.5 keys and leaves `visualization` and all non-TGS keys open. Notes declaring a newer minor version may not validate against it.
+`tgs.schema.json` (JSON Schema draft 2020-12) validates the TGS keys of a schema note's frontmatter. It is strict about TGS 0.6 keys and leaves `visualization` and all non-TGS keys open. Notes declaring a newer minor version may not validate against it.
 
 ## 16. References
 

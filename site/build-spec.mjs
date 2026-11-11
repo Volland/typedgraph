@@ -4,7 +4,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { marked } from 'marked';
 
-const VERSION = '0.5';
+const VERSION = '0.6';
 const src = 'spec/tgs';
 const out = `site/spec/tgs/v${VERSION}`;
 // Earlier versions are immutable copies kept in spec/tgs/archive/v<version>/.
@@ -72,7 +72,11 @@ function publish(from, to, version, treeUrl) {
   for (const f of ['SPEC.md', 'tgs.schema.json', 'namespace.json']) cpSync(`${from}/${f}`, `${to}/${f}`);
   cpSync(`${from}/examples`, `${to}/examples`, { recursive: true });
   const spec = marked.parse(readFileSync(`${from}/SPEC.md`, 'utf8'), { renderer, gfm: true });
-  const files = `<div class="callout">Files: <a href="SPEC.md">SPEC.md</a> · <a href="tgs.schema.json">tgs.schema.json</a> · <a href="namespace.json">namespace.json</a> · <a href="${treeUrl}">conformance examples</a></div>`;
+  // Versions 0.1 to 0.5 name addresses under volland.github.io/obsigraph, which no longer resolve; their text stays as published.
+  const moved = /\*\*This version\*\* \| `https:\/\/volland\.github\.io\/obsigraph\//.test(readFileSync(`${from}/SPEC.md`, 'utf8'))
+    ? `<div class="callout">This version was published with addresses under <code>https://volland.github.io/obsigraph/</code>, which no longer resolve. It is the same text, served here at <code>https://typedgraph.org/spec/tgs/v${version}/</code>. Its <code>tgs:</code> namespace is now <code>https://typedgraph.org/ns/tgs#</code>; importers read the former one as the same terms. The <a href="../">latest version</a> uses the new addresses.</div>\n`
+    : '';
+  const files = `${moved}<div class="callout">Files: <a href="SPEC.md">SPEC.md</a> · <a href="tgs.schema.json">tgs.schema.json</a> · <a href="namespace.json">namespace.json</a> · <a href="${treeUrl}">conformance examples</a></div>`;
   writeFileSync(
     `${to}/index.html`,
     page({
@@ -111,7 +115,8 @@ writeFileSync(
 ${rows}
       </tbody>
     </table>
-    <p>Machine-readable: <a href="../../spec/tgs/v${VERSION}/namespace.json">namespace.json</a>. Defined in section 13.4 of the specification.</p>`,
+    <p>Machine-readable: <a href="../../spec/tgs/v${VERSION}/namespace.json">namespace.json</a>. Defined in section 13.4 of the specification.</p>
+    <p>Formerly ${(ns.formerly ?? []).map((f) => `<code>${escape(f)}</code>`).join(', ')}, used by TGS 0.1 to 0.5. Importers read terms in a former namespace as the same terms.</p>`,
   }),
 );
 console.log(`Published TGS ${VERSION} to ${out}/ and site/ns/tgs/`);

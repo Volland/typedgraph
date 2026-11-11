@@ -30,3 +30,11 @@ The AsciiDoc chapter in `SPEC.md` section 2.1 produces the node, properties, edg
 ## Version 0.3 published beside 0.2
 
 The specification, JSON Schema `$id` and site build name 0.3 as the current version, and 0.2 stays in `spec/tgs/archive/v0.2/` with its text unchanged.
+
+## Version 0.6 published at typedgraph.org
+
+`SPEC.md` is 0.6 with its version address and `tgs:` namespace under typedgraph.org, the JSON Schema `$id` is the typedgraph.org address, the site build publishes 0.6, and archived 0.5 keeps its former addresses.
+
+## Former namespace imports unchanged
+
+A SHACL export rewritten to the former `tgs:` namespace imports to the same types, edge types, prefixes and dropped constructs as the current one, and keeps no `tgs` vault prefix.

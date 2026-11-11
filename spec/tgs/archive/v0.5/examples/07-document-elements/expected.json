@@ -1,0 +1,119 @@
+{
+  "invalidAgainstJsonSchema": [],
+  "types": [
+    {
+      "name": "Decision",
+      "note": "Types/Decision.md",
+      "iri": "urn:tgs:Decision",
+      "properties": [
+        {
+          "name": "status",
+          "iri": "urn:tgs:status",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": [
+            "proposed",
+            "accepted"
+          ],
+          "default": null,
+          "description": "Where the decision is in its life."
+        }
+      ],
+      "edges": [
+        {
+          "type": "supersedes",
+          "targets": [
+            "Decision"
+          ],
+          "many": true,
+          "required": false,
+          "description": "The older decision this one replaces."
+        }
+      ],
+      "template": null,
+      "description": "A choice that was made, with its reason and the alternatives rejected.",
+      "elements": [
+        {
+          "tag": "option",
+          "description": "An option that was considered, and why it won or lost.",
+          "types": [],
+          "required": false,
+          "many": true,
+          "node": null,
+          "attributes": [
+            {
+              "name": "id",
+              "kind": "text",
+              "default": null,
+              "required": false,
+              "many": false,
+              "values": null,
+              "uri": null,
+              "description": "A stable address for the option."
+            },
+            {
+              "name": "outcome",
+              "kind": "text",
+              "default": null,
+              "required": true,
+              "many": false,
+              "values": [
+                "chosen",
+                "rejected",
+                "deferred"
+              ],
+              "uri": null
+            }
+          ],
+          "elements": []
+        },
+        {
+          "tag": "summary",
+          "description": "The decision in one or two sentences.",
+          "types": [],
+          "required": true,
+          "many": false,
+          "node": null,
+          "attributes": [],
+          "elements": []
+        }
+      ],
+      "sections": [
+        {
+          "heading": "Context",
+          "description": "The forces that made a decision necessary.",
+          "required": true
+        },
+        {
+          "heading": "Consequences",
+          "description": "What becomes easier or harder.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "edgeTypes": [],
+  "diagnostics": [
+    {
+      "path": "Decisions/Use Redis.md",
+      "line": 7,
+      "diagnostic": "attribute-value-not-allowed"
+    },
+    {
+      "path": "Decisions/Use Redis.md",
+      "line": 11,
+      "diagnostic": "missing-attribute"
+    },
+    {
+      "path": "Decisions/Use Redis.md",
+      "line": 19,
+      "diagnostic": "too-many-elements"
+    },
+    {
+      "path": "Decisions/Use Redis.md",
+      "line": null,
+      "diagnostic": "missing-section"
+    }
+  ]
+}

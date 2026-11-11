@@ -154,4 +154,4 @@ A typed `<case>` declared inside `<example>` is resolved inside an `<input>` wit
 
 ## TGS 0.5 published beside 0.4
 
-`SPEC.md` is version 0.5 with nesting and scope and the normal form, its JSON Schema `$id` names 0.5, 0.4 stays in `spec/tgs/archive/v0.4/` unchanged, and the site build publishes 0.5.
+`archive/v0.5/SPEC.md` is version 0.5 with nesting and scope and the normal form, its JSON Schema `$id` names 0.5, and 0.4 stays archived without them.

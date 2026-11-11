@@ -42,6 +42,7 @@ export {
   schemasFromGraph,
   templatePath,
   TGS_NAMESPACE,
+  TGS_FORMER_NAMESPACES,
   TGS_VERSION,
   validateSchemas,
 } from './schema/schema.js';

@@ -1,5 +1,6 @@
 {
-  "namespace": "https://volland.github.io/obsigraph/ns/tgs#",
+  "namespace": "https://typedgraph.org/ns/tgs#",
+  "formerly": ["https://volland.github.io/obsigraph/ns/tgs#"],
   "prefix": "tgs",
   "terms": [
     { "term": "note", "on": "node shape", "range": "string", "comment": "Vault-relative path of the schema note that declared the type or edge type. Importers may use it to group types into notes." },

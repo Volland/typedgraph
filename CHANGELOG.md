@@ -2,6 +2,15 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+The specification's addresses resolve again.
+
+### Changed
+
+- **TGS 0.6 moves every identifier to typedgraph.org.** That covers the version addresses (`https://typedgraph.org/spec/tgs/v0.6/`), the JSON Schema `$id` and the `tgs:` namespace (`https://typedgraph.org/ns/tgs#`). The old `volland.github.io/obsigraph` addresses have answered 404 since the repository was renamed. 0.6 adds no key and changes no rule. 0.5 is archived unchanged, and the site shows each archived version with a notice that its addresses moved.
+- **SHACL export writes the new `tgs:` namespace.** Import reads terms in the former namespace as the same terms and does not keep a former `tgs` prefix, so exports made with earlier versions import unchanged. Exported Turtle now names `tgs:` terms with the new IRI.
+
 ## 0.27.0 — 2026-11-11
 
 One way to declare, read and show document elements.
