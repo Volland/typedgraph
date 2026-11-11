@@ -1,0 +1,4 @@
+---
+schemas:
+  Person: {}
+---

@@ -39,18 +39,44 @@ function elementJson(e: ElementSchema): Record<string, unknown> {
 
 const sectionJson = (h: SectionSchema) => ({ heading: h.heading, description: h.description, required: h.required });
 
-/** `<tag id outcome=a|b>` with the rules that apply to it, for the listing. */
-function describeElement(e: ElementSchema): string {
-  const attrs = e.attributes.map((a) => `${a.name}${a.values ? `=${a.values.map(show).join('|')}` : ''}${a.required ? '!' : ''}`);
-  const bits = [e.types.length ? `node ${e.types.join('+')}` : e.node === true ? 'node' : null, e.required ? 'required' : null, e.many ? null : 'one'].filter(Boolean);
-  return `<${[e.tag, ...attrs].join(' ')}>${bits.length ? `  (${bits.join(', ')})` : ''}${e.description ? ` — ${e.description}` : ''}`;
+/** An attribute as a property is shown, with only the keys an attribute has (TGS 0.5 section 4.3). */
+function describeAttribute(a: PropertySchema): string {
+  const bits: string[] = [a.kind === 'list' ? 'text' : a.kind];
+  if (a.values) bits.push(a.values.map(show).join('|'));
+  if (a.required) bits.push('required');
+  return `${a.name} (${bits.join(', ')})`;
 }
 
+/**
+ * How often an element occurs and whether it is a node, in words; nothing for
+ * the defaults (optional, any number, a node only with an id).
+ */
+function elementRules(e: ElementSchema): string[] {
+  const bits: string[] = [];
+  if (e.required) bits.push(e.many ? 'required' : 'exactly one');
+  else if (!e.many) bits.push('at most one');
+  if (e.types.length) bits.push(`type ${e.types.join('+')}`);
+  if (e.node === true) bits.push('node');
+  if (e.node === false) bits.push('node only with an id');
+  return bits;
+}
+
+/**
+ * A declaration in the shape of its YAML: the tag, then its `attributes` as
+ * properties are listed, then its nested `elements`, each indented under it.
+ */
+// @tg: implements:: [[openspec:document-elements#Ontology listing explains documents]]
 function elementLines(list: ElementSchema[], indent: string): string[] {
-  return list.flatMap((e) => [`${indent}${describeElement(e)}`, ...elementLines(e.elements, `${indent}  `)]);
+  return list.flatMap((e) => {
+    const rules = elementRules(e);
+    return [
+      `${indent}<${e.tag}>${rules.length ? `  (${rules.join(', ')})` : ''}${e.description ? ` — ${e.description}` : ''}`,
+      ...(e.attributes.length ? [`${indent}  attributes:`, ...e.attributes.map((a) => `${indent}    ${describeAttribute(a)}${a.description ? ` — ${a.description}` : ''}`)] : []),
+      ...(e.elements.length ? [`${indent}  elements:`, ...elementLines(e.elements, `${indent}    `)] : []),
+    ];
+  });
 }
 
-/** Every edge name the ontology declares: edge types plus the edges allowed on node types. */
 function declaredEdgeNames(set: SchemaSet): Set<string> {
   const names = new Set(set.edgeTypes.keys());
   for (const t of set.schemas.values()) for (const e of t.edges ?? []) names.add(e.type);
@@ -118,7 +144,7 @@ function runList(ctx: Ctx, set: SchemaSet, folder: string): number {
   out.push('', `Write edges as \`- type:: [[target]] {property: value}\` in a doc section, or \`// ${TG} type:: [[target]]\` above code. A leading - on the type marks disagreement.`);
   if (documents)
     out.push(
-      'Write an element as a tag on its own line, with blank lines around its content, inside a section of its type: `<tag id="name" attr="value">` ... `</tag>`. An `id` makes it addressable as `[[file#^name]]`, and a typed edge line inside it starts at the element.',
+      'Write an element as a tag on its own line, with blank lines around its content, inside a section of its type: `<tag id="name" attr="value">` ... `</tag>`. A nested element goes inside the element that lists it under `elements:`. Any element may have an `id`, which makes it a node addressable as `[[file#^name]]`, and a typed edge line inside it starts at the element.',
     );
   ctx.out(`${out.join('\n')}\n`);
   return EXIT_OK;

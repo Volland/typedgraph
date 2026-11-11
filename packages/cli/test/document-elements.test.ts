@@ -38,7 +38,11 @@ schemas:
     description: A rule nobody here chose.
   Skill:
     elements:
-      when_to_use: {required: true, description: When an agent should load the skill.}
+      when_to_use:
+        required: true
+        description: When an agent should load the skill.
+        elements:
+          trigger: {many: false, description: The words that load it.}
 edgeTypes:
   motivated_by:
     description: The reason behind a decision.
@@ -68,8 +72,8 @@ it('lists descriptions, elements and sections, and includes them in JSON', async
   const dir = project(FILES);
   const r = await tg(dir, ['ontology']);
   expect(r.out).toContain('  Decision  (Types/types.md)\n    A choice that was made.');
-  expect(r.out).toContain('<option outcome=chosen|rejected> — An option that was considered.');
-  expect(r.out).toContain('<when_to_use>  (required) — When an agent should load the skill.');
+  expect(r.out).toContain('      <option> — An option that was considered.\n        attributes:\n          outcome (text, chosen|rejected)');
+  expect(r.out).toContain('      <when_to_use>  (required) — When an agent should load the skill.\n        elements:\n          <trigger>  (at most one) — The words that load it.');
   expect(r.out).toContain('motivated_by: Decision → Constraint  (Types/types.md)\n    The reason behind a decision.');
   const json = JSON.parse((await tg(dir, ['ontology', '--json'])).out) as { types: { type: string; description: string | null; elements: { tag: string }[] }[] };
   const decision = json.types.find((t) => t.type === 'Decision')!;

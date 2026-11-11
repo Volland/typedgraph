@@ -18,11 +18,29 @@ Read by [[packages/core/src/schema/schema.ts#readSchemaNote]] from TGS 0.4 on. A
 
 `elements` and `sections` sit in a type declaration next to `properties`, so the meaning of `<option>` in a Decision is written where Decision is declared.
 
-`elements` maps a tag to a declaration (or a description string, or null): `description`, `type`, `required`, `many` (default true), `node`, `attributes` in the form of `properties`, and nested `elements`. `sections` maps a heading to `description` and `required`. [[packages/core/src/schema/schema.ts#readElementDeclarations]] and [[packages/core/src/schema/schema.ts#readSectionDeclarations]] read them, also from SHACL; [[packages/core/src/schema/schema.ts#mergeSchemas]] merges them across labels in order, which lets an ADR (`Decision` and `ADR`) take Decision's elements and add MADR's headings. Strict notes (0.3 or later) report unknown keys inside element declarations.
+`elements` maps a tag to a declaration (or a description string, or null): `description`, `type`, `required`, `many` (default true), `node`, `attributes` in the form of `properties`, and nested `elements`. `sections` maps a heading to `description` and `required`. TGS 0.5 gives every shorthand one normal form and keeps only the attribute keys that mean something for a string in a tag (`kind`, `required`, `values`, `description`); `id` is reserved on every element, declared or not. A list of `elements` or `sections` holds names only. [[packages/core/src/schema/schema.ts#readElementDeclarations]] and [[packages/core/src/schema/schema.ts#readSectionDeclarations]] read them, also from SHACL; [[packages/core/src/schema/schema.ts#mergeSchemas]] merges them across labels in order, which lets an ADR (`Decision` and `ADR`) take Decision's elements and add MADR's headings. Strict notes (0.3 or later) report unknown keys inside element declarations.
 
 <option id="document-types" outcome="deferred">
 
 A separate `documentTypes` key matched by path globs, for untyped files such as `SKILL.md` or `CLAUDE.md`. Deferred: lat.md files and spec nodes are already typed, and a third way to assign a type would need its own rules.
+
+</option>
+
+## Element scope
+
+An element is resolved to the first declaration of its tag along a chain: the nested `elements` of each declared element around it, innermost first, then its type's `elements`.
+
+Undeclared elements add nothing to the chain, so `<details>` is transparent, and a type's own elements are in scope at any depth. [[packages/core/src/elements/nodes.ts#resolveElementDecl]] implements the chain for both element nodes and validation, which before 0.5 disagreed: validation hid a type's elements inside any element with nested declarations and counted only elements not nested in another. Counts are kept per container, the document for a type's elements and each parent occurrence for nested ones. The keys themselves are in [[elements#Element and section declarations]].
+
+<option id="content-model" outcome="rejected">
+
+A content model with order, exclusions or allowed parents, as in DTDs. Declarations say where a tag means something, not where it may stand; DocBook and DITA show the cost of more.
+
+</option>
+
+<option id="sections-hold-elements" outcome="deferred">
+
+Elements declared under a section, so a `<rollback>` must sit under `## Rollback`. Deferred until a project asks for it; the scope chain would gain a heading level.
 
 </option>
 
@@ -68,7 +86,13 @@ A part is an outermost typed section of a lat.md file (with its subsections), a 
 
 The bundled code ontology describes every type, property and edge type and declares the parts its sections commonly hold; none is required, so existing docs stay clean.
 
-Decision has `<option id outcome>` and `<consequence kind>`, Requirement `<rule>` (typed Requirement, so code can implement one rule), `<example>` with `<input>` and `<output>`, and `<non-goal>`, Scenario `<given>`, `<when>` and `<then>`, Constraint `<exception id until approved_by>`, and Concept `<example>` and `<counterexample>`. The spec framework ontology describes each framework label and gives ADR MADR's headings and `<option>`. The ADR template, the spec authoring guidance and the `tg-docs` and `tg-graph` skills teach when to use prose, an element, a heading or a separate section.
+Decision has `<option>` (attributes `id`, `outcome`) and `<consequence>` (`kind`), Requirement `<rule>` (typed Requirement, so code can implement one rule), `<example>` with `<input>` and `<output>`, and `<non-goal>`, Scenario `<given>`, `<when>` and `<then>`, Constraint `<exception>` (`id`, `until`, `approved_by`), and Concept `<example>` and `<counterexample>`. The spec framework ontology describes each framework label and gives ADR MADR's headings and `<option>`. The ADR template, the spec authoring guidance and the `tg-docs` and `tg-graph` skills teach when to use prose, an element, a heading or a separate section.
+
+## Ontology listing
+
+`tg ontology` shows a type's elements in the structure of their YAML, so a reader meets one notation for declarations: YAML, and XML only inside documents.
+
+Each element line is the tag, its rules in words (`required`, `at most one`, `exactly one`, `type X`) and its description; under it, `attributes:` lists each attribute the way properties are listed, `name (kind, values, required) — description`, and `elements:` lists the nested elements the same way. Before 0.5 attributes were squeezed into the tag (`<step risk=safe|disruptive!>`) and lost their descriptions.
 
 ## Editors
 

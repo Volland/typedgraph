@@ -326,6 +326,66 @@ describe('validation', () => {
   });
 });
 
+describe('element scope', () => {
+  const RUNBOOK = ontology({
+    tgs: '0.5',
+    schema: {},
+    schemas: {
+      Runbook: {
+        elements: {
+          step: { attributes: { risk: { values: ['safe', 'disruptive'], required: true } }, elements: { check: { required: true, attributes: { expect: { required: true } } } } },
+          rollback: { required: true, many: false },
+        },
+      },
+      Requirement: { elements: { example: { elements: { input: 'What goes in', case: { type: 'Scenario' } } } } },
+    },
+  });
+
+  // @lat: [[tests/document-elements#Element scope#Wrappers are transparent and counts are per container]]
+  // @tg: verifies:: [[openspec:document-elements#Element scope#Counts per container]] {level: unit}
+  it('counts a declared element at any depth, per document or per parent element', () => {
+    const body = [
+      '## Token service down',
+      '',
+      'Logins fail.',
+      '',
+      '<details>',
+      '<rollback>',
+      'Undo the deploy.',
+      '</rollback>',
+      '</details>',
+      '',
+      '<step risk="safe">',
+      'Restart the service.',
+      '</step>',
+      '',
+      '<step risk="safe">',
+      '<check expect="200">curl /health</check>',
+      '<rollback>',
+      'Undo again.',
+      '</rollback>',
+      '</step>',
+      '',
+      '<check>outside any step</check>',
+      '',
+    ].join('\n');
+    const findings = checkDocuments(lattice({ 'lat.md/runbooks.md': doc('Runbook', 'Runbooks', body) }), null, RUNBOOK).filter((f) => f.file === 'lat.md/runbooks.md');
+    // The wrapped <rollback> counts for the document; the step without a <check> is reported at the step; the
+    // <rollback> inside a step is the document's second; the top-level <check> is undeclared there, so it is text.
+    expect(findings.map((f) => `${f.kind}@${f.line}`)).toEqual(['missing-element@18', 'too-many-elements@24']);
+    expect(findings[0]!.message).toBe('<step> has no <check>');
+  });
+
+  // @lat: [[tests/document-elements#Element scope#Nested declarations reach through declared children]]
+  // @tg: verifies:: [[openspec:document-elements#Element scope#Innermost declaration wins]] {level: unit}
+  it('resolves a nested declaration inside a declared child of its parent', () => {
+    const req = doc('Requirement', 'Reqs', '## Sum\n\nAdds.\n\n<example>\n<input>\n<case>\nOne plus two.\n</case>\n</input>\n</example>\n\n<case>\nOutside.\n</case>\n');
+    const g = buildLatGraph(lattice({ 'lat.md/reqs.md': req }), { schemas: RUNBOOK, specs: null }).graph;
+    const cases = [...g.nodes()].filter((n) => n.props.tag === 'case');
+    expect(cases.map((n) => [n.id, n.labels])).toEqual([['lat.md/reqs#^case-1', ['Element', 'Scenario']]]);
+  });
+});
+
 describe('SHACL', () => {
   // @lat: [[tests/document-elements#SHACL round trip]]
   // @tg: verifies:: [[openspec:document-elements#SHACL exchange of descriptions and elements#Round trip keeps elements]] {level: unit}

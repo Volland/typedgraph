@@ -122,7 +122,7 @@ How the commands show and check documents.
 
 ### Listing shows elements
 
-`tg ontology` prints type and edge type descriptions and each element with its attribute values, rules and description; `--json` includes them.
+`tg ontology` prints elements in the structure of their YAML: an element, its attributes shown as properties are, and its nested elements, each indented under it; `--json` includes them.
 
 ### Element links checked
 
@@ -140,7 +140,18 @@ How the commands show and check documents.
 
 After `tg init --spec adr`, every type and edge type has a description, Decision lists `option` and `consequence`, ADR lists its MADR headings, and `tg ontology check` is clean.
 
-## TGS 0.4 published beside 0.3
+## Element scope
 
-`SPEC.md` is version 0.4 with section 4.2, its JSON Schema `$id` names 0.4, 0.3 stays in `spec/tgs/archive/v0.3/` without it, and the site build publishes 0.4.
+How an element finds its declaration and where its counts are kept, shared by element nodes and validation, as in [[elements#Element scope]].
 
+### Wrappers are transparent and counts are per container
+
+A wrapped `<rollback>` counts for the document, a step without its required `<check>` is reported at the step, a `<rollback>` inside a step is the document's second, and a `<check>` outside any step is text.
+
+### Nested declarations reach through declared children
+
+A typed `<case>` declared inside `<example>` is resolved inside an `<input>` within the example and becomes a node with its type; outside any example it stays text.
+
+## TGS 0.5 published beside 0.4
+
+`SPEC.md` is version 0.5 with nesting and scope and the normal form, its JSON Schema `$id` names 0.5, 0.4 stays in `spec/tgs/archive/v0.4/` unchanged, and the site build publishes 0.5.

@@ -1,0 +1,116 @@
+{
+  "invalidAgainstJsonSchema": [],
+  "types": [
+    {
+      "name": "Runbook",
+      "note": "Types/Runbook.md",
+      "iri": "urn:tgs:Runbook",
+      "properties": [],
+      "edges": null,
+      "template": null,
+      "description": "How to operate one part of the system when something goes wrong.",
+      "elements": [
+        {
+          "tag": "step",
+          "description": "One action, in order, that an engineer or an agent can run.",
+          "types": [],
+          "required": false,
+          "many": true,
+          "node": null,
+          "attributes": [
+            {
+              "name": "id",
+              "kind": "text",
+              "default": null,
+              "required": false,
+              "many": false,
+              "values": null,
+              "uri": null,
+              "description": "Give one when an alert or a script points at the step."
+            },
+            {
+              "name": "risk",
+              "kind": "text",
+              "default": null,
+              "required": true,
+              "many": false,
+              "values": [
+                "safe",
+                "disruptive"
+              ],
+              "uri": null,
+              "description": "Whether the step can hurt users."
+            }
+          ],
+          "elements": [
+            {
+              "tag": "check",
+              "description": "How to tell that the step worked.",
+              "types": [],
+              "required": true,
+              "many": true,
+              "node": null,
+              "attributes": [],
+              "elements": []
+            }
+          ]
+        },
+        {
+          "tag": "rollback",
+          "description": "How to undo the steps.",
+          "types": [],
+          "required": true,
+          "many": false,
+          "node": null,
+          "attributes": [],
+          "elements": []
+        },
+        {
+          "tag": "note",
+          "description": "A remark for the reader.",
+          "types": [],
+          "required": false,
+          "many": true,
+          "node": null,
+          "attributes": [],
+          "elements": []
+        }
+      ],
+      "sections": [
+        {
+          "heading": "Symptoms",
+          "description": "What an on-call engineer sees first.",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "edgeTypes": [],
+  "diagnostics": [
+    {
+      "path": "Runbooks/Disk full.md",
+      "line": null,
+      "diagnostic": "missing-element"
+    },
+    {
+      "path": "Runbooks/Disk full.md",
+      "line": null,
+      "diagnostic": "missing-section"
+    },
+    {
+      "path": "Runbooks/Token service down.md",
+      "line": 16,
+      "diagnostic": "missing-element"
+    },
+    {
+      "path": "Runbooks/Token service down.md",
+      "line": 20,
+      "diagnostic": "attribute-value-not-allowed"
+    },
+    {
+      "path": "Runbooks/Token service down.md",
+      "line": 22,
+      "diagnostic": "too-many-elements"
+    }
+  ]
+}

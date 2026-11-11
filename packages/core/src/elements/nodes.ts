@@ -39,6 +39,22 @@ export function findElementDecl(tag: string, decls: ElementSchema[]): ElementSch
 }
 
 /**
+ * Resolve a tag against the declarations in scope (TGS 0.5 section 4.4): the
+ * nested `elements` of each declared element around the occurrence, innermost
+ * first, then the type's own `elements`. Returns the declaration and the index
+ * of the list it was found in, or null for an undeclared tag. Undeclared
+ * elements add no list, so a wrapper such as `<details>` is transparent.
+ */
+// @tg: implements:: [[openspec:document-elements#Element scope]]
+export function resolveElementDecl(tag: string, chain: ElementSchema[][]): { decl: ElementSchema; level: number } | null {
+  for (let level = 0; level < chain.length; level++) {
+    const decl = findElementDecl(tag, chain[level]!);
+    if (decl) return { decl, level };
+  }
+  return null;
+}
+
+/**
  * True when an occurrence becomes a node: it has an `id` (an author asking for
  * an address), or its declaration says so (`node: true`, or a `type` and no
  * `node: false`). Everything else stays text in its section.
@@ -65,10 +81,10 @@ interface Walk {
   out: ElementNode[];
 }
 
-function walk(list: ElementOccurrence[], w: Walk, parentNode: ElementNode | null, parentDecl: ElementSchema | null): void {
+/** `nested` holds the `elements` of the declared elements around the list, innermost first. */
+function walk(list: ElementOccurrence[], w: Walk, parentNode: ElementNode | null, nested: ElementSchema[][]): void {
   for (const e of list) {
-    const top = w.decls(e);
-    const decl = (parentDecl && findElementDecl(e.tag, parentDecl.elements)) ?? findElementDecl(e.tag, top);
+    const decl = resolveElementDecl(e.tag, [...nested, w.decls(e)])?.decl ?? null;
     let node: ElementNode | null = null;
     const owner = parentNode?.id ?? w.owner(e);
     if (owner && isElementNode(e, decl)) {
@@ -93,7 +109,7 @@ function walk(list: ElementOccurrence[], w: Walk, parentNode: ElementNode | null
         w.out.push(node);
       }
     }
-    walk(e.children, w, node ?? parentNode, decl ?? parentDecl);
+    walk(e.children, w, node ?? parentNode, decl?.elements.length ? [decl.elements, ...nested] : nested);
   }
 }
 
@@ -107,7 +123,7 @@ export function latElementNodes(index: LatIndex, set: SchemaSet | null | undefin
     const decls = elementDeclarations(parsed.frontmatter.types ?? [], set);
     const reserved = new Set(flattenElements(parsed.elements).flatMap((e) => (e.attrs.id?.trim() ? [`${doc}#^${e.attrs.id.trim()}`.toLowerCase()] : [])));
     const innermost = (line: number) => parsed.flat.filter((s) => s.startLine <= line && line <= s.endLine).sort((a, b) => b.depth - a.depth)[0]?.id ?? parsed.flat[0]?.id ?? null;
-    walk(parsed.elements, { doc, file: filePath, decls: () => decls, owner: (e) => innermost(e.line), used: new Set(), reserved, counts: new Map(), out }, null, null);
+    walk(parsed.elements, { doc, file: filePath, decls: () => decls, owner: (e) => innermost(e.line), used: new Set(), reserved, counts: new Map(), out }, null, []);
   }
   return out;
 }
@@ -134,7 +150,7 @@ export function specElementNodes(specs: SpecIndex, set: SchemaSet | null | undef
   for (const [file, f] of byFile) {
     const c = counts.get(f.doc) ?? new Map<string, number>();
     counts.set(f.doc, c);
-    walk(f.roots, { doc: f.doc, file, decls: (e) => elementDeclarations(labels.get(f.owner.get(e) ?? '') ?? [], set), owner: (e) => f.owner.get(e) ?? null, used, reserved, counts: c, out }, null, null);
+    walk(f.roots, { doc: f.doc, file, decls: (e) => elementDeclarations(labels.get(f.owner.get(e) ?? '') ?? [], set), owner: (e) => f.owner.get(e) ?? null, used, reserved, counts: c, out }, null, []);
   }
   return out;
 }

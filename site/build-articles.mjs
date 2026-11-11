@@ -81,10 +81,18 @@ POSTS.push(
     title: 'Explainable Blocks',
     description: 'Typed Graph 0.26 lets a type declare and explain the XML blocks inside its sections. Blocks with an id become graph nodes that code can point at, the rest stays prose, and tg checks both.',
     date: '11 November 2026',
-    related: ['blog-code-ontology.html', 'One vocabulary for the whole team: using the code ontology'],
+    related: ['blog-declaring-elements.html', 'Declaring document elements: one shape, one reading'],
+  },
+  {
+    src: 'articles/declaring-document-elements.md',
+    out: 'site/blog-declaring-elements.html',
+    title: 'Declaring Document Elements',
+    description: 'TGS 0.5 fixes how a type declares the XML blocks inside its documents: YAML declares, XML occurs, attributes have four keys and a reserved id, nested tags have a scope, and every shorthand has one normal form.',
+    date: '11 November 2026',
+    related: ['blog-explainable-blocks.html', 'Explainable blocks: an ontology for the inside of your documents'],
   },
 );
-const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html', 'bring-your-own-spec-framework.md': 'blog-spec-frameworks.html', 'one-file-or-a-graph.md': 'blog-one-file-or-a-graph.html', 'explainable-blocks.md': 'blog-explainable-blocks.html' };
+const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html', 'bring-your-own-spec-framework.md': 'blog-spec-frameworks.html', 'one-file-or-a-graph.md': 'blog-one-file-or-a-graph.html', 'explainable-blocks.md': 'blog-explainable-blocks.html', 'declaring-document-elements.md': 'blog-declaring-elements.html' };
 const DATE = '6 October 2026';
 
 const escape = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

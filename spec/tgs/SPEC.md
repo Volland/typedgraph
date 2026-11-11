@@ -1,11 +1,11 @@
-# Typed Graph Schema (TGS) 0.4
+# Typed Graph Schema (TGS) 0.5
 
 | | |
 |---|---|
-| **Version** | 0.4 (published 2026-11-11; immutable) |
-| **Previous** | [0.3](../v0.3/) |
-| **This version** | `https://volland.github.io/obsigraph/spec/tgs/v0.4/` |
-| **JSON Schema** | `https://volland.github.io/obsigraph/spec/tgs/v0.4/tgs.schema.json` |
+| **Version** | 0.5 (published 2026-11-11; immutable) |
+| **Previous** | [0.4](../v0.4/) |
+| **This version** | `https://volland.github.io/obsigraph/spec/tgs/v0.5/` |
+| **JSON Schema** | `https://volland.github.io/obsigraph/spec/tgs/v0.5/tgs.schema.json` |
 | **Namespace** | `https://volland.github.io/obsigraph/ns/tgs#` (prefix `tgs:`) |
 | **Editor** | Volodymyr Pavlyshyn |
 | **Source** | `spec/tgs/` in [github.com/Volland/typedgraph](https://github.com/Volland/typedgraph) |
@@ -142,71 +142,189 @@ A type declaration is a mapping with these optional keys:
 | `id` | section 8.1 | identifiers generated for new notes of this type (0.2) |
 | `visualization` | mapping | display hints (section 11); `style` is an alias |
 | `description` | string | what the type means (section 4.1) (0.4) |
-| `elements` | section 4.2 | XML elements a note of this type may contain (0.4) |
-| `sections` | section 4.2 | headings a note of this type has (0.4) |
+| `elements` | sections 4.2 to 4.4 | XML elements a note of this type may contain (0.4) |
+| `sections` | section 4.5 | headings a note of this type has (0.4) |
 
 An empty mapping (`{}`) or a null value declares a type with no constraints.
 
 ### 4.1 Descriptions
 
-A `description` is a string that says what a declaration means: a type, a property (section 5.1), an edge of a type in map form (section 5.3), an edge type (section 6), an element or a section (section 4.2). It does not affect validation. Readers SHOULD show it wherever they list the declaration, so that a person or an agent writing a note knows what each type, property, edge, element and heading is for. A declaration without a description is read exactly as in 0.3.
+A `description` is a string that says what a declaration means: a type, a property (section 5.1), an edge of a type in map form (section 5.3), an edge type (section 6), an element, an attribute (section 4.3) or a section (section 4.5). It does not affect validation. Readers SHOULD show it wherever they list the declaration, so that a person or an agent writing a note knows what each type, property, edge, element and heading is for. A declaration without a description is read exactly as in 0.3.
 
-### 4.2 Elements and sections
+### 4.2 Elements
 
-A note of a type has parts: headings, and **elements**, block-level XML tags such as `<option>` or `<example>` that mark a span of the note. `elements` declares the tags a note of the type may contain and what they mean; `sections` declares its headings.
-
-`elements` is a mapping from tag name to an **element declaration**, or a list of tag names. A tag name matches `[A-Za-z][A-Za-z0-9_.-]*` and is compared without regard to case. An element declaration is null (no rules), a string (its description), or a mapping:
-
-| Key | Value | Default | Meaning |
-|---|---|---|---|
-| `description` | string | none | what the element means |
-| `type` | type name or list | none | types an element node gets (see below) |
-| `required` | boolean | `false` | every document of the type contains at least one |
-| `many` | boolean | `true` | a document may contain more than one |
-| `node` | boolean | see below | whether an element without an `id` becomes a node |
-| `attributes` | as `properties` in 5.1 | none | the attributes of the tag |
-| `elements` | as `elements` | none | elements allowed inside this one |
-
-`sections` is a mapping from heading text to a **section declaration**, or a list of headings. A section declaration is null, a string (its description), or a mapping with `description` and `required` (default `false`). Headings are compared without regard to case.
+A note of a type has parts: headings (section 4.5) and **elements**, block-level XML tags such as `<option>` or `<example>` that mark a span of the note. Two notations meet here, and each has one job. A schema note *declares* an element in YAML; a document *contains* it as XML. A declaration never uses XML, and a document never uses YAML for an element.
 
 ```yaml
 # Types/Decision.md
 ---
-tgs: "0.4"
+tgs: "0.5"
 schema:
   description: A choice that was made, with its reason and the alternatives rejected.
-  properties:
-    status: {values: [proposed, accepted], description: Where the decision is in its life.}
   sections:
     Context: {required: true, description: The forces that made a decision necessary.}
   elements:
     option:
-      description: An option that was considered, and why it won or lost.
+      description: An alternative that was considered, and why it won or lost.
       attributes:
-        id: {description: A stable address for the option.}
-        outcome: {values: [chosen, rejected, deferred], required: true}
+        id: {description: Give one when code or a later decision points at the option.}
+        outcome: {values: [chosen, rejected, deferred], required: true, description: What happened to it.}
     consequence: What becomes easier or harder because of the decision.
 ---
 ```
 
-**Reading elements.** An element starts with an opening tag at the beginning of a line, after at most three spaces (any indentation inside another element), and ends with the matching closing tag at the end of a line, possibly the same one. Tags inside fenced code and frontmatter are not elements, and neither is text between `<` and `>` that is not attribute syntax (`<insert a summary here>`). An opening tag that is never closed is an empty element. Writers SHOULD leave blank lines inside an element so that Markdown readers parse its content as Markdown.
+A document of that type then contains:
 
-**A document of a type** is the part of the vault a type applies to: a note of the type, or, in hosts that type sections of a file (such as the reference implementation's lat.md files), each outermost typed section with its subsections.
+```markdown
+<option id="redis" outcome="rejected">
 
-**Element nodes.** A host MAY make elements graph nodes. It SHOULD make a node of an element that has an `id` attribute, and of one whose declaration has a `type` (unless `node: false`) or `node: true`, and leave every other element as text. An element node has the label `Element` followed by the declared types, the element's attributes as properties, and an edge from the note or section that contains it. An element with an `id` is addressed as `<note>#^<id>`; ids are unique within a note.
+Keep sessions in Redis: one more stateful service to run.
 
-### 4.3 Document validation
+</option>
+```
 
-A validator that reads note bodies MUST, for each document of a type with `elements` or `sections` in its effective schema (section 9), report:
+`elements` is a mapping from tag name to an **element declaration**. A tag name matches `[A-Za-z][A-Za-z0-9_.-]*` and is compared without regard to case; a tag declared twice in one mapping is reported as `invalid-declaration` and the first declaration wins. An element declaration is a mapping with these keys, all optional:
+
+| Key | Value | Default | Meaning |
+|---|---|---|---|
+| `description` | string | none | what the element means and when to write one |
+| `attributes` | section 4.3 | none | the attributes of the tag |
+| `elements` | as `elements` | none | elements that have a meaning inside this one (section 4.4) |
+| `required` | boolean | `false` | each container (section 4.4) holds at least one |
+| `many` | boolean | `true` | a container may hold more than one |
+| `type` | type name or list | none | types an element node gets (section 4.7) |
+| `node` | boolean | see section 4.7 | whether an element without an `id` becomes a node |
+
+`required` and `many` together give how often an element occurs in its container:
+
+| `required` | `many` | Occurrences |
+|---|---|---|
+| `false` | `true` | any number (the default) |
+| `true` | `true` | one or more |
+| `false` | `false` | none or one |
+| `true` | `false` | exactly one |
+
+On an element, `many` counts occurrences. On a property (section 5.1) it makes the value a list. That is why the defaults differ.
+
+`elements` MAY also be written as a list of tag names, and a declaration MAY be written as null (no rules) or as a string (a description and nothing else). Section 4.9 defines what each shorthand means.
+
+Elements are open: a document MAY contain tags that no declaration names, such as HTML's `<details>`. They are text: they are not validated, they are not nodes unless they have an `id`, and they do not change the scope of the elements inside them (section 4.4).
+
+### 4.3 Attributes
+
+`attributes` declares the attributes of a tag. It is written like `properties` (section 5.1): a mapping from attribute name to declaration, or a list whose items are names or mappings with a `name` key, where a declaration is null, a kind, or a mapping. An attribute value is always one string in the document, so only these keys have a meaning:
+
+| Key | Value | Default | Meaning |
+|---|---|---|---|
+| `kind` | a kind from section 5.2 except `list` | `text` | how the value is read |
+| `required` | boolean | `false` | the attribute is present and not empty |
+| `values` | list of scalars | none | the allowed values |
+| `description` | string | none | what the attribute means |
+
+`many`, `default` and `uri` have no meaning on an attribute. Readers MUST accept them, so that every 0.4 note stays valid, and MUST ignore them. Writers SHOULD NOT write them. As for properties, readers MAY check that a value matches its `kind`.
+
+Attributes are open: an element MAY carry attributes its declaration does not list. They are not reported, and an element node keeps them as properties.
+
+**The `id` attribute.** Every element, declared or not, MAY have an `id`, and its meaning is fixed by this specification: a stable address, unique within the note when compared without regard to case, that makes the element a node addressed as `<note>#^<id>` (section 4.7). An id SHOULD start with a letter or a digit and contain only letters, digits, `-`, `_` and `.`. A declaration need not list `id`. It MAY list it to describe when to give one, or with `required: true` to demand one, and SHOULD NOT give it `values` or a `kind`.
+
+### 4.4 Nesting and scope
+
+Elements nest. A declaration says where a tag *means* something, not where it may stand: TGS has no content model, no order and no exclusions.
+
+**Scope.** The declarations in scope at a point of a document form a chain: the `elements` of each declared element around the point, innermost first, then the `elements` of the document's type. An element is resolved to the first declaration of its tag along the chain. An element that resolves to none is undeclared. It follows that:
+
+- a type's own elements are in scope everywhere in its documents, at any depth, including inside other elements;
+- a nested declaration is in scope only inside its parent element and the elements within it, and there it hides an outer declaration of the same tag;
+- an undeclared element adds nothing to the chain, so a wrapper such as `<details>` is transparent.
+
+**Containers.** Each declaration counts in a **container**: the declarations in a type's `elements` count per document (section 4.6), and those in an element's `elements` count per occurrence of that element. `required` and `many` are checked per container, over all the elements inside it, at any depth, that resolve to that declaration.
+
+```yaml
+# Types/Runbook.md
+---
+tgs: "0.5"
+schema:
+  description: How to operate one part of the system when something goes wrong.
+  elements:
+    step:
+      description: One action, in order, that an engineer or an agent can run.
+      attributes:
+        risk: {values: [safe, disruptive], required: true}
+      elements:
+        check: {required: true, description: How to tell that the step worked.}
+    rollback: {required: true, many: false, description: How to undo the steps.}
+---
+```
+
+In a runbook, every `<step>` needs a `<check>` inside it, and a `<check>` outside any step is undeclared text. The runbook needs exactly one `<rollback>`, wherever it stands: at the top, inside a step or inside `<details>`.
+
+Declarations do not refer to one another. A tag that has a meaning at two levels is declared at both, or once in the type's `elements`.
+
+### 4.5 Sections
+
+`sections` is a mapping from heading text to a **section declaration**, or a list of headings. A section declaration is null, a string (its description), or a mapping with `description` and `required` (default `false`). A heading inside the document, at any level, matches a declaration when the two texts are equal without regard to case and surrounding whitespace. A `required` section is one the document has at least once.
+
+Sections declare headings and nothing more: TGS does not say in which order headings come, at which level, or which elements stand under which heading.
+
+### 4.6 Reading elements
+
+An element starts with an opening tag at the beginning of a line, after at most three spaces (any indentation inside another element), and ends with the matching closing tag at the end of a line, possibly the same one. Tags inside fenced code and frontmatter are not elements, and neither is text between `<` and `>` that is not attribute syntax (`<insert a summary here>`). Attribute values are quoted with `"` or `'`, or written bare without spaces. An opening tag that is never closed is an empty element, and what follows it belongs to its parent. Writers SHOULD leave blank lines inside an element so that Markdown readers parse its content as Markdown.
+
+**A document of a type** is the part of the vault a type applies to: a note of the type, or, in hosts that type sections of a file (such as the reference implementation's lat.md files), each outermost typed section with its subsections. Its title is the note's title or the section's heading.
+
+### 4.7 Element nodes
+
+A host MAY make elements graph nodes. It SHOULD make a node of an element that has an `id`, and of one whose declaration gives it a `type` (unless `node: false`) or `node: true`, and leave every other element as text. Undeclared elements become nodes only by an `id`.
+
+An element node has the label `Element` followed by the declared types, the element's attributes as properties, and an edge from the innermost note, section or element node that contains it. An element with an `id` is addressed as `<note>#^<id>`. A host gives a node without an `id` an address of its own that never equals an explicit id, but that address is not stable and SHOULD NOT be linked.
+
+### 4.8 Document validation
+
+A validator that reads note bodies MUST, for each document of a type with `elements` or `sections` in its effective schema (section 9), resolve each element by the scope rule of section 4.4 and report:
 
 | Diagnostic | Reported when |
 |---|---|
-| `missing-element` | a `required` element does not occur in the document (or in its parent element, for a nested declaration) |
-| `too-many-elements` | an element that is not `many` occurs more than once |
+| `missing-element` | a container holds no element resolved to a `required` declaration |
+| `too-many-elements` | a container holds more than one element resolved to a declaration that is not `many` |
 | `missing-attribute` | a `required` attribute of a declared element is absent or empty |
-| `attribute-value-not-allowed` | an attribute value is not in its `values` |
+| `attribute-value-not-allowed` | an attribute value of a declared element is not in its `values` |
 | `unclosed-element` | a declared element is never closed |
 | `missing-section` | a `required` heading does not occur in the document |
+
+Undeclared elements and undeclared attributes are never reported.
+
+### 4.9 Normal form
+
+Every declaration has one **normal form**, and two declarations with the same normal form mean the same thing. A reader MUST read each shorthand as the normal form beside it:
+
+| Written | Normal form |
+|---|---|
+| `elements: [option, consequence]` | `elements: {option: {}, consequence: {}}` |
+| `option:` (null) | `option: {}` |
+| `consequence: What becomes harder.` | `consequence: {description: What becomes harder.}` |
+| `type: Requirement` | `type: [Requirement]` |
+| `attributes: [id, kind]` | `attributes: {id: {}, kind: {}}` |
+| `risk:` (null) or `risk: number` | `risk: {kind: text}` or `risk: {kind: number}` |
+| `attributes: [{name: risk, required: true}]` | `attributes: {risk: {required: true}}` |
+| `sections: [Context]` | `sections: {Context: {}}` |
+| `Context: The forces at play.` | `Context: {description: The forces at play.}` |
+| a key left out | its default from sections 4.2, 4.3 and 4.5 |
+
+A list of `elements` or `sections` holds names only; a list of attributes follows `properties` (section 5.1).
+
+**Writing declarations (informative).** Use the mapping form for an element with anything besides a description, a string for an element that has only a description, and a list only for a first draft. Describe every element and every attribute that has `values`, because the description is how the next writer, person or agent, learns what the tag is for. Exporters SHOULD write this compact form, and the reference implementation does.
+
+**Showing declarations (informative).** A tool that shows declarations to people or agents SHOULD keep the structure of the YAML: each element, then its attributes, then its nested elements, indented under it. It SHOULD show an attribute the way it shows a property instead of inventing another notation. `tg ontology` shows the runbook type above as:
+
+```
+    elements:
+      <step> — One action, in order, that an engineer or an agent can run.
+        attributes:
+          risk (text, safe|disruptive, required)
+        elements:
+          <check>  (required) — How to tell that the step worked.
+      <rollback>  (exactly one) — How to undo the steps.
+```
 
 ## 5. Properties and edges
 
@@ -328,7 +446,7 @@ A template (section 8) MAY use these tokens, which a reader that supports them r
 
 Validation is advisory. A validator MUST report diagnostics and MUST NOT remove notes or edges from the graph. Stub targets and targets without labels are never reported as having the wrong type.
 
-For a node with labels L1, L2, …, the **effective schema** merges the schemas of its labels in order: the first declaration of a property wins; edge rules are unioned per edge type, with targets unioned (any target if one rule allows any), `many` if any rule allows many and `required` if any rule requires it; `edges` is unrestricted only if no label declares it.
+For a node with labels L1, L2, …, the **effective schema** merges the schemas of its labels in order: the first declaration of a property wins; `elements` and `sections` are unioned by tag and by heading, and the first label that declares a tag or heading gives its whole declaration; edge rules are unioned per edge type, with targets unioned (any target if one rule allows any), `many` if any rule allows many and `required` if any rule requires it; `edges` is unrestricted only if no label declares it.
 
 | Diagnostic | Reported when |
 |---|---|
@@ -367,7 +485,7 @@ A schema note MAY declare `tgs: "<major>.<minor>"`. A reader implementing versio
 - MUST report a note that declares another major version as `unsupported-version` and MUST NOT use its declarations;
 - MUST read notes without `tgs` as version 0.1.
 
-TGS 0.2 adds the `id` key (section 8.1) and the template tokens. TGS 0.3 adds AsciiDoc notes (section 2.1) and adds no schema key. TGS 0.4 adds `description` (section 4.1), `elements` and `sections` (section 4.2) and document validation (section 4.3); unknown keys inside an element declaration are reported like those of a type. Every 0.1 note is a valid 0.2 note, every 0.2 note is a valid 0.3 note, and every 0.3 note is a valid 0.4 note.
+TGS 0.2 adds the `id` key (section 8.1) and the template tokens. TGS 0.3 adds AsciiDoc notes (section 2.1) and adds no schema key. TGS 0.4 adds `description` (section 4.1), `elements` and `sections` (sections 4.2 to 4.5) and document validation (section 4.8); unknown keys inside an element declaration are reported like those of a type. TGS 0.5 adds no key. It fixes how elements are declared and read: the attribute keys that have a meaning and the reserved `id` (section 4.3), the scope of nested declarations and counting per container (section 4.4), and one normal form for every shorthand (section 4.9). Every 0.1 note is a valid 0.2 note, every 0.2 note is a valid 0.3 note, every 0.3 note is a valid 0.4 note, and every 0.4 note is a valid 0.5 note.
 
 Minor versions only add optional keys. A published version never changes.
 
@@ -441,7 +559,7 @@ What SHACL cannot express is kept as annotations, which SHACL engines ignore:
 | `tgs:edge` | property shape | `true` for an edge entry without target types |
 | `tgs:kind` | property shape | `"list"` for kind `list` |
 | `tgs:default` | property shape | a non-scalar default as a JSON literal |
-| `tgs:elements` | node shape | the type's `elements` as a JSON literal (0.4) |
+| `tgs:elements` | node shape | the type's `elements` as a JSON literal in the compact form of section 4.9 (0.4) |
 | `tgs:sections` | node shape | the type's `sections` as a JSON literal (0.4) |
 
 ### 13.5 Import
@@ -470,19 +588,19 @@ For schemas written in TGS, export followed by import MUST reproduce the same ty
 | **Reader** | sections 3 to 8 and 12: reads every key, applies defaults, expands identifiers, reports declaration diagnostics; a reader that reads `.adoc` notes also implements section 2.1 |
 | **Validator** | Reader, plus section 9 |
 | **SHACL exchanger** | Validator, plus section 13 |
-| **Document validator** | Validator, plus section 4.3 |
+| **Document validator** | Validator, plus sections 4.2 to 4.6 and 4.8 |
 
 The `examples/` folder next to this document contains conformance cases. Each case has a `vault/` folder (schema folder `Types/`, base IRI `urn:tgs:`) and an `expected.json` with:
 
 - `types` and `edgeTypes`: the declarations a reader must produce, with defaults applied and identifiers expanded to IRIs;
-- `diagnostics`: what a validator must report, each as `path`, `line` (the 1-based line of the edge, or null for a note-level diagnostic) and `diagnostic` (a name from section 9), in any order;
+- `diagnostics`: what a validator must report, each as `path`, `line` (the 1-based line of the edge, or null for a note-level diagnostic) and `diagnostic` (a name from section 4.8 or 9), in any order;
 - `invalidAgainstJsonSchema`: the schema notes that must fail the JSON Schema of section 15.
 
 SHACL cases also have a `shapes.ttl` that an exporter's output must be isomorphic to.
 
 ## 15. JSON Schema
 
-`tgs.schema.json` (JSON Schema draft 2020-12) validates the TGS keys of a schema note's frontmatter. It is strict about TGS 0.4 keys and leaves `visualization` and all non-TGS keys open. Notes declaring a newer minor version may not validate against it.
+`tgs.schema.json` (JSON Schema draft 2020-12) validates the TGS keys of a schema note's frontmatter. It is strict about TGS 0.5 keys and leaves `visualization` and all non-TGS keys open. Notes declaring a newer minor version may not validate against it.
 
 ## 16. References
 

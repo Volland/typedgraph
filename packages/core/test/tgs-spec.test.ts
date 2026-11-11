@@ -175,15 +175,20 @@ describe('TGS AsciiDoc notes', () => {
     expect(archived).not.toContain('AsciiDoc');
   });
 
-  // @tg: verifies:: [[openspec:document-elements#TGS 0.4 published#Published 0.4]] {level: unit}
-  // @lat: [[tests/document-elements#TGS 0.4 published beside 0.3]]
-  it('publishes 0.4 as the current version with 0.3 archived', () => {
+  // @tg: verifies:: [[openspec:document-elements#TGS 0.5 published#Published 0.5]] {level: unit}
+  // @lat: [[tests/document-elements#TGS 0.5 published beside 0.4]]
+  it('publishes 0.5 as the current version with 0.4 archived', () => {
     const spec = readFileSync(join(SPEC, 'SPEC.md'), 'utf8');
-    expect(spec).toContain('# Typed Graph Schema (TGS) 0.4');
-    expect(spec).toContain('spec/tgs/v0.4/');
-    expect(spec).toContain('### 4.2 Elements and sections');
-    expect(JSON.parse(readFileSync(join(SPEC, 'tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.4/');
-    expect(readFileSync(join(SPEC, 'archive/v0.3/SPEC.md'), 'utf8')).not.toContain('### 4.2 Elements and sections');
-    expect(readFileSync(join(__dirname, '../../../site/build-spec.mjs'), 'utf8')).toContain("const VERSION = '0.4'");
+    expect(spec).toContain('# Typed Graph Schema (TGS) 0.5');
+    expect(spec).toContain('spec/tgs/v0.5/');
+    expect(spec).toContain('### 4.4 Nesting and scope');
+    expect(spec).toContain('### 4.9 Normal form');
+    expect(JSON.parse(readFileSync(join(SPEC, 'tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.5/');
+    const v04 = readFileSync(join(SPEC, 'archive/v0.4/SPEC.md'), 'utf8');
+    expect(v04).toContain('# Typed Graph Schema (TGS) 0.4');
+    expect(v04).toContain('### 4.2 Elements and sections');
+    expect(v04).not.toContain('### 4.4 Nesting and scope');
+    expect(JSON.parse(readFileSync(join(SPEC, 'archive/v0.4/tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.4/');
+    expect(readFileSync(join(__dirname, '../../../site/build-spec.mjs'), 'utf8')).toContain("const VERSION = '0.5'");
   });
 });

@@ -120,8 +120,8 @@ export const DEFAULT_SCHEMA_FOLDER = 'Types/';
 /** The Typed Graph Schema version this reader implements. */
 // @tg: implements:: [[openspec:tgs-spec#Versioning]]
 // @tg: implements:: [[openspec:tgs-spec#AsciiDoc notes in TGS 0.3]] {confidence: partial}
-// @tg: implements:: [[openspec:document-elements#TGS 0.4 published]]
-export const TGS_VERSION = '0.4';
+// @tg: implements:: [[openspec:document-elements#TGS 0.5 published]]
+export const TGS_VERSION = '0.5';
 // @tg: implements:: [[openspec:tgs-spec#Namespace IRI]]
 export const TGS_NAMESPACE = 'https://volland.github.io/obsigraph/ns/tgs#';
 export const DEFAULT_BASE_IRI = 'urn:tgs:';
@@ -139,7 +139,7 @@ const IRI_SCHEMES = new Set(['http', 'https', 'urn', 'mailto', 'tag', 'did', 'fi
 
 const TYPE_KEYS = new Set(['properties', 'edges', 'visualization', 'style', 'uri', 'template', 'id', 'description', 'elements', 'sections']);
 const EDGE_TYPE_KEYS = new Set(['from', 'to', 'properties', 'uri', 'visualization', 'style', 'description']);
-const ELEMENT_KEYS = new Set(['tag', 'description', 'type', 'required', 'many', 'node', 'attributes', 'elements']);
+const ELEMENT_KEYS = new Set(['description', 'type', 'required', 'many', 'node', 'attributes', 'elements']);
 
 // @tg: implements:: [[openspec:tgs-spec#Host independence]]
 export function normalizeFolder(folder: string): string {
@@ -272,7 +272,7 @@ function readElements(raw: unknown, diag: Diag, strict: boolean): ElementSchema[
   if (raw === undefined || raw === null) return [];
   const out: ElementSchema[] = [];
   const entries: [string, unknown][] = Array.isArray(raw)
-    ? raw.flatMap((x): [string, unknown][] => (typeof x === 'string' ? [[x, null]] : isRecord(x) && typeof x.tag === 'string' ? [[x.tag, x]] : (diag('Each entry in `elements` needs a tag name'), [])))
+    ? raw.flatMap((x): [string, unknown][] => (typeof x === 'string' ? [[x, null]] : (diag('Each entry in a list of `elements` must be a tag name'), [])))
     : isRecord(raw)
       ? Object.entries(raw)
       : (diag('`elements` must be a mapping from tag name to declaration'), []);
@@ -362,7 +362,7 @@ export function compactProperties(props: PropertySchema[]): Record<string, unkno
 function readSections(raw: unknown, diag: Diag): SectionSchema[] {
   if (raw === undefined || raw === null) return [];
   const entries: [string, unknown][] = Array.isArray(raw)
-    ? raw.flatMap((x): [string, unknown][] => (typeof x === 'string' ? [[x, null]] : isRecord(x) && typeof x.heading === 'string' ? [[x.heading, x]] : (diag('Each entry in `sections` needs a heading'), [])))
+    ? raw.flatMap((x): [string, unknown][] => (typeof x === 'string' ? [[x, null]] : (diag('Each entry in a list of `sections` must be a heading'), [])))
     : isRecord(raw)
       ? Object.entries(raw)
       : (diag('`sections` must be a mapping from heading to declaration'), []);

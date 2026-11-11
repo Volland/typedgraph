@@ -4,7 +4,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { marked } from 'marked';
 
-const VERSION = '0.4';
+const VERSION = '0.5';
 const src = 'spec/tgs';
 const out = `site/spec/tgs/v${VERSION}`;
 // Earlier versions are immutable copies kept in spec/tgs/archive/v<version>/.

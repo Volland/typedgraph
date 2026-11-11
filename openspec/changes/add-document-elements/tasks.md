@@ -25,3 +25,11 @@
 - [x] 4.2 Describe the code ontology and declare its elements; ADR headings in the spec framework ontology
 - [x] 4.3 Update the code ontology guide, `tg-docs` and `tg-graph` skills, ADR template and spec authoring guidance
 - [x] 4.4 lat.md docs and test specs
+
+## 5. TGS 0.5: one way to declare and read elements
+
+- [x] 5.1 Spec 0.5: elements, attributes (reserved `id`, keys that have a meaning), nesting and scope, sections, reading, nodes, validation and normal form as separate sections; 0.4 archived; JSON Schema attribute definition
+- [x] 5.2 One scope rule for element nodes and validation, with counts per container
+- [x] 5.3 `tg ontology` lists elements in the structure of their YAML, attributes shown like properties
+- [x] 5.4 List forms of `elements` and `sections` hold names only
+- [x] 5.5 Conformance example 08, tests, lat.md docs and a guide article

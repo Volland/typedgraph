@@ -2,6 +2,21 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+One way to declare, read and show document elements.
+
+### Added
+
+- **TGS 0.5.** Adds no key and gives the element rules of 0.4 a precise meaning. The spec now has separate sections for elements, attributes, nesting and scope, sections, reading, element nodes, validation and the normal form. Attributes have four keys with a meaning (`kind`, `required`, `values`, `description`), and `id` is reserved on every element. A nested declaration is in scope inside its parent, and a type's own elements are in scope at any depth. `required` and `many` count per container. Every shorthand has one normal form. 0.4 is archived, and every 0.4 note is a valid 0.5 note. Conformance example 08 covers the scope rule.
+
+### Changed
+
+- **`tg ontology` shows elements in the shape of their YAML.** Each element is followed by `attributes:`, listed the way properties are (`risk (text, safe|disruptive, required) — description`), and then by its nested `elements:`. Rules read as words: `required`, `at most one`, `exactly one`, `type Requirement`. Attribute descriptions, dropped by the old `<step risk=safe|disruptive!>` form, are shown.
+- **Element scope.** Validation and element nodes resolve a tag by the same chain. A required element inside an undeclared wrapper such as `<details>`, or inside another element, now counts, so it is no longer reported as missing. A type's own elements are now checked inside elements that declare nested ones.
+- A list under `elements` or `sections` holds names only; an entry written as a mapping is reported and skipped.
+- The `tg-docs` skill teaches nesting and how to declare a new tag.
+
 ## 0.26.0 — 2026-11-11
 
 The ontology explains itself, and the typed graph reaches inside documents.

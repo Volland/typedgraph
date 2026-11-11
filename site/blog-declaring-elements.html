@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Declaring Document Elements</title>
+  <meta name="description" content="TGS 0.5 fixes how a type declares the XML blocks inside its documents: YAML declares, XML occurs, attributes have four keys and a reserved id, nested tags have a scope, and every shorthand has one normal form.">
+  <meta property="og:title" content="Declaring document elements: one shape, one reading">
+  <meta property="og:description" content="TGS 0.5 fixes how a type declares the XML blocks inside its documents: YAML declares, XML occurs, attributes have four keys and a reserved id, nested tags have a scope, and every shorthand has one normal form.">
+  <meta property="og:image" content="https://typedgraph.org/assets/og.png">
+  <meta property="og:type" content="article">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/logo.svg" alt="">Typed Graph</a>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="agents.html">Agents</a>
+        <a href="obsidian.html">Obsidian</a>
+        <a href="teams.html">Teams</a>
+        <a href="docs.html">Docs</a>
+        <a href="demo.html">Demo</a>
+        <a href="example.html">Example</a>
+        <a href="ontologies.html">Ontologies</a>
+        <a href="blog.html" class="active">Blog</a>
+        <a href="https://github.com/Volland/typedgraph">GitHub</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap post">
+    <div class="meta"><a href="blog.html">Blog</a> · 11 November 2026 · Volodymyr Pavlyshyn</div>
+    <h1>Declaring document elements: one shape, one reading</h1>
+    <p class="standfirst">Typed Graph 0.26 let a type describe the XML blocks inside its documents. It also left the same declaration readable three ways and some of its rules unwritten. TGS 0.5 adds no key. It fixes how elements are declared, nested, counted and shown, so that a person and an agent read the same thing. This is the guide to writing them.</p>
+
+<h2>Three notations for one thing</h2>
+<p><a href="blog-explainable-blocks.html">Explainable blocks</a> introduced <code>elements</code>: a type can say that its sections hold an <code>&lt;option&gt;</code>, a <code>&lt;rule&gt;</code> or a <code>&lt;rollback&gt;</code>, and what each one means. A runbook type declared its steps like this, in YAML:</p>
+<pre>step:
+  description: One action, in order, that an engineer or an agent can run.
+  attributes:
+    id: {description: Give one when an alert or a script points at the step.}
+    risk: {values: [safe, disruptive], required: true, description: Whether the step can hurt users.}
+  elements:
+    check: {required: true, description: How to tell that the step worked.}</pre>
+<p>Then <code>tg ontology</code> 0.26.0, the listing an agent reads before it writes, showed it in a third notation:</p>
+<pre>      &lt;step id risk=safe|disruptive!&gt; — One action, in order, that an engineer or an agent can run.
+        &lt;check&gt;  (required) — How to tell that the step worked.</pre>
+<p><code>!</code> meant required, <code>(required, one)</code> meant something else, and the descriptions of <code>id</code> and <code>risk</code> were gone. A reader had to translate between YAML, XML and a private shorthand. The rules had gaps too. Nothing said where a nested tag counts, which attribute keys mean anything, or what a string or a list stands for. One gap gave a wrong answer: a required <code>&lt;rollback&gt;</code> wrapped in <code>&lt;details&gt;</code> was reported as missing.</p>
+<p>TGS 0.5 settles all of it. Every 0.4 note is still valid.</p>
+<h2>Rule 1: YAML declares, XML occurs</h2>
+<p>Each notation has one job. A schema note in <code>Types/</code> <strong>declares</strong> an element in YAML. A document <strong>contains</strong> it as XML. A declaration never uses XML, and a document never uses YAML for an element.</p>
+<pre># Types/Runbook.md, the declaration
+rollback:
+  description: How to undo the steps if they make things worse.
+  required: true
+  many: false</pre>
+<pre>&lt;!-- lat.md/runbooks.md, the occurrence --&gt;
+&lt;rollback&gt;
+
+Roll back to the previous release: `kubectl rollout undo deploy/token`.
+
+&lt;/rollback&gt;</pre>
+<p>The tool&#39;s listing is a reading of the YAML, so it now keeps the YAML&#39;s structure: the element, then its <code>attributes:</code>, then its nested <code>elements:</code>. Attributes are shown exactly as properties are shown. Here is the same runbook type in <code>tg ontology</code> today:</p>
+<pre>  Runbook  (Types/Runbook.md)
+    How to operate one part of the system when something goes wrong.
+    sections:
+      ## Symptoms  (required) — What an on-call engineer sees first.
+    elements:
+      &lt;step&gt; — One action, in order, that an engineer or an agent can run.
+        attributes:
+          id (text) — Give one when an alert or a script points at the step.
+          risk (text, safe|disruptive, required) — Whether the step can hurt users.
+        elements:
+          &lt;check&gt;  (required) — How to tell that the step worked.
+      &lt;rollback&gt;  (exactly one) — How to undo the steps if they make things worse.</pre>
+<p>The listing introduces no syntax of its own. It uses words (<code>required</code>, <code>at most one</code>, <code>exactly one</code>, <code>type Requirement</code>) and the property format you already read for frontmatter.</p>
+<h2>The element declaration</h2>
+<p>An element declaration is a mapping, and every key is optional:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>description</code></td>
+<td>none</td>
+<td>what the element means and when to write one</td>
+</tr>
+<tr>
+<td><code>attributes</code></td>
+<td>none</td>
+<td>the attributes of the tag</td>
+</tr>
+<tr>
+<td><code>elements</code></td>
+<td>none</td>
+<td>elements that have a meaning inside this one</td>
+</tr>
+<tr>
+<td><code>required</code></td>
+<td><code>false</code></td>
+<td>each container holds at least one</td>
+</tr>
+<tr>
+<td><code>many</code></td>
+<td><code>true</code></td>
+<td>a container may hold more than one</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>none</td>
+<td>types the element node gets, such as <code>Requirement</code></td>
+</tr>
+<tr>
+<td><code>node</code></td>
+<td>from <code>type</code></td>
+<td>whether an element without an <code>id</code> becomes a node</td>
+</tr>
+</tbody></table>
+<p><code>required</code> and <code>many</code> together say how often the element occurs:</p>
+<table>
+<thead>
+<tr>
+<th><code>required</code></th>
+<th><code>many</code></th>
+<th>Occurrences</th>
+<th>Listing</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>false</code></td>
+<td><code>true</code></td>
+<td>any number</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td><code>true</code></td>
+<td><code>true</code></td>
+<td>one or more</td>
+<td><code>required</code></td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td><code>false</code></td>
+<td>none or one</td>
+<td><code>at most one</code></td>
+</tr>
+<tr>
+<td><code>true</code></td>
+<td><code>false</code></td>
+<td>exactly one</td>
+<td><code>exactly one</code></td>
+</tr>
+</tbody></table>
+<p>One trap is worth naming. On an element, <code>many</code> counts occurrences, and it defaults to <code>true</code>. On a property, <code>many</code> makes the value a list, and it defaults to <code>false</code>. The word is the same, but the question it answers is different.</p>
+<h2>Attributes: four keys and a reserved <code>id</code></h2>
+<p>An attribute value is a single string in the document, so an attribute declaration has four keys that mean something: <code>kind</code>, <code>required</code>, <code>values</code> and <code>description</code>. <code>many</code>, <code>default</code> and <code>uri</code> are accepted, because 0.4 wrote attributes exactly like properties, but they do nothing. Don&#39;t write them.</p>
+<p>Attributes are open. A tag may carry attributes its declaration does not list. They are not reported, and an element node keeps them as properties.</p>
+<p><strong><code>id</code> is reserved on every element, declared or not.</strong> An <code>id</code> is a stable address, unique in the file and compared without case, and it makes the element a node you link to as <code>[[runbooks#^restart]]</code>. You don&#39;t have to declare it. Declare it only to tell writers <em>when</em> to give one, as the runbook does, or with <code>required: true</code> to demand one. Give it no <code>values</code> and no <code>kind</code>. A good id starts with a letter or a digit and uses only letters, digits, <code>-</code>, <code>_</code> and <code>.</code>.</p>
+<h2>Nesting and scope</h2>
+<p>Elements nest, and 0.5 states what that means. A declaration says where a tag <em>means</em> something, not where it may stand.</p>
+<p>The declarations in scope at any point form a chain. It starts with the nested <code>elements</code> of each declared element around the point, innermost first, and ends with the type&#39;s own <code>elements</code>. A tag resolves to the first declaration of its name along that chain. Three consequences follow:</p>
+<ul>
+<li><strong>A type&#39;s own elements count at any depth</strong>, including inside other elements.</li>
+<li><strong>A nested declaration is local.</strong> <code>&lt;check&gt;</code> means something only inside a <code>&lt;step&gt;</code>, and there it hides any outer <code>&lt;check&gt;</code>. A <code>&lt;check&gt;</code> outside a step is undeclared text.</li>
+<li><strong>Undeclared elements are transparent.</strong> A <code>&lt;details&gt;</code> wrapper adds nothing to the chain, so the <code>&lt;rollback&gt;</code> inside it is still the runbook&#39;s rollback.</li>
+</ul>
+<p>Counts follow the same chain. Each declaration counts in its <strong>container</strong>. For a type&#39;s own elements that is the whole document, and for nested ones it is each occurrence of the parent. Here is a runbook that tests the rule:</p>
+<pre>## Token service down
+
+Logins fail and the gateway returns 503.
+
+### Symptoms
+
+The `auth_token_errors` alert fires and the login page shows &quot;try again later&quot;.
+
+&lt;step id=&quot;restart&quot; risk=&quot;safe&quot;&gt;
+
+Restart the token service: `kubectl rollout restart deploy/token`.
+
+&lt;check&gt;
+
+`curl -f https://auth.internal/health` answers 200 within a minute.
+
+&lt;/check&gt;
+
+&lt;/step&gt;
+
+&lt;step id=&quot;drain-cache&quot; risk=&quot;reboot&quot;&gt;
+
+Flush the signing-key cache.
+
+&lt;/step&gt;
+
+&lt;details&gt;
+
+&lt;rollback&gt;
+
+Roll back to the previous release: `kubectl rollout undo deploy/token`.
+
+&lt;/rollback&gt;
+
+&lt;/details&gt;</pre>
+<p><code>tg ontology check</code> with tg 0.26.0 reported three findings, and the first one was wrong:</p>
+<pre>- lat.md/runbooks.md:8: 'Token service down' (Runbook) has no &lt;rollback&gt;: How to undo the steps if they make things worse.
+- lat.md/runbooks.md:28: &lt;step&gt; attribute 'risk' is 'reboot'; allowed: safe, disruptive
+- lat.md/runbooks.md:28: &lt;step&gt; has no &lt;check&gt;: How to tell that the step worked.</pre>
+<p>With the scope rule, only the two real problems remain:</p>
+<pre>- lat.md/runbooks.md:28: &lt;step&gt; attribute 'risk' is 'reboot'; allowed: safe, disruptive
+- lat.md/runbooks.md:28: &lt;step&gt; has no &lt;check&gt;: How to tell that the step worked.
+
+2 findings. Run tg ontology to see the declared types and edges.</pre>
+<p>The graph uses the same resolution, so a typed tag declared inside a parent gets its type anywhere inside that parent. Both steps have an id, so both are nodes:</p>
+<pre>$ tg cypher 'MATCH (s:Element {tag: &quot;step&quot;}) RETURN s.element, s.risk, s.owner'
+s.element                    | s.risk | s.owner
+-----------------------------+--------+-----------------------------------------------------
+lat.md/runbooks#^restart     | safe   | lat.md/runbooks#Runbooks#Token service down#Symptoms
+lat.md/runbooks#^drain-cache | reboot | lat.md/runbooks#Runbooks#Token service down#Symptoms</pre>
+<p>Declarations do not point at one another. If a tag means something at two levels, declare it at both levels, or once at the top.</p>
+<h2>Sections</h2>
+<p><code>sections</code> declares the headings a document has: a heading text, a <code>description</code> and <code>required</code>. A heading matches at any level inside the document, ignoring case. That is all a section declaration says.</p>
+<h2>What you cannot describe, and why</h2>
+<ul>
+<li><strong>Order.</strong> Nothing says that <code>&lt;check&gt;</code> comes after the step&#39;s text, or that <code>## Symptoms</code> comes first. Order rules turn every edit into a fight with the validator.</li>
+<li><strong>Content models.</strong> There are no &quot;exactly these children&quot;, no exclusions and no allowed parents. DTD-style schemas are why DocBook and DITA feel heavy. The design record lists this as rejected.</li>
+<li><strong>Placement under a heading.</strong> You cannot yet say that <code>&lt;rollback&gt;</code> must sit under <code>## Rollback</code>. This is a deferred option, not a refusal. If your team needs it, tell us, and the scope chain would gain a heading level.</li>
+</ul>
+<p>What remains is enough for the checks that pay off: is the required part there, is a single part single, are the values ones we know, is every tag closed.</p>
+<h2>One normal form</h2>
+<p>Every shorthand stands for exactly one full form, and two declarations with the same full form mean the same thing:</p>
+<table>
+<thead>
+<tr>
+<th>You write</th>
+<th>It means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>elements: [option, consequence]</code></td>
+<td><code>elements: {option: {}, consequence: {}}</code></td>
+</tr>
+<tr>
+<td><code>option:</code> (empty)</td>
+<td><code>option: {}</code></td>
+</tr>
+<tr>
+<td><code>consequence: What becomes harder.</code></td>
+<td><code>consequence: {description: What becomes harder.}</code></td>
+</tr>
+<tr>
+<td><code>type: Requirement</code></td>
+<td><code>type: [Requirement]</code></td>
+</tr>
+<tr>
+<td><code>attributes: [id, kind]</code></td>
+<td><code>attributes: {id: {}, kind: {}}</code></td>
+</tr>
+<tr>
+<td><code>risk: number</code></td>
+<td><code>risk: {kind: number}</code></td>
+</tr>
+<tr>
+<td><code>sections: [Context]</code></td>
+<td><code>sections: {Context: {}}</code></td>
+</tr>
+<tr>
+<td><code>Context: The forces at play.</code></td>
+<td><code>Context: {description: The forces at play.}</code></td>
+</tr>
+</tbody></table>
+<p>A list under <code>elements</code> or <code>sections</code> holds names only. tg 0.26 quietly accepted <code>- tag: option</code> mappings in such a list. <code>tg validate</code> now reports them as <code>invalid-declaration</code>, because a second way to write the same mapping helps nobody.</p>
+<h2>How to write them: a checklist</h2>
+<ol>
+<li><strong>Describe every element and every attribute that has <code>values</code>.</strong> The description is how the next writer, human or agent, learns what the tag is for, and <code>tg ontology check</code> repeats it in its findings.</li>
+<li><strong>Use the mapping form</strong> for any element with more than a description. Write a plain string only for a tag that has nothing else, such as <code>non-goal: Something this requirement deliberately does not cover.</code> Use a list only in a first draft.</li>
+<li><strong>Don&#39;t declare <code>id</code> by default.</strong> Declare it only to say when to give one.</li>
+<li><strong>Add <code>required</code> or <code>many: false</code> only when a document is wrong without them.</strong> The bundled code ontology requires nothing, so existing docs stay clean.</li>
+<li><strong>Nest a declaration only for a part that means nothing outside its parent</strong>, like <code>&lt;input&gt;</code> and <code>&lt;output&gt;</code> inside <code>&lt;example&gt;</code>.</li>
+<li><strong>Give a tag a <code>type</code> only when the part is an ontology thing in its own right</strong>, like a <code>&lt;rule&gt;</code> that code implements on its own.</li>
+<li><strong>Keep <code>tgs: &quot;0.5&quot;</code></strong> in notes you write now. A note that says <code>&quot;0.4&quot;</code> reads the same.</li>
+</ol>
+<p>For agents, the instructions don&#39;t change: run <code>tg ontology</code> before writing, use only tags it lists, put the tags on their own lines with blank lines inside, and give an <code>id</code> only when something will point at it. The <code>tg-docs</code> skill that <code>tg init</code> and <code>tg upgrade</code> install now also teaches the nesting rule and how to declare a new tag.</p>
+<h2>Read the spec</h2>
+<p>The full text is <a href="https://typedgraph.org/spec/tgs/v0.5/">Typed Graph Schema 0.5</a>, sections 4.2 to 4.9: elements, attributes, nesting and scope, sections, reading, element nodes, validation and the normal form. <a href="https://typedgraph.org/spec/tgs/v0.4/">0.4</a> stays published as it was. Conformance example <code>08-element-scope</code> in the repository holds the runbook above as a test any implementation can run.</p>
+<p class="note"><em>The 0.26.0 listing and findings come from the released tg 0.26.0. The others come from the tg build that implements TGS 0.5, run on a fresh project set up with <code>tg init --yes</code> on 11 November 2026.</em></p>
+
+    <div class="next">Related: <a href="blog-explainable-blocks.html">Explainable blocks: an ontology for the inside of your documents →</a></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Typed Graph · MIT · by Volodymyr Pavlyshyn. Not affiliated with Obsidian, LadybugDB or lat.md.</span>
+      <span><a href="docs.html">Docs</a> · <a href="blog.html">Blog</a> · <a href="https://github.com/Volland/typedgraph">GitHub</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="agb.html">AGB</a></span>
+    </div>
+  </footer>
+  <script src="assets/site.js"></script>
+</body>
+</html>

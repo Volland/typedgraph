@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://volland.github.io/obsigraph/spec/tgs/v0.4/tgs.schema.json",
-  "title": "Typed Graph Schema (TGS) 0.4 schema note frontmatter",
+  "$id": "https://volland.github.io/obsigraph/spec/tgs/v0.5/tgs.schema.json",
+  "title": "Typed Graph Schema (TGS) 0.5 schema note frontmatter",
   "description": "Validates the TGS keys of a schema note's YAML frontmatter, parsed to JSON. Other frontmatter keys are allowed. License: MIT.",
   "type": "object",
   "properties": {
@@ -376,7 +376,7 @@
       "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
     },
     "element": {
-      "description": "A block-level XML element a document of the type may contain (TGS 0.4).",
+      "description": "A block-level XML element a document of the type may contain (TGS 0.4; read as in TGS 0.5 sections 4.2 to 4.4).",
       "oneOf": [
         {
           "type": "null"
@@ -403,7 +403,7 @@
               "type": "boolean"
             },
             "attributes": {
-              "$ref": "#/$defs/properties"
+              "$ref": "#/$defs/attributes"
             },
             "elements": {
               "$ref": "#/$defs/elements"
@@ -414,7 +414,7 @@
       ]
     },
     "elements": {
-      "description": "Elements by tag name, or a list of tag names (TGS 0.4).",
+      "description": "Elements by tag name, or a list of tag names (TGS 0.4; normal form in TGS 0.5 section 4.9).",
       "oneOf": [
         {
           "type": "object",
@@ -469,6 +469,108 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/name"
+          }
+        }
+      ]
+    },
+    "attribute": {
+      "description": "An attribute of an element (TGS 0.5 section 4.3): null, a kind, or a mapping. Only kind, required, values and description have a meaning.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/kind"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/kind"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/scalar"
+              }
+            },
+            "description": {
+              "$ref": "#/$defs/description"
+            },
+            "many": {
+              "type": "boolean",
+              "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+            },
+            "default": {
+              "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+            },
+            "uri": {
+              "$ref": "#/$defs/iri",
+              "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "attributes": {
+      "description": "Attributes by name, or a list of names or of mappings with a name, as for properties (TGS 0.5 section 4.3).",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/attribute"
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/name"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "$ref": "#/$defs/name"
+                  },
+                  "kind": {
+                    "$ref": "#/$defs/kind"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/scalar"
+                    }
+                  },
+                  "description": {
+                    "$ref": "#/$defs/description"
+                  },
+                  "many": {
+                    "type": "boolean",
+                    "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+                  },
+                  "default": {
+                    "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+                  },
+                  "uri": {
+                    "$ref": "#/$defs/iri",
+                    "description": "No effect on an attribute (TGS 0.5 section 4.3); accepted so that 0.4 notes stay valid."
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ]
+              }
+            ]
           }
         }
       ]

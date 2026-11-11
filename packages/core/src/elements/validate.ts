@@ -2,7 +2,7 @@ import type { LatIndex } from '../latmd/index.js';
 import type { Section } from '../latmd/markdown.js';
 import type { SpecIndex } from '../openspec/index.js';
 import { mergeSchemas, type ElementSchema, type PropertySchema, type SchemaSet, type TypeSchema } from '../schema/schema.js';
-import { findElementDecl } from './nodes.js';
+import { resolveElementDecl } from './nodes.js';
 import { scanHeadings, type ElementOccurrence } from './scan.js';
 import type { Graph } from '../graph/graph.js';
 import type { Diagnostic } from '../edges/parse.js';
@@ -97,27 +97,53 @@ function checkAttributes(e: ElementOccurrence, attrs: PropertySchema[], push: (k
   }
 }
 
-/** Count rules of a list of declarations over the elements found in one place. */
-function checkCounts(found: ElementOccurrence[], decls: ElementSchema[], where: string, line: number, push: (kind: DocumentFindingKind, line: number, message: string) => void): void {
-  for (const d of decls) {
-    const own = found.filter((e) => e.tag.toLowerCase() === d.tag.toLowerCase());
-    if (d.required && own.length === 0) push('missing-element', line, `${where} has no <${d.tag}>${d.description ? `: ${d.description}` : ''}`);
-    if (!d.many && own.length > 1) push('too-many-elements', own[1]!.line, `${where} allows one <${d.tag}>, found ${own.length}`);
+/**
+ * The declarations of one container, the document or a declared element with
+ * nested `elements`, with the lines of the occurrences each one governs.
+ */
+interface Container {
+  decls: ElementSchema[];
+  lines: Map<ElementSchema, number[]>;
+  line: number;
+  where: string;
+}
+
+/**
+ * Walk a tree with the declarations in scope (innermost container first) and
+ * record each declared occurrence in the container whose list declared it, so
+ * count rules hold per document for a type's elements and per parent element
+ * for nested ones, at any depth.
+ */
+function walkTree(list: ElementOccurrence[], chain: Container[], all: Container[], push: (kind: DocumentFindingKind, line: number, message: string) => void): void {
+  for (const e of list) {
+    const hit = resolveElementDecl(e.tag, chain.map((c) => c.decls));
+    if (!hit) {
+      walkTree(e.children, chain, all, push);
+      continue;
+    }
+    const { decl } = hit;
+    const owner = chain[hit.level]!;
+    owner.lines.set(decl, [...(owner.lines.get(decl) ?? []), e.line]);
+    if (e.unclosed) push('unclosed-element', e.line, `<${e.tag}> is never closed with </${e.tag}>, so it holds no text`);
+    checkAttributes(e, decl.attributes, push);
+    if (!decl.elements.length) {
+      walkTree(e.children, chain, all, push);
+      continue;
+    }
+    const inner: Container = { decls: decl.elements, lines: new Map(), line: e.line, where: `<${e.tag}>` };
+    all.push(inner);
+    walkTree(e.children, [inner, ...chain], all, push);
   }
 }
 
-function checkTree(list: ElementOccurrence[], decls: ElementSchema[], push: (kind: DocumentFindingKind, line: number, message: string) => void): void {
-  for (const e of list) {
-    const d = findElementDecl(e.tag, decls);
-    if (!d) {
-      checkTree(e.children, decls, push);
-      continue;
+/** `required` and `many: false` of each container's declarations. */
+function checkCounts(all: Container[], push: (kind: DocumentFindingKind, line: number, message: string) => void): void {
+  for (const c of all)
+    for (const d of c.decls) {
+      const lines = c.lines.get(d) ?? [];
+      if (d.required && lines.length === 0) push('missing-element', c.line, `${c.where} has no <${d.tag}>${d.description ? `: ${d.description}` : ''}`);
+      if (!d.many && lines.length > 1) push('too-many-elements', lines[1]!, `${c.where} allows one <${d.tag}>, found ${lines.length}`);
     }
-    if (e.unclosed) push('unclosed-element', e.line, `<${e.tag}> is never closed with </${e.tag}>, so it holds no text`);
-    checkAttributes(e, d.attributes, push);
-    checkCounts(e.children, d.elements, `<${e.tag}>`, e.line, push);
-    checkTree(e.children, d.elements.length ? d.elements : decls, push);
-  }
 }
 
 /** Check one typed part against its effective schema. */
@@ -129,9 +155,10 @@ function checkScope(scope: Scope, set: SchemaSet, out: DocumentFinding[]): void 
   for (const h of schema.sections ?? []) {
     if (h.required && !scope.headings.some((x) => x.toLowerCase() === h.heading.toLowerCase())) push('missing-section', scope.line, `${name} has no '${h.heading}' heading${h.description ? `: ${h.description}` : ''}`);
   }
-  const decls = schema.elements ?? [];
-  checkCounts(scope.elements, decls, name, scope.line, push);
-  checkTree(scope.elements, decls, push);
+  const doc: Container = { decls: schema.elements ?? [], lines: new Map(), line: scope.line, where: name };
+  const all = [doc];
+  walkTree(scope.elements, [doc], all, push);
+  checkCounts(all, push);
 }
 
 const byPlace = (a: DocumentFinding, b: DocumentFinding) => a.file.localeCompare(b.file) || a.line - b.line || a.message.localeCompare(b.message);

@@ -105,11 +105,22 @@ Elements in OpenSpec, Spec Kit, Kiro, BMAD, GSD and ADR files SHALL become nodes
 - **THEN** `tg ontology check` reports the value and the allowed ones
 
 ### Requirement: Ontology listing explains documents
-`tg ontology` SHALL print each description under its type or edge type, property descriptions next to the properties, and the declared sections and elements with their attributes, rules and descriptions; `--json` SHALL include `description`, `elements` and `sections`.
+`tg ontology` SHALL print each description under its type or edge type, property descriptions next to the properties, and the declared sections and elements in the structure of their YAML: each element with its rules and description, then its attributes shown the way properties are shown, then its nested elements, indented under it; `--json` SHALL include `description`, `elements` and `sections`.
 
 #### Scenario: Listing shows elements
-- **WHEN** `tg ontology` runs on a project whose Decision type declares `option`
-- **THEN** the output shows the Decision description and a line `<option ...> — <description>`
+- **WHEN** `tg ontology` runs on a project whose Decision type declares `option` with an `outcome` attribute, and whose Skill type nests `trigger` (`many: false`) inside a required `when_to_use`
+- **THEN** the output shows `<option> — <description>` with an `attributes:` line and `outcome (text, chosen|rejected)` under it, and `<when_to_use>  (required)` with an `elements:` line and `<trigger>  (at most one)` under it
+
+### Requirement: Element scope
+An element SHALL be resolved to the first declaration of its tag along the chain of the nested `elements` of the declared elements around it, innermost first, then its type's `elements`; undeclared elements SHALL add nothing to the chain. `required` and `many` SHALL be counted per container, the document for a type's elements and each occurrence of the parent for nested ones, over the elements at any depth inside it that resolve to the declaration. Element nodes and document validation SHALL use the same resolution.
+
+#### Scenario: Counts per container
+- **WHEN** a runbook holds its only `<rollback>` inside `<details>`, a `<step>` without the `<check>` its declaration requires, a second `<rollback>` inside another step, and a `<check>` outside any step
+- **THEN** validation reports the step's missing `<check>` at the step and the second `<rollback>` as too many for the document, and nothing else
+
+#### Scenario: Innermost declaration wins
+- **WHEN** a typed `<case>` declared inside `<example>` stands inside an `<input>` inside an `<example>`, and another `<case>` stands outside any example
+- **THEN** the first is an element node with the declared type and the second stays text
 
 ### Requirement: SHACL exchange of descriptions and elements
 The SHACL export SHALL write descriptions as `sh:description` on node shapes and property shapes, and a type's `elements` and `sections` as `tgs:elements` and `tgs:sections` JSON annotations; the import SHALL read them back so a round trip loses nothing.
@@ -118,12 +129,12 @@ The SHACL export SHALL write descriptions as `sh:description` on node shapes and
 - **WHEN** a schema with descriptions, elements and sections is exported and imported again
 - **THEN** the imported declarations equal the original ones
 
-### Requirement: TGS 0.4 published
-The specification SHALL be published as TGS 0.4 with 0.3 archived unchanged, the JSON Schema SHALL accept the new keys, and the reader SHALL report unknown keys inside element declarations of notes declaring 0.3 or later.
+### Requirement: TGS 0.5 published
+The specification SHALL be published as TGS 0.5 with 0.4 archived unchanged. 0.5 adds no key: it defines the attribute keys that have a meaning and the reserved `id`, the element scope and counting per container, and one normal form for every shorthand. The JSON Schema SHALL accept every 0.4 note, a list of `elements` or `sections` SHALL hold names only, and the reader SHALL report unknown keys inside element declarations of notes declaring 0.3 or later.
 
-#### Scenario: Published 0.4
+#### Scenario: Published 0.5
 - **WHEN** the spec folder is read
-- **THEN** `SPEC.md` is version 0.4, `archive/v0.3/SPEC.md` is the unchanged 0.3 text, and the site builder publishes 0.4
+- **THEN** `SPEC.md` is version 0.5 with sections 4.4 (nesting and scope) and 4.9 (normal form), `archive/v0.4/SPEC.md` is the unchanged 0.4 text, and the site builder publishes 0.5
 
 ### Requirement: Code ontology describes itself
 The bundled code ontology SHALL describe every type, property and edge type, declare the elements its types commonly hold, and the ADR framework type SHALL declare MADR's headings; none of them SHALL be required, so existing docs stay clean.

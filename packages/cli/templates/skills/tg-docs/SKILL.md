@@ -79,6 +79,8 @@ Server sessions in Redis: one more stateful service to run.
 - **Choose the smallest thing that answers the question.** Keep prose when nothing points at the part and nobody checks it. Use an element when the part lives only inside its section but something must link to it, query it or check it (an option, a rule, an exception). Use a heading when readers navigate to it. Use a separate typed section when it has its own life: its own edges from several places, its own status, or more than a few paragraphs.
 - Give an element an `id` only when something links to it; an element without an `id` stays text unless the ontology gives its tag a `type`.
 - `tg ontology check` reports attribute values outside the declared ones, unclosed tags, and elements or headings a type marks `required`.
+- **Nesting follows the declaration.** A tag that `tg ontology` lists under another element's `elements:` (an `<input>` under `<example>`) means something only inside that element. A type's own tags mean the same at any depth, and a wrapper such as `<details>` changes nothing.
+- **Declaring a new tag is a schema change in `Types/`**: a mapping under the type's `elements:` with a `description`, its `attributes` (each with only `values`, `required`, `kind` or `description`; every element already has `id`), and nested `elements` if it has parts. Add `required: true` or `many: false` only when a document is wrong without them. Write a plain string only for a tag that has nothing but a description.
 
 ## Rules `tg check` enforces
 

@@ -52,9 +52,14 @@
       owner (text) — Who answers for it.
     edges: supersedes → Decision; contradicts → Decision|Requirement|Constraint; motivated_by → Constraint|Concept|Decision; changed_by → Change
     elements:
-      &lt;option id outcome=chosen|rejected|deferred&gt; — An alternative that was considered, and why it won or lost. Give it an id when code or a later decision must point at it.
-      &lt;consequence kind=good|bad|risk&gt; — What becomes easier, harder or riskier because of the decision.</pre>
-<p>That listing is what a coding agent reads before it writes. The agent instructions and the <code>tg-docs</code> skill that <code>tg init</code> installs tell it to run <code>tg ontology</code> first. An agent no longer has to infer what <code>refines</code> means from its name or guess which attributes <code>&lt;option&gt;</code> takes: the ontology says so in plain words. The SHACL export writes the same text as <code>sh:description</code>, so RDF tools see it too.</p>
+      &lt;option&gt; — An alternative that was considered, and why it won or lost. Give it an id when code or a later decision must point at it.
+        attributes:
+          id (text) — Stable address, unique in the file, linked as file#^id.
+          outcome (text, chosen|rejected|deferred) — What happened to this option.
+      &lt;consequence&gt; — What becomes easier, harder or riskier because of the decision.
+        attributes:
+          kind (text, good|bad|risk)</pre>
+<p>The listing keeps the shape of the YAML it comes from: each element, then its attributes, shown the way properties are shown. That listing is what a coding agent reads before it writes. The agent instructions and the <code>tg-docs</code> skill that <code>tg init</code> installs tell it to run <code>tg ontology</code> first. An agent no longer has to infer what <code>refines</code> means from its name or guess which attributes <code>&lt;option&gt;</code> takes: the ontology says so in plain words. The SHACL export writes the same text as <code>sh:description</code>, so RDF tools see it too.</p>
 <h2>Step two: blocks inside a section</h2>
 <p>The <code>elements</code> key of a type declares the XML tags its sections may hold. A Decision section can now look like this:</p>
 <pre>## Short-lived access tokens
@@ -162,7 +167,7 @@ lat.md/requirements#^breached   | must       | 0</pre>
 <p>The other blocks in the bundled ontology are text with a meaning: <code>&lt;example&gt;</code> with <code>&lt;input&gt;</code> and <code>&lt;output&gt;</code>, <code>&lt;non-goal&gt;</code>, Scenario&#39;s <code>&lt;given&gt;</code>, <code>&lt;when&gt;</code> and <code>&lt;then&gt;</code>, Constraint&#39;s <code>&lt;exception&gt;</code>, and Concept&#39;s <code>&lt;example&gt;</code> and <code>&lt;counterexample&gt;</code>. None of them is required, so existing docs stay clean.</p>
 <h2>Your own document types, checked</h2>
 <p>The bundled vocabulary is a start. The same keys describe any kind of document your team writes. A runbook type, in a schema note at <code>Types/Runbook.md</code>:</p>
-<pre>tgs: &quot;0.4&quot;
+<pre>tgs: &quot;0.5&quot;
 schema:
   description: How to operate one part of the system when something goes wrong.
   sections:
@@ -182,8 +187,10 @@ schema:
     sections:
       ## Symptoms  (required) — What an on-call engineer sees first.
     elements:
-      &lt;step risk=safe|disruptive!&gt; — One action, in order, that an engineer or an agent can run.
-      &lt;rollback&gt;  (required, one) — How to undo the steps if they make things worse.</pre>
+      &lt;step&gt; — One action, in order, that an engineer or an agent can run.
+        attributes:
+          risk (text, safe|disruptive, required)
+      &lt;rollback&gt;  (exactly one) — How to undo the steps if they make things worse.</pre>
 <p>And <code>tg ontology check</code> holds every runbook to it. Here is a runbook with a symptoms section and two steps, but no rollback and one step without a risk:</p>
 <pre>- lat.md/runbooks.md:8: 'Token service down' (Runbook) has no &lt;rollback&gt;: How to undo the steps if they make things worse.
 - lat.md/runbooks.md:22: &lt;step&gt; needs the attribute 'risk'
@@ -196,6 +203,7 @@ schema:
 <li>attribute values outside the declared ones</li>
 <li>a declared tag that is never closed</li>
 </ul>
+<p>Elements nest, attributes have a small fixed set of keys, and every shorthand has one meaning. <a href="blog-declaring-elements.html">Declaring document elements</a> is the guide to writing them, with the scope rules of TGS 0.5.</p>
 <p>The descriptions also matter for retrieval. When an agent pulls one block out of a long file, <code>&lt;rollback&gt;</code> arrives with its meaning attached.</p>
 <h2>ADRs and specs get the same treatment</h2>
 <p><code>tg init --spec adr</code> now writes an ADR template whose considered options are <code>&lt;option&gt;</code> blocks and whose consequences are <code>&lt;consequence&gt;</code> blocks. The ADR type declares MADR&#39;s headings with descriptions. An ADR is also a Decision, so it inherits Decision&#39;s blocks. The spec authoring guidance that <code>tg init</code> adds to OpenSpec, Spec Kit, Kiro, BMAD and GSD skills tells agents to mark a rule with an id only when code or a test will point at it.</p>
@@ -221,9 +229,9 @@ Wrote 3 files. Run tg check and tg ontology check.</pre>
 tg init            # or: tg upgrade, in a project set up earlier
 tg ontology        # read what every type, edge and block means</pre>
 <p>Then mark one rejected option in a decision you still get asked about, give it an id, and point at it from the code that made it lose. The spec is <a href="https://typedgraph.org/spec/tgs/v0.4/">Typed Graph Schema 0.4</a>, and the <a href="https://typedgraph.org/docs.html">docs</a> cover the rest.</p>
-<p class="note"><em>Every command output above comes from a real run of tg 0.26.0 on a fresh project, set up with <code>tg init --yes --spec adr</code>, on 11 November 2026.</em></p>
+<p class="note"><em>Every command output above comes from a real run of tg 0.26.0 on a fresh project, set up with <code>tg init --yes --spec adr</code>, on 11 November 2026. The two <code>tg ontology</code> listings were run again with the tg build that implements TGS 0.5, which shows elements in the shape of their YAML. 0.26.0 squeezed attributes into the tag, as <code>&lt;step risk=safe|disruptive!&gt;</code>.</em></p>
 
-    <div class="next">Related: <a href="blog-code-ontology.html">One vocabulary for the whole team: using the code ontology →</a></div>
+    <div class="next">Related: <a href="blog-declaring-elements.html">Declaring document elements: one shape, one reading →</a></div>
   </main>
 
   <footer>
