@@ -1,0 +1,86 @@
+{
+  "invalidAgainstJsonSchema": [],
+  "types": [
+    {
+      "name": "Idea",
+      "note": "Types/Idea.md",
+      "iri": "urn:tgs:Idea",
+      "properties": [
+        {
+          "name": "status",
+          "iri": "urn:tgs:status",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": [
+            "open",
+            "settled"
+          ],
+          "default": "open"
+        },
+        {
+          "name": "uid",
+          "iri": "urn:tgs:uid",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "luhmann",
+          "iri": "urn:tgs:luhmann",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": null,
+      "template": "[[Templates/Idea]]",
+      "ids": [
+        {
+          "kind": "uuid7",
+          "property": "uid",
+          "auto": true,
+          "filename": false
+        },
+        {
+          "kind": "luhmann",
+          "property": "luhmann",
+          "auto": false,
+          "filename": false
+        }
+      ]
+    },
+    {
+      "name": "Log",
+      "note": "Types/Idea.md",
+      "iri": "urn:tgs:Log",
+      "properties": [
+        {
+          "name": "stamp",
+          "iri": "urn:tgs:stamp",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": null,
+      "template": null,
+      "ids": [
+        {
+          "kind": "timestamp",
+          "property": "stamp",
+          "auto": true,
+          "filename": true
+        }
+      ]
+    }
+  ],
+  "edgeTypes": [],
+  "diagnostics": []
+}

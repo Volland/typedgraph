@@ -1,0 +1,139 @@
+{
+  "invalidAgainstJsonSchema": [],
+  "types": [
+    {
+      "name": "Bot",
+      "note": "Types/People and Orgs.md",
+      "iri": "urn:tgs:Bot",
+      "properties": [],
+      "edges": null,
+      "template": null
+    },
+    {
+      "name": "Company",
+      "note": "Types/People and Orgs.md",
+      "iri": "https://schema.org/Organization",
+      "properties": [
+        {
+          "name": "name",
+          "iri": "urn:tgs:name",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "founded",
+          "iri": "urn:tgs:founded",
+          "kind": "date",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "site",
+          "iri": "https://example.org/vocab/site",
+          "kind": "link",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": [],
+      "template": null
+    },
+    {
+      "name": "Person",
+      "note": "Types/People and Orgs.md",
+      "iri": "https://schema.org/Person",
+      "properties": [
+        {
+          "name": "name",
+          "iri": "urn:tgs:name",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "email",
+          "iri": "https://schema.org/email",
+          "kind": "text",
+          "required": true,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": [
+        {
+          "type": "worksAt",
+          "targets": [
+            "Company"
+          ],
+          "many": true,
+          "required": false
+        },
+        {
+          "type": "knows",
+          "targets": [
+            "Person",
+            "Bot"
+          ],
+          "many": true,
+          "required": false
+        },
+        {
+          "type": "mentor",
+          "targets": [
+            "Person"
+          ],
+          "many": false,
+          "required": false
+        }
+      ],
+      "template": null
+    }
+  ],
+  "edgeTypes": [
+    {
+      "name": "worksAt",
+      "note": "Types/People and Orgs.md",
+      "iri": "https://schema.org/worksFor",
+      "from": [
+        "Person"
+      ],
+      "to": [
+        "Company"
+      ],
+      "properties": [
+        {
+          "name": "since",
+          "iri": "urn:tgs:since",
+          "kind": "date",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "role",
+          "iri": "urn:tgs:role",
+          "kind": "text",
+          "required": true,
+          "many": false,
+          "values": [
+            "engineer",
+            "manager"
+          ],
+          "default": null
+        }
+      ]
+    }
+  ],
+  "diagnostics": []
+}

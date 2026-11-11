@@ -1,5 +1,5 @@
 import { Parser, type Quad, type Term } from 'n3';
-import { BUILTIN_PREFIXES, DEFAULT_BASE_IRI, type EdgeRule, type EdgeTypeSchema, type PropertyKind, type PropertySchema, type TypeSchema } from '../schema/schema.js';
+import { BUILTIN_PREFIXES, DEFAULT_BASE_IRI, readElementDeclarations, readSectionDeclarations, type EdgeRule, type EdgeTypeSchema, type PropertyKind, type PropertySchema, type TypeSchema } from '../schema/schema.js';
 import { compact } from './export.js';
 import { DATATYPE_KIND, localName, RDF, SH, TGS, XSD } from './vocab.js';
 
@@ -39,8 +39,8 @@ type Index = Map<string, Map<string, Term[]>>;
 const key = (t: Term) => (t.termType === 'BlankNode' ? `_:${t.value}` : t.value);
 
 /** Predicates the import understands on a node shape and on a property shape. */
-const NODE_KNOWN = new Set([`${RDF}type`, `${SH}targetClass`, `${SH}name`, `${SH}property`, `${TGS}note`, `${TGS}edgesClosed`, `${TGS}template`, `${TGS}templateBody`, `${TGS}visualization`]);
-const PROP_KNOWN = new Set([`${RDF}type`, `${SH}path`, `${SH}name`, `${SH}datatype`, `${SH}nodeKind`, `${SH}class`, `${SH}node`, `${SH}or`, `${SH}minCount`, `${SH}maxCount`, `${SH}defaultValue`, `${SH}in`, `${SH}order`, `${SH}hasValue`, `${TGS}kind`, `${TGS}edge`, `${TGS}default`]);
+const NODE_KNOWN = new Set([`${RDF}type`, `${SH}targetClass`, `${SH}name`, `${SH}property`, `${TGS}note`, `${TGS}edgesClosed`, `${TGS}template`, `${TGS}templateBody`, `${TGS}visualization`, `${SH}description`, `${TGS}elements`, `${TGS}sections`]);
+const PROP_KNOWN = new Set([`${RDF}type`, `${SH}path`, `${SH}name`, `${SH}datatype`, `${SH}nodeKind`, `${SH}class`, `${SH}node`, `${SH}or`, `${SH}minCount`, `${SH}maxCount`, `${SH}defaultValue`, `${SH}in`, `${SH}order`, `${SH}hasValue`, `${TGS}kind`, `${TGS}edge`, `${TGS}default`, `${SH}description`]);
 
 /**
  * Read SHACL shapes in Turtle into TGS declarations. Node shapes with a
@@ -54,6 +54,7 @@ const PROP_KNOWN = new Set([`${RDF}type`, `${SH}path`, `${SH}name`, `${SH}dataty
 // @tg: implements:: [[openspec:shacl-interop#Lossless round trip]]
 // @tg: implements:: [[openspec:shacl-interop#Reverse mapping]]
 // @tg: implements:: [[openspec:shacl-interop#Typed Graph annotations]]
+// @tg: implements:: [[openspec:document-elements#SHACL exchange of descriptions and elements]]
 export function importShacl(turtle: string, opts: ShaclImportOptions = {}): ShaclImport {
   const base = opts.base ?? DEFAULT_BASE_IRI;
   const declared: Record<string, string> = {};
@@ -179,7 +180,7 @@ export function importShacl(turtle: string, opts: ShaclImportOptions = {}): Shac
       const targets = targetsOf(ps, where);
       const isEdge = targets !== null || one(ps, `${TGS}edge`)?.value === 'true';
       if (isEdge) {
-        edges.push({ type: name, targets, many: max !== 1, required: (min ?? 0) >= 1 });
+        edges.push({ type: name, targets, many: max !== 1, required: (min ?? 0) >= 1, ...described(one(ps, `${SH}description`)) });
         continue;
       }
       let kind: PropertyKind = 'text';
@@ -204,6 +205,7 @@ export function importShacl(turtle: string, opts: ShaclImportOptions = {}): Shac
         many: kind === 'list' || max !== 1,
         values: inList ? list(inList).map(literalValue) : null,
         uri: uriFor(path.value, name),
+        ...described(one(ps, `${SH}description`)),
       });
     }
     return { props, edges };
@@ -237,6 +239,9 @@ export function importShacl(turtle: string, opts: ShaclImportOptions = {}): Shac
       template: str(one(s, `${TGS}template`)),
       note: str(one(s, `${TGS}note`)),
       templateBody: str(one(s, `${TGS}templateBody`)),
+      ...described(one(s, `${SH}description`)),
+      ...nonEmpty('elements', readElementDeclarations(json(s, `${TGS}elements`, name) ?? undefined, (m) => drop(name, `tgs:elements (${m})`))),
+      ...nonEmpty('sections', readSectionDeclarations(json(s, `${TGS}sections`, name) ?? undefined, (m) => drop(name, `tgs:sections (${m})`))),
     });
   }
 
@@ -258,11 +263,21 @@ export function importShacl(turtle: string, opts: ShaclImportOptions = {}): Shac
       uri: uriFor(pred, name),
       style: json(s, `${TGS}visualization`, name),
       note: str(one(s, `${TGS}note`)),
+      ...described(one(s, `${SH}description`)),
     });
   }
 
   const byName = <T extends { type: string }>(a: T, b: T) => (a.type < b.type ? -1 : a.type > b.type ? 1 : 0);
   return { types: types.sort(byName), edgeTypes: edgeTypes.sort(byName), prefixes: userPrefixes, dropped };
+}
+
+/** `{description}` from an `sh:description`, or nothing. */
+function described(t: Term | undefined): { description?: string } {
+  return t?.value ? { description: t.value } : {};
+}
+
+function nonEmpty<K extends string, T>(k: K, list: T[]): Partial<Record<K, T[]>> {
+  return list.length ? ({ [k]: list } as Record<K, T[]>) : {};
 }
 
 function literalValue(t: Term): unknown {

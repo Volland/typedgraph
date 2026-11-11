@@ -1,17 +1,17 @@
-# Typed Graph Schema (TGS) 0.3
+# Typed Graph Schema (TGS) 0.4
 
 | | |
 |---|---|
-| **Version** | 0.3 (published 2026-10-14; immutable) |
-| **Previous** | [0.2](../v0.2/) |
-| **This version** | `https://volland.github.io/obsigraph/spec/tgs/v0.3/` |
-| **JSON Schema** | `https://volland.github.io/obsigraph/spec/tgs/v0.3/tgs.schema.json` |
+| **Version** | 0.4 (published 2026-11-11; immutable) |
+| **Previous** | [0.3](../v0.3/) |
+| **This version** | `https://volland.github.io/obsigraph/spec/tgs/v0.4/` |
+| **JSON Schema** | `https://volland.github.io/obsigraph/spec/tgs/v0.4/tgs.schema.json` |
 | **Namespace** | `https://volland.github.io/obsigraph/ns/tgs#` (prefix `tgs:`) |
 | **Editor** | Volodymyr Pavlyshyn |
 | **Source** | `spec/tgs/` in [github.com/Volland/typedgraph](https://github.com/Volland/typedgraph) |
 | **License** | Text: CC BY 4.0. JSON Schema and examples: MIT. |
 
-TGS describes the types of a knowledge graph kept as markdown or AsciiDoc notes: what properties a note of a type has, which typed links it may have to which other types, and what properties those links carry. A schema is ordinary YAML frontmatter in ordinary notes, so people can write and review it by hand, and it maps to and from W3C SHACL so the same ontology can be exchanged with RDF tools.
+TGS describes the types of a knowledge graph kept as markdown or AsciiDoc notes: what properties a note of a type has, which typed links it may have to which other types, what properties those links carry, and what the parts inside a note mean: its headings and the XML elements it contains. Every declaration can explain itself in a `description`, written for people and for AI agents alike. A schema is ordinary YAML frontmatter in ordinary notes, so people can write and review it by hand, and it maps to and from W3C SHACL so the same ontology can be exchanged with RDF tools.
 
 TGS is independent of any one application. Typed Graph (an Obsidian plugin and CLI) is the reference implementation.
 
@@ -141,8 +141,72 @@ A type declaration is a mapping with these optional keys:
 | `template` | link | template note for new notes of this type (section 8) |
 | `id` | section 8.1 | identifiers generated for new notes of this type (0.2) |
 | `visualization` | mapping | display hints (section 11); `style` is an alias |
+| `description` | string | what the type means (section 4.1) (0.4) |
+| `elements` | section 4.2 | XML elements a note of this type may contain (0.4) |
+| `sections` | section 4.2 | headings a note of this type has (0.4) |
 
 An empty mapping (`{}`) or a null value declares a type with no constraints.
+
+### 4.1 Descriptions
+
+A `description` is a string that says what a declaration means: a type, a property (section 5.1), an edge of a type in map form (section 5.3), an edge type (section 6), an element or a section (section 4.2). It does not affect validation. Readers SHOULD show it wherever they list the declaration, so that a person or an agent writing a note knows what each type, property, edge, element and heading is for. A declaration without a description is read exactly as in 0.3.
+
+### 4.2 Elements and sections
+
+A note of a type has parts: headings, and **elements**, block-level XML tags such as `<option>` or `<example>` that mark a span of the note. `elements` declares the tags a note of the type may contain and what they mean; `sections` declares its headings.
+
+`elements` is a mapping from tag name to an **element declaration**, or a list of tag names. A tag name matches `[A-Za-z][A-Za-z0-9_.-]*` and is compared without regard to case. An element declaration is null (no rules), a string (its description), or a mapping:
+
+| Key | Value | Default | Meaning |
+|---|---|---|---|
+| `description` | string | none | what the element means |
+| `type` | type name or list | none | types an element node gets (see below) |
+| `required` | boolean | `false` | every document of the type contains at least one |
+| `many` | boolean | `true` | a document may contain more than one |
+| `node` | boolean | see below | whether an element without an `id` becomes a node |
+| `attributes` | as `properties` in 5.1 | none | the attributes of the tag |
+| `elements` | as `elements` | none | elements allowed inside this one |
+
+`sections` is a mapping from heading text to a **section declaration**, or a list of headings. A section declaration is null, a string (its description), or a mapping with `description` and `required` (default `false`). Headings are compared without regard to case.
+
+```yaml
+# Types/Decision.md
+---
+tgs: "0.4"
+schema:
+  description: A choice that was made, with its reason and the alternatives rejected.
+  properties:
+    status: {values: [proposed, accepted], description: Where the decision is in its life.}
+  sections:
+    Context: {required: true, description: The forces that made a decision necessary.}
+  elements:
+    option:
+      description: An option that was considered, and why it won or lost.
+      attributes:
+        id: {description: A stable address for the option.}
+        outcome: {values: [chosen, rejected, deferred], required: true}
+    consequence: What becomes easier or harder because of the decision.
+---
+```
+
+**Reading elements.** An element starts with an opening tag at the beginning of a line, after at most three spaces (any indentation inside another element), and ends with the matching closing tag at the end of a line, possibly the same one. Tags inside fenced code and frontmatter are not elements, and neither is text between `<` and `>` that is not attribute syntax (`<insert a summary here>`). An opening tag that is never closed is an empty element. Writers SHOULD leave blank lines inside an element so that Markdown readers parse its content as Markdown.
+
+**A document of a type** is the part of the vault a type applies to: a note of the type, or, in hosts that type sections of a file (such as the reference implementation's lat.md files), each outermost typed section with its subsections.
+
+**Element nodes.** A host MAY make elements graph nodes. It SHOULD make a node of an element that has an `id` attribute, and of one whose declaration has a `type` (unless `node: false`) or `node: true`, and leave every other element as text. An element node has the label `Element` followed by the declared types, the element's attributes as properties, and an edge from the note or section that contains it. An element with an `id` is addressed as `<note>#^<id>`; ids are unique within a note.
+
+### 4.3 Document validation
+
+A validator that reads note bodies MUST, for each document of a type with `elements` or `sections` in its effective schema (section 9), report:
+
+| Diagnostic | Reported when |
+|---|---|
+| `missing-element` | a `required` element does not occur in the document (or in its parent element, for a nested declaration) |
+| `too-many-elements` | an element that is not `many` occurs more than once |
+| `missing-attribute` | a `required` attribute of a declared element is absent or empty |
+| `attribute-value-not-allowed` | an attribute value is not in its `values` |
+| `unclosed-element` | a declared element is never closed |
+| `missing-section` | a `required` heading does not occur in the document |
 
 ## 5. Properties and edges
 
@@ -158,6 +222,7 @@ An empty mapping (`{}`) or a null value declares a type with no constraints.
 | `values` | list of scalars | none | allowed values (an enumeration) |
 | `default` | any YAML value | none | value written into new notes |
 | `uri` | IRI or CURIE | base IRI + name | identifier of the property |
+| `description` | string | none | what the property means (0.4) |
 
 A null declaration (`name:`) is a text property. Within one type, the first declaration of a property name wins.
 
@@ -188,6 +253,7 @@ The **map form** maps each edge type to its target type, or to a list of target 
 | `target` | type name or list | any | allowed target types |
 | `many` | boolean | `true` | more than one edge of this type is allowed |
 | `required` | boolean | `false` | at least one edge of this type is required |
+| `description` | string | none | what this edge means for the type (0.4) |
 
 ```yaml
 edges:
@@ -210,6 +276,7 @@ An edge type declaration describes an edge type everywhere it is used:
 | `properties` | as in 5.1 | properties written on the edge |
 | `uri` | IRI or CURIE | identifier of the edge type (an RDF predicate); default: base IRI + name |
 | `visualization` | mapping | display hints for edges of this type (section 11); `style` is an alias |
+| `description` | string | what the edge type means (0.4) |
 
 Undeclared edge properties are allowed. When both a type's `edges` entry and the edge type declare targets, the type's entry wins for sources of that type.
 
@@ -300,7 +367,7 @@ A schema note MAY declare `tgs: "<major>.<minor>"`. A reader implementing versio
 - MUST report a note that declares another major version as `unsupported-version` and MUST NOT use its declarations;
 - MUST read notes without `tgs` as version 0.1.
 
-TGS 0.2 adds the `id` key (section 8.1) and the template tokens. TGS 0.3 adds AsciiDoc notes (section 2.1) and adds no schema key. Every 0.1 note is a valid 0.2 note, and every 0.2 note is a valid 0.3 note.
+TGS 0.2 adds the `id` key (section 8.1) and the template tokens. TGS 0.3 adds AsciiDoc notes (section 2.1) and adds no schema key. TGS 0.4 adds `description` (section 4.1), `elements` and `sections` (section 4.2) and document validation (section 4.3); unknown keys inside an element declaration are reported like those of a type. Every 0.1 note is a valid 0.2 note, every 0.2 note is a valid 0.3 note, and every 0.3 note is a valid 0.4 note.
 
 Minor versions only add optional keys. A published version never changes.
 
@@ -325,6 +392,7 @@ Each type becomes a `sh:NodeShape` named base IRI + type name + `Shape`:
 | list `default` | `tgs:default` with the value as a JSON literal |
 | `values` | `sh:in ( … )` |
 | declaration order | `sh:order 0, 1, …` |
+| `description` of a type or property | `sh:description` on its shape (0.4) |
 
 ### 13.2 Edges of a type
 
@@ -339,6 +407,7 @@ Each entry of a type's `edges` becomes a property shape on the type's shape:
 | `required: true` | `sh:minCount 1` |
 | `many: false` | `sh:maxCount 1` |
 | `edges` declared | `tgs:edgesClosed true` on the node shape |
+| `description` | `sh:description` on the property shape (0.4) |
 
 `sh:closed` is not used, because it would also close frontmatter properties, which are open in TGS. `tgs:edgesClosed` records the allow-list without changing what SHACL engines validate.
 
@@ -356,7 +425,7 @@ Each edge type becomes a `sh:NodeShape` named base IRI + name + `EdgeShape` that
     sh:property [ sh:path :since ; sh:name "since" ; sh:datatype xsd:date ; sh:maxCount 1 ; sh:order 0 ] .
 ```
 
-The `rdf:predicate` constraint identifies the edge type; `rdf:subject` carries `from` and `rdf:object` carries `to` (with `sh:or` for several types); the remaining property shapes are the edge's properties. The shape declares no target, so validators apply it to reified statements on request. This uses only SHACL 1.0 and the RDF reification vocabulary; a later TGS version may add RDF 1.2 reifiers.
+An edge type's `description` is the `sh:description` of its edge shape. The `rdf:predicate` constraint identifies the edge type; `rdf:subject` carries `from` and `rdf:object` carries `to` (with `sh:or` for several types); the remaining property shapes are the edge's properties. The shape declares no target, so validators apply it to reified statements on request. This uses only SHACL 1.0 and the RDF reification vocabulary; a later TGS version may add RDF 1.2 reifiers.
 
 ### 13.4 Annotations
 
@@ -372,6 +441,8 @@ What SHACL cannot express is kept as annotations, which SHACL engines ignore:
 | `tgs:edge` | property shape | `true` for an edge entry without target types |
 | `tgs:kind` | property shape | `"list"` for kind `list` |
 | `tgs:default` | property shape | a non-scalar default as a JSON literal |
+| `tgs:elements` | node shape | the type's `elements` as a JSON literal (0.4) |
+| `tgs:sections` | node shape | the type's `sections` as a JSON literal (0.4) |
 
 ### 13.5 Import
 
@@ -390,7 +461,7 @@ An importer that writes notes SHOULD write one note per type by default (or grou
 
 ### 13.6 Round trip
 
-For schemas written in TGS, export followed by import MUST reproduce the same types, edge types, properties, edges, identifiers, templates and visualization. Exporting the result again yields the same RDF graph; the reference implementation produces byte-identical Turtle.
+For schemas written in TGS, export followed by import MUST reproduce the same types, edge types, properties, edges, identifiers, templates, visualization, descriptions, elements and sections. Exporting the result again yields the same RDF graph; the reference implementation produces byte-identical Turtle.
 
 ## 14. Conformance
 
@@ -399,6 +470,7 @@ For schemas written in TGS, export followed by import MUST reproduce the same ty
 | **Reader** | sections 3 to 8 and 12: reads every key, applies defaults, expands identifiers, reports declaration diagnostics; a reader that reads `.adoc` notes also implements section 2.1 |
 | **Validator** | Reader, plus section 9 |
 | **SHACL exchanger** | Validator, plus section 13 |
+| **Document validator** | Validator, plus section 4.3 |
 
 The `examples/` folder next to this document contains conformance cases. Each case has a `vault/` folder (schema folder `Types/`, base IRI `urn:tgs:`) and an `expected.json` with:
 
@@ -410,7 +482,7 @@ SHACL cases also have a `shapes.ttl` that an exporter's output must be isomorphi
 
 ## 15. JSON Schema
 
-`tgs.schema.json` (JSON Schema draft 2020-12) validates the TGS keys of a schema note's frontmatter. It is strict about TGS 0.3 keys and leaves `visualization` and all non-TGS keys open. Notes declaring a newer minor version may not validate against it.
+`tgs.schema.json` (JSON Schema draft 2020-12) validates the TGS keys of a schema note's frontmatter. It is strict about TGS 0.4 keys and leaves `visualization` and all non-TGS keys open. Notes declaring a newer minor version may not validate against it.
 
 ## 16. References
 

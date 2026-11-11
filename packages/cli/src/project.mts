@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { compileIgnore, LatIndex, lookupSymbol, scanAnnotations, SpecIndex, type Annotation, type Diagnostic, type SpecFrameworkId } from '@obsigraph/core';
+import { compileIgnore, DEFAULT_SCHEMA_FOLDER, LatIndex, lookupSymbol, readSchemaNote, scanAnnotations, schemaSetFromNotes, SpecIndex, splitFrontmatter, type Annotation, type Diagnostic, type SchemaSet, type SpecFrameworkId } from '@obsigraph/core';
+import { parse as parseYaml } from 'yaml';
 import { detectSpecs, specFiles } from './specs.mjs';
 import { readConfig, type TgConfig } from './config.mjs';
 import { DOCS_DIRS, existingDocsDir, type DocsDir } from './root.mjs';
@@ -28,6 +29,7 @@ export class Project {
   private specCache: SpecIndex | null | undefined;
   private configCache: { config: TgConfig; error: string | null } | null = null;
   private noteCache: string[] | null = null;
+  private schemaCache: SchemaSet | null = null;
 
   constructor(readonly root: string) {
     const dir = existingDocsDir(root);
@@ -106,6 +108,29 @@ export class Project {
       }));
     }
     return this.specCache;
+  }
+
+  /** The ontology declared by the schema notes directly in `Types/` (empty when there are none). */
+  schemas(): SchemaSet {
+    if (!this.schemaCache) {
+      const dir = join(this.root, DEFAULT_SCHEMA_FOLDER);
+      const names = existsSync(dir) && statSync(dir).isDirectory() ? readdirSync(dir).filter((f) => f.endsWith('.md') && statSync(join(dir, f)).isFile()).sort() : [];
+      this.schemaCache = schemaSetFromNotes(
+        names.map((f) => {
+          const path = `${DEFAULT_SCHEMA_FOLDER}${f}`;
+          const { yaml } = splitFrontmatter(this.text(path) ?? '');
+          let fm: Record<string, unknown> | null = null;
+          try {
+            const v: unknown = yaml === null ? null : parseYaml(yaml);
+            if (v && typeof v === 'object' && !Array.isArray(v)) fm = v as Record<string, unknown>;
+          } catch {
+            fm = null;
+          }
+          return readSchemaNote(path, fm);
+        }),
+      );
+    }
+    return this.schemaCache;
   }
 
   /** Spec frameworks the project uses, judged by their folders. */

@@ -2,6 +2,7 @@ import { frontmatterEdges, markdownTarget, parseEdges, type Diagnostic, type Par
 import type { Props } from '../edges/props.js';
 import { noteFormat, parseAsciidoc, type AsciidocSection } from '../asciidoc/parse.js';
 import type { YamlParser } from '../asciidoc/meta.js';
+import { scanElements, scanHeadings, type ElementOccurrence } from '../elements/scan.js';
 
 export interface GraphNode {
   /** Note path for real nodes, link text for stubs. */
@@ -22,6 +23,12 @@ export interface GraphEdge {
   line: number;
   /** Path of the edge note that declares this edge; absent when `source` wrote it. */
   file?: string;
+}
+
+/** The parts of a Markdown note a type can declare: its heading texts and its block-level XML elements. */
+export interface NoteOutline {
+  headings: string[];
+  elements: ElementOccurrence[];
 }
 
 export interface NoteInput {
@@ -78,6 +85,8 @@ export class Graph {
   private readonly incompleteEdgeNotes = new Set<string>();
   /** AsciiDoc notes' sections, for resolving `#id` fragments of cross references. */
   private readonly adocSections = new Map<string, AsciidocSection[]>();
+  /** Headings and XML elements of Markdown notes, for checking documents against their type. */
+  private readonly outlines = new Map<string, NoteOutline>();
 
   constructor(
     private readonly resolve: LinkResolver,
@@ -87,6 +96,11 @@ export class Graph {
   ) {}
 
   // ---- queries -----------------------------------------------------------
+
+  /** Headings and XML elements of a Markdown note, or undefined for AsciiDoc notes, edge notes and nodes built without text. */
+  outline(path: string): NoteOutline | undefined {
+    return this.outlines.get(path);
+  }
 
   get size(): { nodes: number; edges: number } {
     return { nodes: this.nodeMap.size, edges: this.edgeMap.size };
@@ -172,6 +186,8 @@ export class Graph {
     const adoc = noteFormat(note.path) === 'adoc' ? parseAsciidoc(note.text, note.path, { parseYaml: this.options.parseYaml, linkEdges: this.options.linkEdges }) : null;
     if (adoc) this.adocSections.set(note.path, adoc.sections);
     else this.adocSections.delete(note.path);
+    if (!adoc && note.text) this.outlines.set(note.path, { headings: scanHeadings(note.text).map((h) => h.text), elements: /^ {0,3}</m.test(note.text) ? scanElements(note.text) : [] });
+    else this.outlines.delete(note.path);
     // A host that cannot read AsciiDoc metadata hands none; the parsed properties stand in.
     const frontmatter = note.frontmatter ?? adoc?.meta ?? null;
     this.nodeMap.set(note.path, {
@@ -198,6 +214,7 @@ export class Graph {
   // @lat: [[edge-syntax#Edge notes]]
   // @tg: implements:: [[openspec:graph-model#Edge notes]]
   private upsertEdgeNote(note: NoteInput, isNew: boolean, wasEdgeNote: boolean): void {
+    this.outlines.delete(note.path);
     const fm = note.frontmatter ?? {};
     const wasNode = this.nodeMap.has(note.path);
     this.nodeMap.delete(note.path);
@@ -237,6 +254,7 @@ export class Graph {
     if (!this.files.has(path)) return;
     this.dropEdges(path);
     this.files.delete(path);
+    this.outlines.delete(path);
     this.nodeMap.delete(path);
     this.incompleteEdgeNotes.delete(path);
     this.adocSections.delete(path);

@@ -1,5 +1,5 @@
 import { key, scalar as quoted, splitFrontmatter } from '../schema/frontmatter.js';
-import { normalizeFolder, readSchemaNote, type EdgeRule, type PropertySchema } from '../schema/schema.js';
+import { compactElements, compactProperties, compactSections, normalizeFolder, readSchemaNote, type EdgeRule, type PropertySchema } from '../schema/schema.js';
 import { titleOf } from '../graph/graph.js';
 import type { ImportedEdgeType, ImportedType, ShaclImport } from './import.js';
 
@@ -149,8 +149,11 @@ export function planImport(imp: ShaclImport, existing: ExistingNote[], opts: Imp
 export function compactType(t: Omit<ImportedType, 'note' | 'templateBody'>): Record<string, unknown> {
   const o: Record<string, unknown> = {};
   if (t.uri) o.uri = t.uri;
+  if (t.description) o.description = t.description;
   if (t.properties.length) o.properties = compactProps(t.properties);
   if (t.edges) o.edges = compactEdges(t.edges);
+  if (t.sections?.length) o.sections = compactSections(t.sections);
+  if (t.elements?.length) o.elements = compactElements(t.elements);
   if (t.template) o.template = t.template;
   if (t.style) o.visualization = t.style;
   return o;
@@ -160,6 +163,7 @@ export function compactType(t: Omit<ImportedType, 'note' | 'templateBody'>): Rec
 export function compactEdgeType(e: Omit<ImportedEdgeType, 'note'>): Record<string, unknown> {
   const o: Record<string, unknown> = {};
   if (e.uri) o.uri = e.uri;
+  if (e.description) o.description = e.description;
   if (e.from) o.from = e.from.length === 1 ? e.from[0] : e.from;
   if (e.to) o.to = e.to.length === 1 ? e.to[0] : e.to;
   if (e.properties.length) o.properties = compactProps(e.properties);
@@ -168,23 +172,11 @@ export function compactEdgeType(e: Omit<ImportedEdgeType, 'note'>): Record<strin
 }
 
 function compactProps(props: PropertySchema[]): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const p of props) {
-    const o: Record<string, unknown> = {};
-    if (p.kind !== 'text') o.kind = p.kind;
-    if (p.default !== null && p.default !== undefined) o.default = p.default;
-    if (p.required) o.required = true;
-    if (p.many && p.kind !== 'list') o.many = true;
-    if (p.values) o.values = p.values;
-    if (p.uri) o.uri = p.uri;
-    const keys = Object.keys(o);
-    out[p.name] = keys.length === 0 ? 'text' : keys.length === 1 && keys[0] === 'kind' ? o.kind : o;
-  }
-  return out;
+  return compactProperties(props);
 }
 
 function compactEdges(rules: EdgeRule[]): unknown {
-  const plain = (r: EdgeRule) => r.many && !r.required;
+  const plain = (r: EdgeRule) => r.many && !r.required && !r.description;
   if (rules.every((r) => plain(r) && !r.targets)) return rules.map((r) => r.type);
   const out: Record<string, unknown> = {};
   for (const r of rules) {
@@ -195,6 +187,7 @@ function compactEdges(rules: EdgeRule[]): unknown {
       if (target !== undefined) o.target = target;
       if (!r.many) o.many = false;
       if (r.required) o.required = true;
+      if (r.description) o.description = r.description;
       out[r.type] = o;
     }
   }

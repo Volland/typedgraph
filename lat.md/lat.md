@@ -18,3 +18,4 @@ This directory defines the high-level concepts, business logic, and architecture
 - [[tests]] — test specifications tied to test code
 - [[publishing]] — releases, store submission and the website
 - [[code-ontology]] — shared vocabulary of intent types and typed edges between intent and code
+- [[elements]] — document elements: schema descriptions, XML elements and headings, `#^id` addresses, element nodes and shape checks

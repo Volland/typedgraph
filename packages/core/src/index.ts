@@ -3,7 +3,7 @@ export type { ParsedEdge, Diagnostic, ParseOptions, ParseResult, Sign } from './
 export { parseProps, PropsSyntaxError } from './edges/props.js';
 export type { Props, PropValue } from './edges/props.js';
 export { Graph, isEdgeNote, labelsOf, titleOf } from './graph/graph.js';
-export type { GraphNode, GraphEdge, GraphOptions, NoteInput, LinkResolver, SubpathResolver } from './graph/graph.js';
+export type { GraphNode, GraphEdge, GraphOptions, NoteInput, NoteOutline, LinkResolver, SubpathResolver } from './graph/graph.js';
 export { BuiltinEngine } from './cypher/engine.js';
 export type { QueryEngine } from './cypher/engine.js';
 export { AGGREGATE_FUNCTIONS, BINARY_OPERATORS, CLAUSES, containsAgg, FUNCTIONS, parseQuery, PATTERN_FEATURES, queryConstructs, UNARY_OPERATORS } from './cypher/parser.js';
@@ -18,6 +18,9 @@ export type { Value } from './cypher/values.js';
 export {
   BUILTIN_PREFIXES,
   chooseTemplate,
+  compactElements,
+  compactProperties,
+  compactSections,
   DEFAULT_BASE_IRI,
   DEFAULT_SCHEMA_FOLDER,
   edgeNames,
@@ -29,7 +32,9 @@ export {
   newNoteProperties,
   normalizeFolder,
   PROPERTY_KINDS,
+  readElementDeclarations,
   readSchema,
+  readSectionDeclarations,
   readSchemaNote,
   renderNoteFromType,
   scaffoldSchemaNote,
@@ -40,7 +45,13 @@ export {
   TGS_VERSION,
   validateSchemas,
 } from './schema/schema.js';
-export type { EdgeRule, EdgeTypeSchema, PropertyKind, PropertySchema, SchemaNote, SchemaSet, TypeSchema } from './schema/schema.js';
+export type { EdgeRule, EdgeTypeSchema, ElementSchema, PropertyKind, PropertySchema, SchemaNote, SchemaSet, SectionSchema, TypeSchema } from './schema/schema.js';
+export { flattenElements, parseAttributes, scanElements, scanHeadings } from './elements/scan.js';
+export type { ElementOccurrence } from './elements/scan.js';
+export { ELEMENT_LABEL, elementDeclarations, findElementDecl, isElementNode, latElementNodes, specElementNodes } from './elements/nodes.js';
+export type { ElementNode } from './elements/nodes.js';
+export { checkDocuments, noteDocumentDiagnostics } from './elements/validate.js';
+export type { DocumentFinding, DocumentFindingKind } from './elements/validate.js';
 export { splitFrontmatter, toYaml } from './schema/frontmatter.js';
 export {
   compareLuhmann,

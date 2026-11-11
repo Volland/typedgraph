@@ -15,7 +15,7 @@ function cell(v: Value): string {
   if (v === null || v === undefined) return 'null';
   if (typeof v === 'object' && 'props' in (v as object)) {
     const n = v as { id?: string; props?: Record<string, unknown> };
-    return String(n.props?.section ?? n.props?.requirement ?? n.props?.scenario ?? n.props?.title ?? n.id ?? '?');
+    return String(n.props?.section ?? n.props?.requirement ?? n.props?.scenario ?? n.props?.element ?? n.props?.title ?? n.id ?? '?');
   }
   return typeof v === 'string' ? v : JSON.stringify(v);
 }
@@ -45,7 +45,7 @@ export const cypher: Command = {
     try {
       const mode = codeMode(flags.get('code'), ctx.env.TG_CODE);
       const files = mode === 'off' ? [] : project.codeSources();
-      result = new BuiltinEngine(buildLatGraph(project.index(), { code: { mode, files }, specs: project.specIndex(), notes: project.noteFiles().map((path) => ({ path, text: project.text(path) ?? '' })), parseYaml }).graph, () => ({ timeoutMs: 10_000 })).run(query);
+      result = new BuiltinEngine(buildLatGraph(project.index(), { code: { mode, files }, specs: project.specIndex(), schemas: project.schemas(), notes: project.noteFiles().map((path) => ({ path, text: project.text(path) ?? '' })), parseYaml }).graph, () => ({ timeoutMs: 10_000 })).run(query);
     } catch (e) {
       if (e instanceof CypherError) {
         ctx.err(`${e.message}${e.line > 0 ? ` (line ${e.line}, column ${e.column})` : ''}\n`);

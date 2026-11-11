@@ -18,6 +18,8 @@ export interface PropertySchema {
   values: unknown[] | null;
   /** IRI or CURIE as written; null means base IRI plus name. */
   uri: string | null;
+  /** What the property means, for people and agents (TGS 0.4). */
+  description?: string | null;
 }
 
 /** One allowed outgoing edge type of a node type. */
@@ -26,6 +28,37 @@ export interface EdgeRule {
   /** Allowed target types; null means any target. */
   targets: string[] | null;
   many: boolean;
+  required: boolean;
+  description?: string | null;
+}
+
+/**
+ * A block-level XML element a document of a type may contain (TGS 0.4): what
+ * the tag means, its attributes, nested elements, and whether it becomes a
+ * graph node.
+ */
+export interface ElementSchema {
+  /** Tag name as declared; matched case-insensitively. */
+  tag: string;
+  description: string | null;
+  /** Labels an element node gets besides `Element`. */
+  types: string[];
+  /** At least one is required in each document (or parent element). */
+  required: boolean;
+  /** More than one is allowed. */
+  many: boolean;
+  /** `true` makes every occurrence a node, `false` only those with an `id`; null means a node when `types` is non-empty or it has an `id`. */
+  node: boolean | null;
+  /** Attribute declarations, in the form of `properties`. */
+  attributes: PropertySchema[];
+  /** Elements allowed inside this one. */
+  elements: ElementSchema[];
+}
+
+/** A heading a document of a type has (TGS 0.4). */
+export interface SectionSchema {
+  heading: string;
+  description: string | null;
   required: boolean;
 }
 
@@ -45,6 +78,12 @@ export interface TypeSchema {
   bodyIsTemplate: boolean;
   /** Identifiers generated for new notes of this type. */
   ids: IdRule[];
+  /** What the type means, for people and agents (TGS 0.4). */
+  description?: string | null;
+  /** Block-level XML elements a document of this type may contain (TGS 0.4). */
+  elements?: ElementSchema[];
+  /** Headings a document of this type has (TGS 0.4). */
+  sections?: SectionSchema[];
 }
 
 export interface EdgeTypeSchema {
@@ -57,6 +96,7 @@ export interface EdgeTypeSchema {
   properties: PropertySchema[];
   uri: string | null;
   style: Record<string, unknown> | null;
+  description?: string | null;
 }
 
 /** Everything one schema note declares. */
@@ -80,7 +120,8 @@ export const DEFAULT_SCHEMA_FOLDER = 'Types/';
 /** The Typed Graph Schema version this reader implements. */
 // @tg: implements:: [[openspec:tgs-spec#Versioning]]
 // @tg: implements:: [[openspec:tgs-spec#AsciiDoc notes in TGS 0.3]] {confidence: partial}
-export const TGS_VERSION = '0.3';
+// @tg: implements:: [[openspec:document-elements#TGS 0.4 published]]
+export const TGS_VERSION = '0.4';
 // @tg: implements:: [[openspec:tgs-spec#Namespace IRI]]
 export const TGS_NAMESPACE = 'https://volland.github.io/obsigraph/ns/tgs#';
 export const DEFAULT_BASE_IRI = 'urn:tgs:';
@@ -96,8 +137,9 @@ export const BUILTIN_PREFIXES: Readonly<Record<string, string>> = {
 };
 const IRI_SCHEMES = new Set(['http', 'https', 'urn', 'mailto', 'tag', 'did', 'file']);
 
-const TYPE_KEYS = new Set(['properties', 'edges', 'visualization', 'style', 'uri', 'template', 'id']);
-const EDGE_TYPE_KEYS = new Set(['from', 'to', 'properties', 'uri', 'visualization', 'style']);
+const TYPE_KEYS = new Set(['properties', 'edges', 'visualization', 'style', 'uri', 'template', 'id', 'description', 'elements', 'sections']);
+const EDGE_TYPE_KEYS = new Set(['from', 'to', 'properties', 'uri', 'visualization', 'style', 'description']);
+const ELEMENT_KEYS = new Set(['tag', 'description', 'type', 'required', 'many', 'node', 'attributes', 'elements']);
 
 // @tg: implements:: [[openspec:tgs-spec#Host independence]]
 export function normalizeFolder(folder: string): string {
@@ -188,6 +230,7 @@ export function readSchema(path: string, frontmatter: Record<string, unknown> | 
   return { schema, diagnostics };
 }
 
+// @tg: implements:: [[openspec:document-elements#Descriptions]]
 function readTypeBlock(type: string, path: string, decl: Record<string, unknown>, bodyIsTemplate: boolean, diag: Diag, strict: boolean): TypeSchema {
   if (strict) for (const k of Object.keys(decl)) if (!TYPE_KEYS.has(k)) diag(`Unknown key '${k}' (newer TGS version?)`, 'unknown-key');
   // `visualization` is the documented key; `style` is accepted as an alias.
@@ -195,6 +238,8 @@ function readTypeBlock(type: string, path: string, decl: Record<string, unknown>
   if (vis !== undefined && !isRecord(vis)) diag('`visualization` must be a mapping');
   const properties = readProperties(decl.properties, diag);
   const ids = readIds(decl.id, diag);
+  const elements = readElements(decl.elements, diag, strict);
+  const sections = readSections(decl.sections, diag);
   // An id property that is not declared is a plain text property.
   for (const r of ids) if (!properties.some((p) => p.name === r.property)) properties.push({ name: r.property, kind: 'text', default: null, required: false, many: false, values: null, uri: null });
   return {
@@ -207,7 +252,128 @@ function readTypeBlock(type: string, path: string, decl: Record<string, unknown>
     uri: readString(decl.uri, '`uri`', diag),
     template: readString(decl.template, '`template`', diag),
     bodyIsTemplate,
+    ...described(readString(decl.description, '`description`', diag)),
+    ...(elements.length ? { elements } : {}),
+    ...(sections.length ? { sections } : {}),
   };
+}
+
+/** `{description}` when there is one, else nothing, so undescribed declarations read exactly as before TGS 0.4. */
+function described(description: string | null): { description?: string } {
+  return description ? { description } : {};
+}
+
+/**
+ * Read `elements`: a mapping from tag name to declaration, or a list of tag
+ * names. A declaration may be null (a tag with no rules) or a description string.
+ */
+// @tg: implements:: [[openspec:document-elements#Element declarations]]
+function readElements(raw: unknown, diag: Diag, strict: boolean): ElementSchema[] {
+  if (raw === undefined || raw === null) return [];
+  const out: ElementSchema[] = [];
+  const entries: [string, unknown][] = Array.isArray(raw)
+    ? raw.flatMap((x): [string, unknown][] => (typeof x === 'string' ? [[x, null]] : isRecord(x) && typeof x.tag === 'string' ? [[x.tag, x]] : (diag('Each entry in `elements` needs a tag name'), [])))
+    : isRecord(raw)
+      ? Object.entries(raw)
+      : (diag('`elements` must be a mapping from tag name to declaration'), []);
+  for (const [tag, v] of entries) {
+    const d: Diag = (m, c) => diag(`Element '${tag}': ${m}`, c);
+    if (!/^[A-Za-z][\w.-]*$/.test(tag)) {
+      d('is not a valid tag name; ignored');
+      continue;
+    }
+    if (out.some((e) => e.tag.toLowerCase() === tag.toLowerCase())) {
+      d('is declared twice; the first wins');
+      continue;
+    }
+    const decl: Record<string, unknown> = typeof v === 'string' ? { description: v } : isRecord(v) ? v : {};
+    if (v !== null && v !== undefined && typeof v !== 'string' && !isRecord(v)) d('declaration must be a mapping or a description');
+    if (strict) for (const k of Object.keys(decl)) if (!ELEMENT_KEYS.has(k)) d(`Unknown key '${k}' (newer TGS version?)`, 'unknown-key');
+    if (decl.node !== undefined && typeof decl.node !== 'boolean') d('`node` must be true or false');
+    out.push({
+      tag,
+      description: readString(decl.description, '`description`', d),
+      types: readNames(decl.type, '`type`', d) ?? [],
+      required: decl.required === true,
+      many: decl.many !== false,
+      node: typeof decl.node === 'boolean' ? decl.node : null,
+      attributes: readProperties(decl.attributes, d),
+      elements: readElements(decl.elements, d, strict),
+    });
+  }
+  return out;
+}
+
+/** Read an `elements` value (as written in YAML, or from a `tgs:elements` annotation) into declarations. */
+export function readElementDeclarations(raw: unknown, report: (message: string) => void = () => {}): ElementSchema[] {
+  return readElements(raw, (m) => report(m), false);
+}
+
+/** Read a `sections` value into declarations. */
+export function readSectionDeclarations(raw: unknown, report: (message: string) => void = () => {}): SectionSchema[] {
+  return readSections(raw, (m) => report(m));
+}
+
+/** Element declarations as TGS YAML, using shorthands where they are lossless: a description string, or null for a bare tag. */
+export function compactElements(list: ElementSchema[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const e of list) {
+    const o: Record<string, unknown> = {};
+    if (e.description) o.description = e.description;
+    if (e.types.length) o.type = e.types.length === 1 ? e.types[0] : e.types;
+    if (e.required) o.required = true;
+    if (!e.many) o.many = false;
+    if (e.node !== null) o.node = e.node;
+    if (e.attributes.length) o.attributes = compactProperties(e.attributes);
+    if (e.elements.length) o.elements = compactElements(e.elements);
+    const keys = Object.keys(o);
+    out[e.tag] = keys.length === 0 ? null : keys.length === 1 && keys[0] === 'description' ? o.description : o;
+  }
+  return out;
+}
+
+/** Section declarations as TGS YAML. */
+export function compactSections(list: SectionSchema[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const h of list) out[h.heading] = h.required ? { ...(h.description ? { description: h.description } : {}), required: true } : (h.description ?? null);
+  return out;
+}
+
+/** Property declarations as TGS YAML: a kind shorthand where nothing else is set. */
+export function compactProperties(props: PropertySchema[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const p of props) {
+    const o: Record<string, unknown> = {};
+    if (p.kind !== 'text') o.kind = p.kind;
+    if (p.default !== null && p.default !== undefined) o.default = p.default;
+    if (p.required) o.required = true;
+    if (p.many && p.kind !== 'list') o.many = true;
+    if (p.values) o.values = p.values;
+    if (p.uri) o.uri = p.uri;
+    if (p.description) o.description = p.description;
+    const keys = Object.keys(o);
+    out[p.name] = keys.length === 0 ? 'text' : keys.length === 1 && keys[0] === 'kind' ? o.kind : o;
+  }
+  return out;
+}
+
+/** Read `sections`: a mapping from heading to declaration (or description), or a list of headings. */
+// @tg: implements:: [[openspec:document-elements#Section declarations]]
+function readSections(raw: unknown, diag: Diag): SectionSchema[] {
+  if (raw === undefined || raw === null) return [];
+  const entries: [string, unknown][] = Array.isArray(raw)
+    ? raw.flatMap((x): [string, unknown][] => (typeof x === 'string' ? [[x, null]] : isRecord(x) && typeof x.heading === 'string' ? [[x.heading, x]] : (diag('Each entry in `sections` needs a heading'), [])))
+    : isRecord(raw)
+      ? Object.entries(raw)
+      : (diag('`sections` must be a mapping from heading to declaration'), []);
+  const out: SectionSchema[] = [];
+  for (const [heading, v] of entries) {
+    const d: Diag = (m, c) => diag(`Section '${heading}': ${m}`, c);
+    const decl: Record<string, unknown> = typeof v === 'string' ? { description: v } : isRecord(v) ? v : {};
+    if (out.some((s) => s.heading.toLowerCase() === heading.toLowerCase())) continue;
+    out.push({ heading, description: readString(decl.description, '`description`', d), required: decl.required === true });
+  }
+  return out;
 }
 
 /** Read the `id` key: a kind, a mapping, or a list of mappings that each name their property. */
@@ -251,6 +417,7 @@ function readEdgeTypeBlock(type: string, path: string, decl: Record<string, unkn
     properties: readProperties(decl.properties, diag),
     uri: readString(decl.uri, '`uri`', diag),
     style: isRecord(vis) ? vis : null,
+    ...described(readString(decl.description, '`description`', diag)),
   };
 }
 
@@ -276,6 +443,7 @@ function readProperties(props: unknown, diag: Diag): PropertySchema[] {
       many: kind === 'list' || s.many === true,
       values,
       uri: readString(s.uri, `Property '${name}': \`uri\``, diag),
+      ...described(readString(s.description, `Property '${name}': \`description\``, diag)),
     });
   };
   if (Array.isArray(props)) {
@@ -302,7 +470,7 @@ function readEdges(raw: unknown, diag: Diag): EdgeRule[] | null {
   }
   return Object.entries(raw).map(([type, v]) => {
     const d: Diag = (m, c) => diag(`Edge '${type}': ${m}`, c);
-    if (isRecord(v)) return { type, targets: readNames(v.target, '`target`', d), many: v.many !== false, required: v.required === true };
+    if (isRecord(v)) return { type, targets: readNames(v.target, '`target`', d), many: v.many !== false, required: v.required === true, ...described(readString(v.description, '`description`', d)) };
     return { type, targets: readNames(v, 'target', d), many: true, required: false };
   });
 }
@@ -432,8 +600,14 @@ export function mergeSchemas(labels: string[], schemas: Map<string, TypeSchema>)
       }
     }
   }
+  const elements: ElementSchema[] = [];
+  const sections: SectionSchema[] = [];
+  for (const s of found) {
+    for (const e of s.elements ?? []) if (!elements.some((x) => x.tag.toLowerCase() === e.tag.toLowerCase())) elements.push(e);
+    for (const h of s.sections ?? []) if (!sections.some((x) => x.heading.toLowerCase() === h.heading.toLowerCase())) sections.push(h);
+  }
   const first = found[0]!;
-  return { ...first, type: found.map((s) => s.type).join('+'), properties, edges };
+  return { ...first, type: found.map((s) => s.type).join('+'), properties, edges, ...(elements.length ? { elements } : {}), ...(sections.length ? { sections } : {}) };
 }
 
 const present = (v: unknown) => v !== undefined && v !== null && v !== '';

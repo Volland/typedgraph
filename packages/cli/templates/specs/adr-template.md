@@ -11,8 +11,17 @@ decision-makers: []
 
 ## Considered Options
 
-* {option 1}
-* {option 2}
+<option id="{option-1}" outcome="chosen">
+
+{option 1}: {why it won}
+
+</option>
+
+<option id="{option-2}" outcome="rejected">
+
+{option 2}: {why it lost}
+
+</option>
 
 ## Decision Outcome
 
@@ -20,9 +29,18 @@ Chosen option: "{option 1}", because {justification}.
 
 ### Consequences
 
-* Good, because {positive consequence}
-* Bad, because {negative consequence}
+<consequence kind="good">
+
+{positive consequence}
+
+</consequence>
+
+<consequence kind="bad">
+
+{negative consequence}
+
+</consequence>
 
 ## More Information
 
-Link code that realizes this decision with `// @tg: implements:: [[adr:NNNN]]`, and earlier records it replaces with a line `Supersedes [NNNN. Title](NNNN-title.md)`.
+Link code that realizes this decision with `// @tg: implements:: [[adr:NNNN]]`, or one of its options with `[[adr:NNNN#^option-id]]`, and earlier records it replaces with a line `Supersedes [NNNN. Title](NNNN-title.md)`. `tg ontology` says what each heading and element is for.

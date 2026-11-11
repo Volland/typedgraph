@@ -1,4 +1,5 @@
 import { levenshtein } from '../latmd/index.js';
+import { scanElements, type ElementOccurrence } from '../elements/scan.js';
 import { frameworkOfTarget, locateSpecFile, parseSpecFile, SPEC_FRAMEWORKS, specFramework, type SpecFrameworkId, type SpecFrameworkInfo, type SpecLocation } from './frameworks.js';
 
 /** One OpenSpec file to index: project-relative posix path and text. */
@@ -53,6 +54,20 @@ export interface SpecRequirement {
   props?: Record<string, string>;
   /** Typed edges the file itself states, such as an ADR that supersedes another. */
   relations?: { type: string; target: string }[];
+}
+
+/** A block-level XML element inside a spec file, with the requirement or scenario it sits under. */
+export interface SpecElement {
+  /** The document it is addressed in: `adr:0003`, or `<scheme><group>` such as `openspec:auth`. */
+  doc: string;
+  /** `<doc>#^<id>` for an element with an `id`; else null. */
+  id: string | null;
+  file: string;
+  element: ElementOccurrence;
+  /** Id of the requirement or scenario above it in the file. */
+  owner: string;
+  /** The element it is nested in, if any. */
+  parent: SpecElement | null;
 }
 
 export type SpecResolution =
@@ -167,17 +182,22 @@ export class SpecIndex {
   /** `<scheme><group>` and, for groups like `001-auth`, `<scheme>auth`, to the group as written. */
   private caps = new Map<string, string>();
   private all: SpecRequirement[] = [];
+  private elementList: SpecElement[] = [];
+  private elementIdx = new Map<string, SpecElement>();
+  private texts = new Map<string, string>();
 
   constructor(files: SpecFile[] = []) {
     const main: SpecRequirement[] = [];
     const pending: SpecRequirement[] = [];
     const removed: { capability: string; name: string; change: string }[] = [];
+    const parsedFiles: { path: string; text: string; at: SpecLocation; requirements: SpecRequirement[] }[] = [];
     for (const f of [...files].sort((a, b) => a.path.localeCompare(b.path))) {
       const at = f.at ?? locateSpecFile(f.path);
       if (!at) continue;
       const p = parseSpecFile(f.path, f.text, at);
       (at.change ? pending : main).push(...p.requirements);
       for (const name of p.removed) removed.push({ capability: at.group, name, change: at.change! });
+      parsedFiles.push({ path: f.path, text: f.text, at, requirements: p.requirements });
     }
     for (const r of [...main, ...pending]) {
       const fw = fwOf(r);
@@ -197,6 +217,69 @@ export class SpecIndex {
       if (short && !fw.flat && !this.caps.has(`${fw.scheme}${norm(short[1]!)}`)) this.caps.set(`${fw.scheme}${norm(short[1]!)}`, r.capability);
     }
     for (const x of removed) this.byKey.get(this.key(specFramework('openspec')!, x.capability, x.name))?.removedBy.push(x.change);
+    for (const f of parsedFiles) this.indexElements(f.path, f.text, f.at, f.requirements);
+  }
+
+  /** Elements of one spec file, each owned by the requirement or scenario above it. */
+  // @tg: implements:: [[openspec:document-elements#Elements in spec files]]
+  private indexElements(path: string, text: string, at: SpecLocation, parsed: SpecRequirement[]): void {
+    this.texts.set(path, text);
+    if (!parsed.length || !text.includes('<')) return;
+    const fw = specFramework(at.framework)!;
+    // Owners in file order; a requirement shadowed by an earlier one (a MODIFIED delta) maps to the one kept.
+    const owners: { line: number; id: string }[] = [];
+    for (const r of parsed) {
+      const kept = this.byKey.get(this.key(fw, r.capability, r.name)) ?? r;
+      owners.push({ line: r.line, id: kept.id });
+      for (const sc of r.scenarios) owners.push({ line: sc.line, id: kept.scenarios.find((x) => norm(x.name) === norm(sc.name))?.id ?? sc.id });
+    }
+    owners.sort((a, b) => a.line - b.line);
+    const ownerAt = (line: number) => [...owners].reverse().find((o) => o.line <= line)?.id ?? owners[0]!.id;
+    const doc = fw.flat ? (this.byKey.get(this.key(fw, '', parsed[0]!.name))?.id ?? parsed[0]!.id) : `${fw.scheme}${at.group}`;
+    const walk = (list: ElementOccurrence[], parent: SpecElement | null) => {
+      for (const element of list) {
+        const name = element.attrs.id?.trim();
+        const e: SpecElement = { doc, id: name ? `${doc}#^${name}` : null, file: path, element, owner: ownerAt(element.line), parent };
+        this.elementList.push(e);
+        if (e.id && !this.elementIdx.has(e.id.toLowerCase())) this.elementIdx.set(e.id.toLowerCase(), e);
+        walk(element.children, e);
+      }
+    };
+    walk(scanElements(text), null);
+  }
+
+  /** Text of a spec file, for reading the elements, headings and typed edge lines inside it. */
+  fileText(path: string): string | null {
+    return this.texts.get(path) ?? null;
+  }
+
+  /** Every element in the spec files, parents before children. */
+  elements(): SpecElement[] {
+    return this.elementList;
+  }
+
+  /**
+   * The element a `<doc>#^<id>` target names: `adr:3#^redis` (any alias of the
+   * record), `openspec:auth#^lockout` (any spelling of the group). Null when the
+   * target has no `#^` or names no element.
+   */
+  // @tg: implements:: [[openspec:document-elements#Addressing by id]]
+  element(target: string): SpecElement | null {
+    const at = target.indexOf('#^');
+    if (at === -1) return null;
+    const docPart = target.slice(0, at);
+    const name = target.slice(at + 2).trim();
+    const fw = frameworkOfTarget(docPart);
+    if (!fw) return null;
+    let doc: string | null = null;
+    if (fw.flat) {
+      const r = this.resolve(docPart);
+      doc = r.kind === 'requirement' ? r.requirement.id : null;
+    } else {
+      const g = this.caps.get(`${fw.scheme}${norm(docPart.slice(fw.scheme.length))}`);
+      doc = g ? `${fw.scheme}${g}` : null;
+    }
+    return doc ? (this.elementIdx.get(`${doc}#^${name}`.toLowerCase()) ?? null) : null;
   }
 
   private key(fw: SpecFrameworkInfo, group: string, name: string): string {

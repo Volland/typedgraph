@@ -9,7 +9,7 @@ description: Write and maintain the lat.md/ documentation folder as a typed grap
 
 ## Workflow
 
-1. **Learn the vocabulary.** `tg ontology` lists the types, the edge types with their endpoints, and the properties each edge takes. Read it once per session, and again whenever you need a relation you have not used yet. The project may have added its own types and edges to `Types/`: prefer a fitting domain type over a generic one.
+1. **Learn the vocabulary.** `tg ontology` lists the types, the edge types with their endpoints, and the properties each edge takes, each with a description of what it means, plus the headings and XML elements a section of each type may hold. Read it once per session, and again whenever you need a relation you have not used yet. The project may have added its own types and edges to `Types/`: prefer a fitting domain type over a generic one.
 2. **Find what exists.** `tg search "<topic>"`, then `tg section "<id>"`. Extend a section instead of duplicating it. For relations, ask the graph: `tg cypher "MATCH (s {title: '<title>'})-[r]-(x) RETURN type(r), x.title, r"`.
 3. **Write typed.** Put new content in the file whose `type:` matches it (`decisions.md` for a Decision, `constraints.md` for a Constraint, ...); create the file with the right `type:` frontmatter if it does not exist, and list it in the index.
 4. **Name every relation** as a typed edge line after the section's leading paragraph, with the facts about the relation as properties.
@@ -56,10 +56,34 @@ Access tokens expire after 15 minutes and refresh tokens rotate on every use.
 - A leading `-` (`-contradicts::`) means a known conflict, and nothing else.
 - **A relation with no name in the ontology** is a schema change: add an edge type to the schema note in `Types/` (`from`, `to`, `properties`) and use it. Do not invent a one-off synonym.
 
+## Parts inside a section: elements
+
+A section can mark its parts with XML elements that the ontology declares for its type, such as a Decision's `<option>`, a Requirement's `<rule>` or `<example>`, or a Constraint's `<exception>`. `tg ontology` prints each tag with its attributes and what it means. Put the tags on their own lines with blank lines inside, so the Markdown and links in between are still read:
+
+```markdown
+## Short-lived access tokens
+
+Access tokens expire after 15 minutes and refresh tokens rotate on every use.
+
+<option id="redis-sessions" outcome="rejected">
+
+Server sessions in Redis: one more stateful service to run.
+
+- motivated_by:: [[constraints#Session limit]]
+
+</option>
+```
+
+- **An `id` makes a part addressable**: `[[decisions#^redis-sessions]]` from docs, `// @tg: implements:: [[requirements#^lockout]]` from code, `[[adr:0003#^redis]]` or `[[openspec:auth#^lockout]]` in spec files. Ids are unique per file; `tg check` reports a missing or repeated one.
+- **A typed edge line inside an element starts at the element**, not at its section, so the reason belongs to the option it explains.
+- **Choose the smallest thing that answers the question.** Keep prose when nothing points at the part and nobody checks it. Use an element when the part lives only inside its section but something must link to it, query it or check it (an option, a rule, an exception). Use a heading when readers navigate to it. Use a separate typed section when it has its own life: its own edges from several places, its own status, or more than a few paragraphs.
+- Give an element an `id` only when something links to it; an element without an `id` stays text unless the ontology gives its tag a `type`.
+- `tg ontology check` reports attribute values outside the declared ones, unclosed tags, and elements or headings a type marks `required`.
+
 ## Rules `tg check` enforces
 
 - Every section starts with a leading paragraph of at most 250 characters (wiki-link text not counted), before any child heading or edge list.
-- Every `[[link]]` resolves: to a section id, to a source file, or to a symbol (`file#Class#method`).
+- Every `[[link]]` resolves: to a section id, to an element id (`file#^id`), to a source file, or to a symbol (`file#Class#method`).
 - Every folder has an index file named after it (`lat.md/lat.md`, `tests/tests.md`) listing its children as `- [[name]] — description`.
 - Files with `require-code-mention: true` in frontmatter need an `@lat:` or `@tg:` comment in code for every leaf section.
 
@@ -85,5 +109,6 @@ When reviewing a change to `lat.md/`, ask:
 
 - Is every new file typed, and is each section in the file its type says?
 - Is every relation written as a typed edge with a declared name, not only as prose?
+- Are options, rules and exceptions that something must point at marked as elements with ids, and is the rest left as prose?
 - Do the facts that belong on the relation (since, ticket, strength) appear as properties?
 - Does `tg ontology check` pass?

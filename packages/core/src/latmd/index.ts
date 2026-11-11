@@ -1,4 +1,5 @@
 import { flattenSections, parseMarkdown, type ParsedMarkdown, type Section, type WikiRef } from './markdown.js';
+import { flattenElements, type ElementOccurrence } from '../elements/scan.js';
 import { adocSections } from './adoc.js';
 import { extOf, isSourceTarget, splitTarget, toPosix } from './links.js';
 
@@ -10,9 +11,24 @@ export interface LatFile {
 
 export type LinkResult =
   | { kind: 'section'; id: string; section: Section }
+  | { kind: 'element'; id: string; file: string; element: ElementOccurrence }
   | { kind: 'code'; file: string; symbol: string | null }
   | { kind: 'ambiguous'; candidates: string[]; suggested: string | null }
-  | { kind: 'missing'; reason: 'no-section' | 'unsupported-extension'; ext?: string; suggestion: string | null };
+  | { kind: 'missing'; reason: 'no-section' | 'no-element' | 'unsupported-extension'; ext?: string; suggestion: string | null };
+
+/** An element with an `id` attribute in a lattice file, addressable as `file#^id`. */
+export interface AddressedElement {
+  /** `lat.md/dir/file#^id`. */
+  id: string;
+  /** Project-relative path without `.md`. */
+  file: string;
+  /** Project-relative path with `.md`. */
+  filePath: string;
+  element: ElementOccurrence;
+}
+
+/** Separator between a document and an element id in a link: `decisions#^redis`. */
+export const ELEMENT_MARK = '#^';
 
 export interface FindMatch {
   section: Section;
@@ -67,6 +83,8 @@ export class LatIndex {
   private ids = new Set<string>();
   private byId = new Map<string, Section>();
   private fileIdx = new Map<string, string[]>();
+  private elementIdx = new Map<string, AddressedElement>();
+  private elementDups: AddressedElement[] = [];
 
   constructor(files: LatFile[] = []) {
     for (const f of files) this.files.set(toPosix(f.path), parseMarkdown(f.path, f.text));
@@ -116,6 +134,52 @@ export class LatIndex {
       }
     }
     this.fileIdx = new Map([...index].map(([k, v]) => [k, [...v]]));
+    this.elementIdx = new Map();
+    this.elementDups = [];
+    for (const [filePath, parsed] of this.files) {
+      const file = filePath.replace(/\.md$/, '');
+      for (const element of flattenElements(parsed.elements)) {
+        const name = element.attrs.id?.trim();
+        if (!name) continue;
+        const e: AddressedElement = { id: `${file}${ELEMENT_MARK}${name}`, file, filePath, element };
+        const key = e.id.toLowerCase();
+        if (this.elementIdx.has(key)) this.elementDups.push(e);
+        else this.elementIdx.set(key, e);
+      }
+    }
+  }
+
+  /** Every element with an `id` in the lattice, first occurrence of each id. */
+  elements(): AddressedElement[] {
+    return [...this.elementIdx.values()];
+  }
+
+  /** Elements whose id repeats one earlier in the same file. */
+  duplicateElements(): AddressedElement[] {
+    return this.elementDups;
+  }
+
+  /** The element with a canonical id such as `lat.md/decisions#^redis`, ignoring case. */
+  element(id: string): AddressedElement | undefined {
+    return this.elementIdx.get(id.toLowerCase());
+  }
+
+  /** Resolve `file#^id`, with the file as a full path or a unique short name. */
+  // @tg: implements:: [[openspec:document-elements#Addressing by id]]
+  private resolveElement(target: string): LinkResult {
+    const at = target.indexOf(ELEMENT_MARK);
+    const doc = normalizeRefFilePath(target.slice(0, at)).replace(/\.md$/i, '');
+    const name = target.slice(at + ELEMENT_MARK.length).trim();
+    const files = this.files.has(`${doc}.md`) ? [doc] : (this.fileIdx.get(doc.toLowerCase()) ?? []).filter((f) => this.files.has(`${f}.md`));
+    if (files.length > 1) {
+      const hits = files.filter((f) => this.element(`${f}${ELEMENT_MARK}${name}`));
+      return { kind: 'ambiguous', candidates: files.map((f) => `${f}${ELEMENT_MARK}${name}`), suggested: hits.length === 1 ? `${hits[0]}${ELEMENT_MARK}${name}` : null };
+    }
+    const e = files.length ? this.element(`${files[0]}${ELEMENT_MARK}${name}`) : undefined;
+    if (e) return { kind: 'element', id: e.id, file: e.filePath, element: e.element };
+    const ids = files.length ? this.elements().filter((x) => x.file === files[0]).map((x) => x.id) : [];
+    const near = ids.map((id) => ({ id, d: levenshtein(id.slice(id.indexOf(ELEMENT_MARK) + 2).toLowerCase(), name.toLowerCase()) })).sort((a, b) => a.d - b.d)[0];
+    return { kind: 'missing', reason: 'no-element', suggestion: near && near.d <= Math.max(2, Math.floor(name.length * 0.4)) ? near.id : null };
   }
 
   sections(): Section[] {
@@ -168,6 +232,7 @@ export class LatIndex {
   /** Resolve one wiki-link target to a section, a code target, or a failure kind. */
   // @tg: implements:: [[openspec:lat-resolver#Link resolution]]
   resolve(target: string): LinkResult {
+    if (target.includes(ELEMENT_MARK) && !isSourceTarget(target)) return this.resolveElement(target);
     const r = this.resolveRef(target);
     if (r.ambiguous) return { kind: 'ambiguous', candidates: r.ambiguous, suggested: r.suggested };
     const hit = this.section(r.resolved);

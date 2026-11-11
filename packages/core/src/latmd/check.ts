@@ -1,10 +1,10 @@
 import type { Annotation } from '../code/annotations.js';
 import { isSpecTarget, type SpecIndex } from '../openspec/index.js';
-import type { LatIndex } from './index.js';
+import { ELEMENT_MARK, type LatIndex } from './index.js';
 import { isSourceTarget, splitTarget, SOURCE_EXTENSIONS } from './links.js';
 import { leadingParagraphIssue, MAX_LEADING_LENGTH, flattenSections, specEntries } from './markdown.js';
 
-export type FindingKind = 'link' | 'code-ref' | 'index' | 'section' | 'annotation';
+export type FindingKind = 'link' | 'code-ref' | 'index' | 'section' | 'annotation' | 'element';
 
 export interface Finding {
   kind: FindingKind;
@@ -57,6 +57,7 @@ function checkLinks(input: CheckInput): Finding[] {
     const r = index.resolve(ref.target);
     switch (r.kind) {
       case 'section':
+      case 'element':
         break;
       case 'ambiguous':
         out.push({ kind: 'link', file, line: ref.line, target: ref.target, message: ambiguousMessage(ref.target, r.candidates, r.suggested) });
@@ -75,7 +76,9 @@ function checkLinks(input: CheckInput): Finding[] {
           message:
             r.reason === 'unsupported-extension'
               ? `broken link [[${ref.target}]] — unsupported file extension "${r.ext}". Supported: ${[...SOURCE_EXTENSIONS].sort().join(', ')}`
-              : `broken link [[${ref.target}]] — no matching section found`,
+              : r.reason === 'no-element'
+                ? `broken link [[${ref.target}]] — no element with that id${r.suggestion ? ` — did you mean '[[${r.suggestion}]]'?` : ''}`
+                : `broken link [[${ref.target}]] — no matching section found`,
         });
         break;
     }
@@ -95,6 +98,13 @@ function checkCodeRefs(input: CheckInput): Finding[] {
         if (input.specs === undefined) continue;
         const err = specTargetError(input.specs, e.target);
         if (err) out.push({ kind: 'annotation', file: a.file, line: a.line, target: e.target, message: `@tg: [[${e.target}]] — ${err}` });
+        continue;
+      }
+      if (e.target.includes(ELEMENT_MARK) && !isSourceTarget(e.target)) {
+        const r = index.resolve(e.target);
+        if (r.kind === 'element') continue;
+        const message = r.kind === 'ambiguous' ? ambiguousMessage(e.target, r.candidates, r.suggested) : `@${a.kind}: [[${e.target}]] — no element with that id${r.kind === 'missing' && r.suggestion ? ` — did you mean '[[${r.suggestion}]]'?` : ''}`;
+        out.push({ kind: a.kind === 'lat' ? 'code-ref' : 'annotation', file: a.file, line: a.line, target: e.target, message });
         continue;
       }
       const r = index.resolveRef(e.target);
@@ -126,6 +136,7 @@ function checkCodeRefs(input: CheckInput): Finding[] {
 
 function specTargetError(specs: SpecIndex | null, target: string): string | null {
   if (!specs) return 'no spec framework (openspec/, specs/, .kiro/specs/, docs/adr/, ...) in this project';
+  if (target.includes(ELEMENT_MARK)) return specs.element(target) ? null : `no element "${target.slice(target.indexOf(ELEMENT_MARK) + 2)}" in ${target.slice(0, target.indexOf(ELEMENT_MARK))}`;
   const r = specs.resolve(target);
   return r.kind === 'missing' ? `${r.message}${r.suggestion ? ` — did you mean '[[${r.suggestion}]]'?` : ''}` : null;
 }
@@ -209,6 +220,18 @@ function checkIndex(input: CheckInput): Finding[] {
   return out;
 }
 
+/** Element ids: an `id` attribute names one element per file, so `file#^id` has one target. */
+// @tg: implements:: [[openspec:document-elements#Addressing by id]]
+function checkElements(input: CheckInput): Finding[] {
+  return input.index.duplicateElements().map((e) => ({
+    kind: 'element' as const,
+    file: e.filePath,
+    line: e.element.line,
+    target: e.id,
+    message: `element id "${e.element.attrs.id}" is used twice in ${e.filePath} — links to [[${e.id.slice(e.id.lastIndexOf('/') + 1)}]] reach only the first; give each element its own id`,
+  }));
+}
+
 function checkSections(input: CheckInput): Finding[] {
   const out: Finding[] = [];
   for (const [path, parsed] of input.index.files) {
@@ -240,6 +263,6 @@ export function checkLattice(input: CheckInput, scopes: CheckScope[] = ['md', 'c
   if (scopes.includes('md')) out.push(...checkLinks(input), ...checkSpecFrontmatter(input));
   if (scopes.includes('code-refs')) out.push(...checkCodeRefs(input));
   if (scopes.includes('index')) out.push(...checkIndex(input));
-  if (scopes.includes('sections')) out.push(...checkSections(input));
+  if (scopes.includes('sections')) out.push(...checkSections(input), ...checkElements(input));
   return out;
 }

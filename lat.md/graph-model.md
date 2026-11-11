@@ -8,7 +8,7 @@ The in-memory property graph built from the vault: notes become labeled nodes, p
 
 ## Nodes
 
-One note is one node; headings and blocks are not nodes in v1.
+One note is one node; headings and blocks are not nodes in v1. The `tg` graph goes further: sections are nodes, and so are document elements with an id or a declared type ([[elements#Element nodes]]).
 
 Links to notes that do not exist become stub nodes, keyed by link text, so the graph has no dangling edges. Stubs are reference-counted and vanish with their last edge. Implemented by [[packages/core/src/graph/graph.ts#Graph]], which stores parsed edges per file so re-resolution after add, delete or rename needs no re-parse. A note is a Markdown file or an `.adoc` file ([[asciidoc]]); an AsciiDoc note keeps its extension in its id and takes its title from `= Title`.
 
@@ -28,7 +28,7 @@ A schema note such as `Types/Person.md` declares a type's properties, defaults, 
 
 Schema notes are optional; the graph works without them. Creating a note from a type applies its template.
 
-A note directly in the schema folder (setting, default `Types/`) declares types in its frontmatter. `schema:` declares the type named by the note title, with the body as its template; `schemas:` declares any number of types by name, so one note can describe a whole subsystem; `edgeTypes:` declares edge types; `prefixes:` adds CURIE prefixes. All may appear together. The format is published as the open [[shacl#Typed Graph Schema]] specification.
+A note directly in the schema folder (setting, default `Types/`) declares types in its frontmatter. `schema:` declares the type named by the note title, with the body as its template; `schemas:` declares any number of types by name, so one note can describe a whole subsystem; `edgeTypes:` declares edge types; `prefixes:` adds CURIE prefixes. All may appear together. From TGS 0.4 every declaration may carry a `description`, and a type may declare the `elements` and `sections` its documents hold ([[elements]]). The format is published as the open [[shacl#Typed Graph Schema]] specification.
 
 A type has `properties` (map, kind shorthand or list; kinds text, number, boolean, date, datetime, link, list; `default`, `required`, `many`, `values`, `uri`), `edges` (absent means unrestricted; a list of types, or a map to target types or `{target, many, required}`), `template` (a link to a template note), `uri` and `visualization` (alias `style`, consumed by visualization config). An edge type has `from`, `to`, `properties`, `uri` and `visualization`. Read by [[packages/core/src/schema/schema.ts#readSchemaNote]] and collected by [[packages/core/src/schema/schema.ts#schemasFromGraph]], where the first declaration by path wins and duplicates are reported.
 

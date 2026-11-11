@@ -1,4 +1,4 @@
-import { buildLatGraph, DEFAULT_SCHEMA_FOLDER, normalizeFolder, readSchemaNote, schemaSetFromNotes, type Graph, type GraphNode, type PropertySchema, type SchemaSet } from '@obsigraph/core';
+import { buildLatGraph, checkDocuments, DEFAULT_SCHEMA_FOLDER, ELEMENT_LABEL, normalizeFolder, readSchemaNote, schemaSetFromNotes, type ElementSchema, type Graph, type GraphNode, type PropertySchema, type SchemaSet, type SectionSchema } from '@obsigraph/core';
 import { EXIT_ERROR, EXIT_FINDINGS, EXIT_OK, register, type Command, type Ctx } from '../cli.mjs';
 import { NoLatDir, Project } from '../project.mjs';
 import { readSchemaNotes } from './schema.mjs';
@@ -12,7 +12,7 @@ const STRUCTURAL = new Set(['contains', 'references']);
 /** Properties tg adds on its own: a pinned id, and the test name of a test-call annotation. */
 const BUILTIN_PROPS = new Set(['id', 'test']);
 /** Labels every node of a kind has; they say nothing about its type in the ontology. */
-const GENERIC_LABELS = new Set(['Section']);
+const GENERIC_LABELS = new Set(['Section', ELEMENT_LABEL]);
 
 function load(ctx: Ctx, flags: Map<string, string | true>): { set: SchemaSet; folder: string } {
   const flag = flags.get('schema-folder');
@@ -31,6 +31,25 @@ function describeProperty(p: PropertySchema): string {
   return `${p.name} (${bits.join(', ')})`;
 }
 
+const propJson = (p: PropertySchema) => ({ name: p.name, kind: p.kind, many: p.many, values: p.values, default: p.default, required: p.required, description: p.description ?? null });
+
+function elementJson(e: ElementSchema): Record<string, unknown> {
+  return { tag: e.tag, description: e.description, types: e.types, required: e.required, many: e.many, node: e.node, attributes: e.attributes.map(propJson), elements: e.elements.map(elementJson) };
+}
+
+const sectionJson = (h: SectionSchema) => ({ heading: h.heading, description: h.description, required: h.required });
+
+/** `<tag id outcome=a|b>` with the rules that apply to it, for the listing. */
+function describeElement(e: ElementSchema): string {
+  const attrs = e.attributes.map((a) => `${a.name}${a.values ? `=${a.values.map(show).join('|')}` : ''}${a.required ? '!' : ''}`);
+  const bits = [e.types.length ? `node ${e.types.join('+')}` : e.node === true ? 'node' : null, e.required ? 'required' : null, e.many ? null : 'one'].filter(Boolean);
+  return `<${[e.tag, ...attrs].join(' ')}>${bits.length ? `  (${bits.join(', ')})` : ''}${e.description ? ` — ${e.description}` : ''}`;
+}
+
+function elementLines(list: ElementSchema[], indent: string): string[] {
+  return list.flatMap((e) => [`${indent}${describeElement(e)}`, ...elementLines(e.elements, `${indent}  `)]);
+}
+
 /** Every edge name the ontology declares: edge types plus the edges allowed on node types. */
 function declaredEdgeNames(set: SchemaSet): Set<string> {
   const names = new Set(set.edgeTypes.keys());
@@ -40,6 +59,7 @@ function declaredEdgeNames(set: SchemaSet): Set<string> {
 
 /** The ontology as plain data, for `--json` and the MCP tool. */
 // @tg: implements:: [[openspec:tg-cli#Ontology listing]]
+// @tg: implements:: [[openspec:document-elements#Ontology listing explains documents]]
 export function ontologyJson(set: SchemaSet, folder: string) {
   return {
     folder,
@@ -47,21 +67,26 @@ export function ontologyJson(set: SchemaSet, folder: string) {
       type: t.type,
       note: t.path,
       template: t.template,
-      properties: t.properties.map((p) => ({ name: p.name, kind: p.kind, many: p.many, values: p.values, default: p.default, required: p.required })),
-      edges: t.edges?.map((e) => ({ type: e.type, targets: e.targets, many: e.many, required: e.required })) ?? null,
+      description: t.description ?? null,
+      properties: t.properties.map(propJson),
+      edges: t.edges?.map((e) => ({ type: e.type, targets: e.targets, many: e.many, required: e.required, description: e.description ?? null })) ?? null,
+      elements: (t.elements ?? []).map(elementJson),
+      sections: (t.sections ?? []).map(sectionJson),
     })),
     edgeTypes: [...set.edgeTypes.values()].map((e) => ({
       type: e.type,
       note: e.path,
       from: e.from,
       to: e.to,
-      properties: e.properties.map((p) => ({ name: p.name, kind: p.kind, many: p.many, values: p.values, default: p.default, required: p.required })),
+      description: e.description ?? null,
+      properties: e.properties.map(propJson),
     })),
     diagnostics: set.diagnostics,
   };
 }
 
 // @tg: implements:: [[openspec:tg-cli#Ontology listing]]
+// @tg: implements:: [[openspec:document-elements#Ontology listing explains documents]]
 function runList(ctx: Ctx, set: SchemaSet, folder: string): number {
   if (ctx.json) {
     ctx.out(`${JSON.stringify(ontologyJson(set, folder), null, 2)}\n`);
@@ -72,23 +97,35 @@ function runList(ctx: Ctx, set: SchemaSet, folder: string): number {
     return EXIT_OK;
   }
   const out: string[] = [`Ontology from ${folder}: ${set.schemas.size} type${set.schemas.size === 1 ? '' : 's'}, ${set.edgeTypes.size} edge type${set.edgeTypes.size === 1 ? '' : 's'}`, '', 'Types'];
+  const props = (list: PropertySchema[]) =>
+    list.some((p) => p.description) ? ['    properties:', ...list.map((p) => `      ${describeProperty(p)}${p.description ? ` — ${p.description}` : ''}`)] : [`    properties: ${list.map(describeProperty).join('; ')}`];
+  let documents = false;
   for (const t of set.schemas.values()) {
     out.push(`  ${t.type}  (${t.path})`);
-    if (t.properties.length) out.push(`    properties: ${t.properties.map(describeProperty).join('; ')}`);
+    if (t.description) out.push(`    ${t.description}`);
+    if (t.properties.length) out.push(...props(t.properties));
     if (t.edges) out.push(`    edges: ${t.edges.length ? t.edges.map((e) => `${e.type} → ${e.targets?.join('|') ?? 'any'}`).join('; ') : 'none'}`);
+    if (t.sections?.length) out.push('    sections:', ...t.sections.map((h) => `      ## ${h.heading}${h.required ? '  (required)' : ''}${h.description ? ` — ${h.description}` : ''}`));
+    if (t.elements?.length) out.push('    elements:', ...elementLines(t.elements, '      '));
+    documents ||= !!(t.sections?.length || t.elements?.length);
   }
   out.push('', 'Edge types');
   for (const e of set.edgeTypes.values()) {
     out.push(`  ${e.type}: ${e.from?.join('|') ?? 'any'} → ${e.to?.join('|') ?? 'any'}  (${e.path})`);
-    if (e.properties.length) out.push(`    properties: ${e.properties.map(describeProperty).join('; ')}`);
+    if (e.description) out.push(`    ${e.description}`);
+    if (e.properties.length) out.push(...props(e.properties));
   }
   out.push('', `Write edges as \`- type:: [[target]] {property: value}\` in a doc section, or \`// ${TG} type:: [[target]]\` above code. A leading - on the type marks disagreement.`);
+  if (documents)
+    out.push(
+      'Write an element as a tag on its own line, with blank lines around its content, inside a section of its type: `<tag id="name" attr="value">` ... `</tag>`. An `id` makes it addressable as `[[file#^name]]`, and a typed edge line inside it starts at the element.',
+    );
   ctx.out(`${out.join('\n')}\n`);
   return EXIT_OK;
 }
 
 export interface OntologyFinding {
-  kind: 'unknown-edge' | 'wrong-source' | 'wrong-target' | 'undeclared-property' | 'value-not-allowed';
+  kind: 'unknown-edge' | 'wrong-source' | 'wrong-target' | 'undeclared-property' | 'value-not-allowed' | 'missing-element' | 'too-many-elements' | 'missing-attribute' | 'attribute-value-not-allowed' | 'unclosed-element' | 'missing-section';
   file: string;
   line: number;
   edge: string;
@@ -164,6 +201,7 @@ export function checkOntology(graph: Graph, set: SchemaSet): OntologyFinding[] {
 }
 
 // @tg: implements:: [[openspec:tg-cli#Ontology check]]
+// @tg: implements:: [[openspec:document-elements#Document shape validation]]
 function runCheck(ctx: Ctx, set: SchemaSet, folder: string): number {
   let project: Project;
   try {
@@ -175,8 +213,9 @@ function runCheck(ctx: Ctx, set: SchemaSet, folder: string): number {
     }
     throw e;
   }
-  const graph = buildLatGraph(project.index(), { code: { mode: 'annotated', files: project.codeSources() }, specs: project.specIndex() }).graph;
-  const findings = checkOntology(graph, set);
+  const graph = buildLatGraph(project.index(), { code: { mode: 'annotated', files: project.codeSources() }, specs: project.specIndex(), schemas: set }).graph;
+  const documents = checkDocuments(project.index(), project.specIndex(), set).map((d): OntologyFinding => ({ kind: d.kind, file: d.file, line: d.line, edge: '', message: d.message }));
+  const findings = [...checkOntology(graph, set), ...documents].sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.message.localeCompare(b.message));
   if (ctx.json) {
     ctx.out(`${JSON.stringify({ folder, findings }, null, 2)}\n`);
   } else if (set.schemas.size + set.edgeTypes.size === 0) {

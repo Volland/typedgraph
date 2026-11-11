@@ -1,0 +1,14 @@
+{
+  "namespace": "https://volland.github.io/obsigraph/ns/tgs#",
+  "prefix": "tgs",
+  "terms": [
+    { "term": "note", "on": "node shape", "range": "string", "comment": "Vault-relative path of the schema note that declared the type or edge type. Importers may use it to group types into notes." },
+    { "term": "template", "on": "node shape", "range": "string", "comment": "The type's template link: a wikilink, a markdown link or a vault-relative path." },
+    { "term": "templateBody", "on": "node shape", "range": "string", "comment": "The body of the schema note of a type declared with schema:, which is that type's template." },
+    { "term": "visualization", "on": "node shape", "range": "JSON string", "comment": "The type's or edge type's visualization mapping, serialized as JSON with sorted keys." },
+    { "term": "edgesClosed", "on": "node shape", "range": "boolean", "comment": "True when the type declares edges: outgoing edges of other types are reported. Unlike sh:closed it leaves frontmatter properties open." },
+    { "term": "edge", "on": "property shape", "range": "boolean", "comment": "True for an edge entry that allows any target type, which has no sh:class to mark it as an edge." },
+    { "term": "kind", "on": "property shape", "range": "string", "comment": "\"list\" for a property of kind list, which SHACL cannot distinguish from a text property with many values." },
+    { "term": "default", "on": "property shape", "range": "JSON string", "comment": "A non-scalar default value, such as a list, serialized as JSON. Scalar defaults use sh:defaultValue." }
+  ]
+}

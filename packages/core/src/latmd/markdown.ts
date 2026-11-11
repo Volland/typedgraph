@@ -1,4 +1,5 @@
 import { parseEdges, type ParsedEdge } from '../edges/parse.js';
+import { scanElements, type ElementOccurrence } from '../elements/scan.js';
 import { toPosix } from './links.js';
 
 export interface Section {
@@ -50,6 +51,8 @@ export interface ParsedMarkdown {
   frontmatter: Frontmatter;
   /** Typed edge lines (`type:: [[target]] {props}`) outside code; `line` is 0-based as in `parseEdges`. */
   edges: ParsedEdge[];
+  /** Block-level XML elements, as a tree with 1-based lines. */
+  elements: ElementOccurrence[];
 }
 
 // @tg: implements:: [[openspec:tg-trace#Docs frontmatter]]
@@ -307,7 +310,7 @@ export function parseMarkdown(filePath: string, text: string): ParsedMarkdown {
   }
   refs.sort((x, y) => x.line - y.line);
 
-  return { roots, flat, refs, frontmatter, edges: parseEdges(text, filePath).edges };
+  return { roots, flat, refs, frontmatter, edges: parseEdges(text, filePath).edges, elements: scanElements(text) };
 }
 
 // @tg: implements:: [[openspec:lat-resolver#Section tree]]

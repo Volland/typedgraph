@@ -10,5 +10,6 @@ alwaysApply: true
 - Link code to docs and specs with typed edges: `// @tg: implements::` above the declaration, `// @tg: verifies::` above the test. Spec ids by framework:
 {{spec-bullets}}
 - A relation the ontology lacks is a schema change: add it to `Types/` instead of a one-off name.
+- Mark a part of a section as an XML element the type declares (`<option id="redis">`) only when something links to it as `[[file#^id]]`, queries it or checks it; leave the rest as prose.
 - After every task, update `lat.md/` for any changed behavior or decision, then run `tg check` and `tg ontology check` until both pass.
 - Every `lat.md/` section needs a leading paragraph of at most 250 characters, before any edge list.

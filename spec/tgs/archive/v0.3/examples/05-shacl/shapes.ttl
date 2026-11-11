@@ -1,0 +1,100 @@
+# Typed Graph Schema (TGS 0.3) exported as SHACL
+@prefix : <urn:tgs:> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix tgs: <https://volland.github.io/obsigraph/ns/tgs#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:CompanyShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Organization ;
+    sh:name "Company" ;
+    tgs:note "Types/Company.md" ;
+    tgs:templateBody "## About" ;
+    sh:property [
+        sh:path :founded ;
+        sh:name "founded" ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:order 0
+    ] ;
+    sh:property [
+        sh:path :public ;
+        sh:name "public" ;
+        sh:datatype xsd:boolean ;
+        sh:maxCount 1 ;
+        sh:order 1
+    ] .
+
+:PersonShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:name "Person" ;
+    tgs:note "Types/Person.md" ;
+    tgs:edgesClosed true ;
+    tgs:template "[[Templates/Person]]" ;
+    tgs:visualization "{\"color\":\"#3b82f6\",\"icon\":\"user\"}" ;
+    sh:property [
+        sh:path schema:name ;
+        sh:name "name" ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:order 0
+    ] ;
+    sh:property [
+        sh:path :score ;
+        sh:name "score" ;
+        sh:datatype xsd:decimal ;
+        sh:maxCount 1 ;
+        sh:defaultValue 0 ;
+        sh:order 1
+    ] ;
+    sh:property [
+        sh:path :tags ;
+        sh:name "tags" ;
+        sh:datatype xsd:string ;
+        tgs:kind "list" ;
+        tgs:default "[\"new\"]" ;
+        sh:order 2
+    ] ;
+    sh:property [
+        sh:path schema:worksFor ;
+        sh:name "worksAt" ;
+        sh:class schema:Organization ;
+        sh:order 3
+    ] ;
+    sh:property [
+        sh:path :knows ;
+        sh:name "knows" ;
+        sh:class schema:Person ;
+        sh:order 4
+    ] .
+
+:worksAtEdgeShape
+    a sh:NodeShape ;
+    sh:name "worksAt" ;
+    tgs:note "Types/Company.md" ;
+    tgs:visualization "{\"color\":\"green\"}" ;
+    sh:property [
+        sh:path rdf:predicate ;
+        sh:hasValue schema:worksFor
+    ] ;
+    sh:property [
+        sh:path rdf:subject ;
+        sh:class schema:Person
+    ] ;
+    sh:property [
+        sh:path rdf:object ;
+        sh:class schema:Organization
+    ] ;
+    sh:property [
+        sh:path :since ;
+        sh:name "since" ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:order 0
+    ] .

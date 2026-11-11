@@ -9,6 +9,7 @@ import type { SpecFrameworkId } from '@obsigraph/core';
 import { AGENT_IDS, AGENTS, detectAgents, parseAgents, type Agent } from './agents.mjs';
 import { ONTOLOGY_TEMPLATES, OPENSPEC_PATCHES, SKILLS, SPEC_TEMPLATES, STAGE_PATCHES, TEMPLATES } from './gen.mjs';
 import { withOpenspecRules } from './openspec-config.mjs';
+import { offerUpdate } from '../update.mjs';
 import { adrDirs, detectSpecs, forSpecs, forStage, installOptions, showCommand, SPEC_IDS, SPEC_ONTOLOGY_FILE, SPEC_SETUPS, SPEC_STAGES, specOntology, specSetup } from '../specs.mjs';
 
 export const BEGIN = '%% tg:begin %%';
@@ -481,14 +482,17 @@ async function chooseDocs(ctx: Ctx, root: string, flag: string | true | undefine
 export const init: Command = {
   name: 'init',
   summary: 'Set up the docs folder (lat.md/ or tg.md/), the code ontology, agent instructions, hooks, MCP, skills and your spec framework (OpenSpec, Spec Kit, Kiro, BMAD, GSD, ADRs) for your coding agents (asks in a terminal; --dry-run only prints the diff)',
-  usage: `init [dir] [--agent ${AGENT_IDS.join('|')}[,...]] [--only|--skip ${PART_IDS.join('|')}[,...]] [--spec ${SPEC_IDS.join('|')}[,...]|none] [--install-spec] [--docs ${DOCS_DIRS.join('|')}] [--dry-run] [--yes] [--migrate] [--no-ontology] [--no-openspec] [--skills-only]`,
-  flags: { docs: 'string', 'dry-run': 'bool', write: 'bool', yes: 'bool', migrate: 'bool', agent: 'string', only: 'string', skip: 'string', spec: 'string', 'install-spec': 'bool', 'no-ontology': 'bool', 'no-openspec': 'bool', 'skills-only': 'bool' },
+  usage: `init [dir] [--agent ${AGENT_IDS.join('|')}[,...]] [--only|--skip ${PART_IDS.join('|')}[,...]] [--spec ${SPEC_IDS.join('|')}[,...]|none] [--install-spec] [--docs ${DOCS_DIRS.join('|')}] [--dry-run] [--yes] [--migrate] [--no-ontology] [--no-openspec] [--skills-only] [--no-update-check]`,
+  flags: { docs: 'string', 'dry-run': 'bool', write: 'bool', yes: 'bool', 'no-update-check': 'bool', migrate: 'bool', agent: 'string', only: 'string', skip: 'string', spec: 'string', 'install-spec': 'bool', 'no-ontology': 'bool', 'no-openspec': 'bool', 'skills-only': 'bool' },
   noProject: true,
   async run(ctx, args, flags) {
     // Init sets up the folder it is pointed at, never a parent: a stray docs folder higher up must not capture it.
     const root = resolve(ctx.cwd, args[0] ?? (flags.has('dir') ? ctx.root : '.'));
     // `--yes` and `--json` are for scripts: no checklist, no confirmation.
     const interactive = !!ctx.choose && !!ctx.select && !ctx.json && !flags.has('yes');
+    // A newer tg brings newer instructions and skills: offer it before anything is chosen or written.
+    const update = await offerUpdate(ctx, 'init', args, flags, interactive);
+    if (update.relaunched !== null) return update.relaunched;
     const agents = await chooseAgents(ctx, root, flags.get('agent'), interactive);
     if (!agents) return EXIT_ERROR;
     const parts = await chooseParts(ctx, flags, interactive);
@@ -503,7 +507,7 @@ export const init: Command = {
     if (!specs) return EXIT_ERROR;
     const install = parts.includes('specs') ? await installSpecs(ctx, root, specs, agents, { interactive, run: flags.has('install-spec'), dryRun: flags.has('dry-run') }) : { notes: [], installed: [] };
     const { changes, notes } = planInit(root, agents, flags.has('migrate'), { parts, docs: docs.dir, specs });
-    notes.unshift(...docs.notes, ...install.notes);
+    notes.unshift(...update.notes, ...docs.notes, ...install.notes);
     // Writing is the default; `--dry-run` only prints the diff. `--write` is accepted for older scripts and changes nothing.
     const write = !flags.has('dry-run');
     const files = `${changes.length} file${changes.length === 1 ? '' : 's'}`;

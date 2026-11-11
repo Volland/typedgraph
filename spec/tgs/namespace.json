@@ -9,6 +9,8 @@
     { "term": "edgesClosed", "on": "node shape", "range": "boolean", "comment": "True when the type declares edges: outgoing edges of other types are reported. Unlike sh:closed it leaves frontmatter properties open." },
     { "term": "edge", "on": "property shape", "range": "boolean", "comment": "True for an edge entry that allows any target type, which has no sh:class to mark it as an edge." },
     { "term": "kind", "on": "property shape", "range": "string", "comment": "\"list\" for a property of kind list, which SHACL cannot distinguish from a text property with many values." },
-    { "term": "default", "on": "property shape", "range": "JSON string", "comment": "A non-scalar default value, such as a list, serialized as JSON. Scalar defaults use sh:defaultValue." }
+    { "term": "default", "on": "property shape", "range": "JSON string", "comment": "A non-scalar default value, such as a list, serialized as JSON. Scalar defaults use sh:defaultValue." },
+    { "term": "elements", "on": "node shape", "range": "JSON string", "comment": "The type's elements declarations (TGS 0.4) as a JSON literal." },
+    { "term": "sections", "on": "node shape", "range": "JSON string", "comment": "The type's sections declarations (TGS 0.4) as a JSON literal." }
   ]
 }

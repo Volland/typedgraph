@@ -2,6 +2,24 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+The ontology explains itself, and the typed graph reaches inside documents.
+
+### Added
+
+- **Descriptions in the schema (TGS 0.4).** Types, properties, edges and edge types take a `description`. `tg ontology` prints it, `--json` includes it and the SHACL export writes it as `sh:description`. The bundled code ontology and the spec framework ontology describe every name they declare.
+- **Document elements.** A type can declare the XML tags its documents hold (`elements`: a description, attributes, nesting, `required`, `many`, a `type` and a `node` switch) and its headings (`sections`). For example, a Decision declares `<option id="redis" outcome="rejected">`, a Requirement `<rule>`, and an ADR MADR's headings.
+- **Element nodes and `#^id` links.** In the `tg` graph, an element with an `id`, or one whose tag the ontology gives a `type`, becomes an `Element` node that its section, spec requirement or ADR `contains`. Typed edge lines inside it start at the element. Link to it as `[[decisions#^redis]]`, `[[adr:3#^redis]]` or `[[openspec:auth#^lockout]]`, from docs and from `@tg:` comments, and `tg check` resolves the link. Other elements stay text.
+- **Document shape checks.** `tg ontology check`, `tg validate` and the Obsidian plugin's diagnostics report missing required elements and headings, repeated single elements, attribute values outside the declared ones and unclosed declared tags.
+- **`tg upgrade`.** It refreshes what an earlier `tg init` set up in a project: the tg block in the instruction files, the tg skills (including ones added since), the hooks, the steps in spec framework skills and the spec ontology. It lists every file first, asks before writing in a terminal, and `--dry-run` prints the diff. Your `Types/code-types.md` is never overwritten. It only gains the descriptions, elements and sections it lacks, and your own values, comments and types stay.
+- **Update check in `tg init` and `tg upgrade`.** In a terminal they check npm for a newer `tg` and offer to install it and run again with it, or to continue with the running version. Scripts, `--yes`, `--json`, CI, `--no-update-check` and `TG_NO_UPDATE_CHECK=1` never reach the network.
+- **Guidance.** The ADR template marks options and consequences as elements. The spec authoring guidance, the code ontology guide and the `tg-docs` and `tg-graph` skills explain when to use prose, an element, a heading or a separate section.
+
+### Changed
+
+- **TGS 0.4 is the current specification**, and 0.3 is archived unchanged. Every 0.3 note is a valid 0.4 note.
+
 ## 0.25.0 — 2026-11-09
 
 Large vaults index in seconds, not minutes (#11).

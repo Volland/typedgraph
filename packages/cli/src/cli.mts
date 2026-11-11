@@ -28,6 +28,10 @@ export interface Io {
   select?: (title: string, items: { id: string; label: string }[]) => Promise<string>;
   /** Run an external program in `cwd` with the terminal attached and return its exit code; absent in hosts that cannot, so installers are only suggested. */
   exec?: (argv: string[], cwd: string) => Promise<number>;
+  /** Newest published version of tg, for the update check of `init` and `upgrade`; absent in hosts and tests that must not reach the registry. */
+  latestVersion?: () => Promise<string | null>;
+  /** Version of the running tg; defaults to the build's. */
+  version?: string;
 }
 
 export interface Ctx extends Io {

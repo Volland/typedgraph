@@ -287,10 +287,14 @@ export function forStage(text: string, s: SpecSetup): string {
 }
 
 interface TypeDecl {
+  description?: string;
   properties?: Record<string, unknown>;
+  sections?: Record<string, unknown>;
+  elements?: Record<string, unknown>;
   visualization?: Record<string, string>;
 }
 interface EdgeDecl {
+  description?: string;
   from: string[];
   to: string[];
   properties?: Record<string, unknown>;
@@ -303,46 +307,64 @@ interface EdgeDecl {
  */
 const FRAGMENTS: Record<SpecFrameworkId, { types: Record<string, TypeDecl>; edges: Record<string, EdgeDecl> }> = {
   openspec: {
-    types: { Capability: { properties: { status: { values: ['draft', 'stable', 'deprecated'], default: 'draft' }, owner: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } } },
-    edges: { part_of: { from: ['Requirement', 'Decision', 'Concept'], to: ['Capability'] } },
+    types: { Capability: { description: 'An OpenSpec capability: the folder of requirements under openspec/specs/ for one area of behaviour.', properties: { status: { values: ['draft', 'stable', 'deprecated'], default: 'draft' }, owner: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } } },
+    edges: { part_of: { description: 'This requirement, decision or concept belongs to that group.', from: ['Requirement', 'Decision', 'Concept'], to: ['Capability'] } },
   },
   speckit: {
     types: {
-      Feature: { properties: { status: { values: ['draft', 'planned', 'in-progress', 'done'], default: 'draft' }, branch: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } },
-      UserStory: { properties: { priority: { values: ['P1', 'P2', 'P3', 'P4', 'P5'] }, title: 'text' }, visualization: { color: '#22c55e', shape: 'round-rectangle' } },
-      FunctionalRequirement: { properties: { clarification: { values: ['needed'] } } },
-      SuccessCriterion: { visualization: { color: '#84cc16', shape: 'round-rectangle' } },
-      Principle: { properties: { article: 'text' }, visualization: { color: '#f97316', shape: 'diamond' } },
+      Feature: { description: 'A feature spec folder: the stories or requirements delivered together on one branch.', properties: { status: { values: ['draft', 'planned', 'in-progress', 'done'], default: 'draft' }, branch: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } },
+      UserStory: { description: 'A user story with its priority; its acceptance scenarios are Scenarios.', properties: { priority: { values: ['P1', 'P2', 'P3', 'P4', 'P5'] }, title: 'text' }, visualization: { color: '#22c55e', shape: 'round-rectangle' } },
+      FunctionalRequirement: { description: 'A numbered functional requirement (FR-001); clarification is needed while it still holds a NEEDS CLARIFICATION marker.', properties: { clarification: { values: ['needed'] } } },
+      SuccessCriterion: { description: 'A measurable outcome (SC-001) that says the feature worked.', visualization: { color: '#84cc16', shape: 'round-rectangle' } },
+      Principle: { description: 'An article of the project constitution that governs every spec and plan.', properties: { article: 'text' }, visualization: { color: '#f97316', shape: 'diamond' } },
     },
     edges: {
-      part_of: { from: ['Requirement', 'Decision', 'Concept'], to: ['Feature'] },
-      governs: { from: ['Principle'], to: ['Requirement', 'Decision', 'Feature'], properties: { note: 'text' } },
+      part_of: { description: 'This requirement, decision or concept belongs to that group.', from: ['Requirement', 'Decision', 'Concept'], to: ['Feature'] },
+      governs: { description: 'A constitution principle binds this requirement, decision or feature.', from: ['Principle'], to: ['Requirement', 'Decision', 'Feature'], properties: { note: 'text' } },
     },
   },
   kiro: {
     types: {
-      Feature: { properties: { status: { values: ['draft', 'planned', 'in-progress', 'done'], default: 'draft' }, branch: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } },
-      AcceptanceCriterion: { properties: { ears: { values: ['ubiquitous', 'event-driven', 'state-driven', 'unwanted', 'optional', 'free'] }, text: 'text' }, visualization: { color: '#14b8a6', shape: 'round-rectangle' } },
+      Feature: { description: 'A feature spec folder: the stories or requirements delivered together on one branch.', properties: { status: { values: ['draft', 'planned', 'in-progress', 'done'], default: 'draft' }, branch: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } },
+      AcceptanceCriterion: { description: 'An acceptance criterion, with its EARS pattern when it follows one.', properties: { ears: { values: ['ubiquitous', 'event-driven', 'state-driven', 'unwanted', 'optional', 'free'] }, text: 'text' }, visualization: { color: '#14b8a6', shape: 'round-rectangle' } },
     },
-    edges: { part_of: { from: ['Requirement', 'Decision', 'Concept'], to: ['Feature'] } },
+    edges: { part_of: { description: 'This requirement, decision or concept belongs to that group.', from: ['Requirement', 'Decision', 'Concept'], to: ['Feature'] } },
   },
   bmad: {
     types: {
-      Epic: { properties: { status: { values: ['backlog', 'in-progress', 'done'] } }, visualization: { color: '#7c3aed', shape: 'barrel' } },
-      Story: { properties: { status: 'text', epic: 'text', title: 'text' }, visualization: { color: '#22c55e', shape: 'round-rectangle' } },
-      FunctionalRequirement: { properties: { clarification: { values: ['needed'] } } },
-      NonFunctionalRequirement: {},
-      AcceptanceCriterion: { properties: { ears: { values: ['ubiquitous', 'event-driven', 'state-driven', 'unwanted', 'optional', 'free'] }, text: 'text' }, visualization: { color: '#14b8a6', shape: 'round-rectangle' } },
+      Epic: { description: 'A BMAD epic: a group of stories delivered together.', properties: { status: { values: ['backlog', 'in-progress', 'done'] } }, visualization: { color: '#7c3aed', shape: 'barrel' } },
+      Story: { description: 'A BMAD story file with its acceptance criteria.', properties: { status: 'text', epic: 'text', title: 'text' }, visualization: { color: '#22c55e', shape: 'round-rectangle' } },
+      FunctionalRequirement: { description: 'A numbered functional requirement (FR1).', properties: { clarification: { values: ['needed'] } } },
+      NonFunctionalRequirement: { description: 'A quality the system must have, such as speed, security or availability (NFR).' },
+      AcceptanceCriterion: { description: 'An acceptance criterion, with its EARS pattern when it follows one.', properties: { ears: { values: ['ubiquitous', 'event-driven', 'state-driven', 'unwanted', 'optional', 'free'] }, text: 'text' }, visualization: { color: '#14b8a6', shape: 'round-rectangle' } },
     },
-    edges: { part_of: { from: ['Requirement', 'Decision', 'Concept'], to: ['Epic'] } },
+    edges: { part_of: { description: 'This requirement, decision or concept belongs to that group.', from: ['Requirement', 'Decision', 'Concept'], to: ['Epic'] } },
   },
   gsd: {
-    types: { Phase: { properties: { status: { values: ['planned', 'in-progress', 'done'] } }, visualization: { color: '#7c3aed', shape: 'barrel' } } },
-    edges: { delivered_in: { from: ['Requirement'], to: ['Phase'], properties: { note: 'text' } } },
+    types: { Phase: { description: 'A GSD roadmap phase that delivers a set of requirements.', properties: { status: { values: ['planned', 'in-progress', 'done'] } }, visualization: { color: '#7c3aed', shape: 'barrel' } } },
+    edges: { delivered_in: { description: 'The roadmap phase that delivers this requirement.', from: ['Requirement'], to: ['Phase'], properties: { note: 'text' } } },
   },
   adr: {
-    types: { ADR: { properties: { adrStatus: { values: ['proposed', 'accepted', 'deprecated', 'superseded', 'rejected'] }, number: 'text', date: 'date', title: 'text' }, visualization: { color: '#6366f1', shape: 'hexagon' } } },
-    edges: { amends: { from: ['Decision'], to: ['Decision'], properties: { since: 'text', note: 'text' } } },
+    types: {
+      ADR: {
+        description: 'A numbered architecture decision record in docs/adr/; it is also a Decision, so it holds options and consequences.',
+        properties: { adrStatus: { values: ['proposed', 'accepted', 'deprecated', 'superseded', 'rejected'] }, number: 'text', date: 'date', title: 'text' },
+        sections: {
+          'Context and Problem Statement': 'The forces that make a decision necessary, in two or three sentences (Context in the Nygard format).',
+          'Considered Options': 'Every option weighed, each as an <option> element with an id.',
+          'Decision Outcome': 'The chosen option and the reason it won (Decision in the Nygard format).',
+          Consequences: 'What becomes easier, harder or riskier, each as a <consequence> element.',
+        },
+        elements: {
+          option: {
+            description: 'One considered option, with why it won or lost. Code that realizes it points at it as adr:<number>#^<id>.',
+            attributes: { id: { description: 'Stable address within the record.' }, outcome: { values: ['chosen', 'rejected', 'deferred'] } },
+          },
+        },
+        visualization: { color: '#6366f1', shape: 'hexagon' },
+      },
+    },
+    edges: { amends: { description: 'A later record changes part of this one without replacing it.', from: ['Decision'], to: ['Decision'], properties: { since: 'text', note: 'text' } } },
   },
 };
 
@@ -355,6 +377,7 @@ export const SPEC_ONTOLOGY_FILE = 'Types/spec-types.md';
  * every `tg init`; project vocabulary belongs in `Types/code-types.md`.
  */
 // @tg: implements:: [[openspec:spec-frameworks#Ontology per framework]]
+// @tg: implements:: [[openspec:document-elements#Code ontology describes itself]]
 export function specOntology(ids: readonly SpecFrameworkId[]): string | null {
   const used = SPEC_IDS.filter((id) => ids.includes(id));
   if (!used.length) return null;
@@ -368,11 +391,12 @@ export function specOntology(ids: readonly SpecFrameworkId[]): string | null {
     }
   }
   const names = used.map((id) => SPEC_SETUPS.find((s) => s.id === id)!.name).join(', ');
-  const doc = new Document({ tgs: '0.1', schemas, edgeTypes });
+  const doc = new Document({ tgs: '0.4', schemas, edgeTypes });
   // Leaf maps and lists read better inline, as in code-types.md: `status: {values: [a, b], default: a}`.
   visit(doc, {
     Seq: (_, n) => void (n.flow = true),
-    Map: (_, n) => void (n.flow = n.items.every((p) => isScalar(p.value) || isSeq(p.value) || (isMap(p.value) && p.value.items.every((q) => isScalar(q.value))))),
+    // A mapping with a description or other prose reads better as a block.
+    Map: (_, n) => void (n.flow = !n.items.some((p) => (isScalar(p.key) && p.key.value === 'description') || (isScalar(p.value) && typeof p.value.value === 'string' && p.value.value.length > 40)) && n.items.every((p) => isScalar(p.value) || isSeq(p.value) || (isMap(p.value) && p.value.items.every((q) => isScalar(q.value))))),
   });
   const yaml = doc.toString({ lineWidth: 0, flowCollectionPadding: false }).trimEnd();
   return `---\n${yaml}\n---\n# Spec Framework Ontology\n\nTypes and edges for the spec frameworks this project uses (${names}), written by \`tg init\` and rewritten on every run: keep project vocabulary in \`Types/code-types.md\`.\n\n## How spec nodes are labelled\n\nEvery requirement \`tg\` reads from a spec file keeps the base label the code ontology's edges allow — \`Requirement\`, \`Scenario\` or \`Decision\` — and adds its framework's own label from this note, so \`implements\` and \`verifies\` work everywhere and \`MATCH (u:UserStory)\` finds just the user stories. Type a lat.md section with one of these labels to describe a feature, epic or principle in prose.\n`;

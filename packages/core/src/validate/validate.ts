@@ -5,6 +5,7 @@ import { Graph, type NoteInput } from '../graph/graph.js';
 import { pathResolver } from '../graph/resolve.js';
 import { DEFAULT_SCHEMA_FOLDER, isSchemaPath, readSchemaNote, schemaSetFromNotes, schemasFromGraph, validateSchemas, type SchemaSet } from '../schema/schema.js';
 import { styleSourcesFromSchemas, type IconCheck } from '../style/style.js';
+import { noteDocumentDiagnostics } from '../elements/validate.js';
 
 export type Severity = 'error' | 'warning';
 
@@ -23,7 +24,7 @@ export interface VaultFinding {
 const ERROR_CODES = new Set(['invalid-declaration', 'unsupported-version', 'duplicate-declaration']);
 
 /** Codes whose line always points into the note body, even line 0. */
-const LINE_CODES = new Set(['edge-syntax', 'embed', 'annotation', 'lat-link', 'ambiguous-link', 'adoc-include', 'adoc-visible-edge']);
+const LINE_CODES = new Set(['edge-syntax', 'embed', 'annotation', 'lat-link', 'ambiguous-link', 'adoc-include', 'adoc-visible-edge', 'too-many-elements', 'missing-attribute', 'attribute-value-not-allowed', 'unclosed-element']);
 
 /** Severity of a finding code; unknown codes are warnings. */
 // @tg: implements:: [[openspec:tg-validate#Finding codes and severities]]
@@ -59,7 +60,7 @@ export interface DiagnosticSources {
  */
 // @tg: implements:: [[openspec:tg-validate#Same findings as the plugin]]
 export function vaultDiagnostics(src: DiagnosticSources): Diagnostic[] {
-  return [...src.graph.diagnostics(), ...src.schemas.diagnostics, ...validateSchemas(src.graph, src.schemas), ...src.style, ...(src.embeds?.warnings(src.graph) ?? [])];
+  return [...src.graph.diagnostics(), ...src.schemas.diagnostics, ...validateSchemas(src.graph, src.schemas), ...noteDocumentDiagnostics(src.graph, src.schemas), ...src.style, ...(src.embeds?.warnings(src.graph) ?? [])];
 }
 
 export interface ValidateOptions {

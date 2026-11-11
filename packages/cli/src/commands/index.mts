@@ -13,3 +13,4 @@ import './trace.mjs';
 import './validate.mjs';
 import './ontology.mjs';
 import './migrate.mjs';
+import './upgrade.mjs';

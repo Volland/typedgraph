@@ -5,7 +5,7 @@ type: Concept
 
 A small shared vocabulary for what the code is meant to do: six kinds of intent and eleven kinds of typed link between intent, requirements and code. Use these names instead of inventing synonyms, so a query means the same thing for everyone.
 
-The machine-readable schema is `Types/code-types.md`, and `Templates/` holds a starting note for each type. `tg ontology` prints every type and edge type the project declares, including any the project added to `Types/` itself, with the properties each edge takes; `tg ontology check` reports edges that do not fit. Derive what the code can tell you, write what only people know, and let `tg check`, `tg ontology check` and `tg cypher` tell you when the two disagree.
+The machine-readable schema is `Types/code-types.md`, and `Templates/` holds a starting note for each type. `tg ontology` prints every type and edge type the project declares with a description of what it means, including any the project added to `Types/` itself, with the properties each edge takes; `tg ontology check` reports edges that do not fit. Derive what the code can tell you, write what only people know, and let `tg check`, `tg ontology check` and `tg cypher` tell you when the two disagree.
 
 ## Two layers
 
@@ -64,11 +64,40 @@ In code, above the declaration the edge starts at:
 
 When requirements live in OpenSpec, target them as `[[openspec:<capability>#<Requirement>]]` and `[[openspec:<capability>#<Requirement>#<Scenario>]]`; they appear as `Requirement` and `Scenario` nodes and `tg trace` reports coverage.
 
+## Parts inside a section
+
+A section can mark its parts with XML elements its type declares, such as a Decision's `<option>`, a Requirement's `<rule>`, or a Constraint's `<exception>`. An element with an `id` becomes a node you can link to.
+
+```markdown
+## Short-lived access tokens
+
+Access tokens expire after 15 minutes and refresh tokens rotate on every use.
+
+<option id="redis-sessions" outcome="rejected">
+
+Server sessions in Redis: one more stateful service to run.
+
+- motivated_by:: [[constraints#Session limit]]
+
+</option>
+```
+
+The section `contains` the option, the `motivated_by` edge starts at the option, and code or other docs point at it as `[[decisions#^redis-sessions]]`; in spec files the form is `[[adr:0003#^redis]]` or `[[openspec:auth#^lockout]]`. A `<rule>` is also a `Requirement` node, so code can `implements::` one rule of a larger requirement and a test can `verifies::` it.
+
+| The part | Write it as |
+| --- | --- |
+| nothing points at it and nobody checks it | prose |
+| it lives only inside its section, but something links to it, queries it or checks it | an element, with an `id` if it is linked |
+| readers navigate to it | a heading |
+| it has a life of its own: edges from several places, its own status, several paragraphs | a separate typed section |
+
+Leave blank lines inside an element so its Markdown and links are read. `tg ontology check` reports attribute values outside the declared ones, unclosed tags and missing parts a type marks `required`; `tg check` reports links to ids that do not exist.
+
 ## Discovering and extending the ontology
 
 The table above is the bundled vocabulary, not a limit: run `tg ontology` before writing, and use the project's own types where they fit.
 
-The project may have added types (a `Service`, a `Risk`, an `Incident`) or edge types (`owned_by`, `mitigates`) to `Types/`, and a domain type that fits beats a generic one. When a relation you need has no name, add it to `Types/` as an edge type with `from`, `to` and its properties, then use it; never write a one-off synonym of an existing edge. `tg ontology check` catches the misspelling, the wrong direction and the undeclared property.
+The project may have added types (a `Service`, a `Risk`, an `Incident`) or edge types (`owned_by`, `mitigates`) to `Types/`, and a domain type that fits beats a generic one. When a relation you need has no name, add it to `Types/` as an edge type with `from`, `to`, its properties and a `description`, then use it; never write a one-off synonym of an existing edge. A part that keeps recurring inside one type of section, such as a Risk's `<mitigation>`, is an element to declare under that type's `elements`, with a description that tells the next writer what goes in it. `tg ontology check` catches the misspelling, the wrong direction and the undeclared property.
 
 ## Rules of use
 
@@ -78,6 +107,8 @@ Short rules that keep the graph worth reading.
 - **Put facts about the relationship on the relationship:** `since`, `until`, `ticket`, `confidence: partial`, `strength: must`. A sentence can explain; the property can be queried.
 - **Type the file, name the link.** Untyped sections and plain links are what lat.md already gives you; the value of the graph starts with `type:` and `motivated_by::`.
 - **A type earns its place** only if you would ask a question that depends on it. If you cannot name the query, drop the type.
+- **Describe what you declare.** A type, edge or element without a description is a name the next reader has to guess.
+- **Prefer prose until something points at it.** An element earns an `id` when a link, a query or a check needs it.
 - **Start small.** Five sections, three `implements`, one `verifies`, then `tg check`. If the result teaches you nothing, stop.
 
 ## Questions it answers
@@ -110,4 +141,4 @@ Each role touches a different part of the same graph.
 - **Developers** add `@tg:` edges while they work and run `tg check` and `tg ontology check` before they finish.
 - **Architects** own Decisions, Constraints and Concepts, and read `contradicts` and `supersedes`.
 - **Product** owns Requirements and Scenarios, tags them by risk and status, and asks what is unbuilt or unproven.
-- **Agents** run `tg ontology` and search first, read the typed edges around the code they change, and record what they changed as typed sections with typed edges.
+- **Agents** run `tg ontology` and read its descriptions and search first, read the typed edges around the code they change, and record what they changed as typed sections with typed edges.

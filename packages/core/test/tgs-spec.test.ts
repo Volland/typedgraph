@@ -7,6 +7,7 @@ import {
   DEFAULT_BASE_IRI,
   Graph,
   iriOf,
+  noteDocumentDiagnostics,
   parseAsciidoc,
   readSchemaNote,
   scaffoldSchemaNote,
@@ -50,14 +51,25 @@ function graphOf(notes: NoteInput[]): Graph {
 function declarations(set: SchemaSet) {
   const iri = (d: { uri: string | null }, name: string) => iriOf(d, name, DEFAULT_BASE_IRI, set.prefixes);
   const props = (ps: SchemaSet['schemas'] extends Map<string, infer T> ? (T extends { properties: infer P } ? P : never) : never) =>
-    ps.map((p) => ({ name: p.name, iri: iri(p, p.name), kind: p.kind, required: p.required, many: p.many, values: p.values, default: p.default }));
+    ps.map((p) => ({ name: p.name, iri: iri(p, p.name), kind: p.kind, required: p.required, many: p.many, values: p.values, default: p.default, ...(p.description ? { description: p.description } : {}) }));
   return {
     types: [...set.schemas.values()]
       .sort((a, b) => a.type.localeCompare(b.type))
-      .map((t) => ({ name: t.type, note: t.path, iri: iri(t, t.type), properties: props(t.properties), edges: t.edges, template: t.template, ...(t.ids.length ? { ids: t.ids } : {}) })),
+      .map((t) => ({
+        name: t.type,
+        note: t.path,
+        iri: iri(t, t.type),
+        properties: props(t.properties),
+        edges: t.edges,
+        template: t.template,
+        ...(t.ids.length ? { ids: t.ids } : {}),
+        ...(t.description ? { description: t.description } : {}),
+        ...(t.elements?.length ? { elements: t.elements } : {}),
+        ...(t.sections?.length ? { sections: t.sections } : {}),
+      })),
     edgeTypes: [...set.edgeTypes.values()]
       .sort((a, b) => a.type.localeCompare(b.type))
-      .map((e) => ({ name: e.type, note: e.path, iri: iri(e, e.type), from: e.from, to: e.to, properties: props(e.properties) })),
+      .map((e) => ({ name: e.type, note: e.path, iri: iri(e, e.type), from: e.from, to: e.to, properties: props(e.properties), ...(e.description ? { description: e.description } : {}) })),
   };
 }
 
@@ -76,7 +88,7 @@ describe('TGS conformance examples', () => {
     const notes = loadVault(join(dir, 'vault'));
     const graph = graphOf(notes);
     const set = schemasFromGraph(graph, 'Types/');
-    const actual = { ...declarations(set), diagnostics: diagnosticsOf([...set.diagnostics, ...validateSchemas(graph, set)]) };
+    const actual = { ...declarations(set), diagnostics: diagnosticsOf([...set.diagnostics, ...validateSchemas(graph, set), ...noteDocumentDiagnostics(graph, set)]) };
     const expectedPath = join(dir, 'expected.json');
     const shapesPath = join(dir, 'shapes.ttl');
     const bodies = new Map(notes.map((n) => [n.path, splitFrontmatter(n.text).body]));
@@ -153,12 +165,25 @@ describe('TGS AsciiDoc notes', () => {
 
   // @tg: verifies:: [[openspec:tgs-spec#AsciiDoc notes in TGS 0.3#Published 0.3]] {level: unit}
   // @lat: [[tests/tgs-spec#Version 0.3 published beside 0.2]]
-  it('publishes 0.3 as the current version with 0.2 archived unchanged', () => {
-    expect(readFileSync(join(SPEC, 'SPEC.md'), 'utf8')).toContain('spec/tgs/v0.3/');
-    expect(JSON.parse(readFileSync(join(SPEC, 'tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.3/');
+  it('keeps 0.3, with AsciiDoc notes, beside 0.2 archived unchanged', () => {
+    const v03 = readFileSync(join(SPEC, 'archive/v0.3/SPEC.md'), 'utf8');
+    expect(v03).toContain('# Typed Graph Schema (TGS) 0.3');
+    expect(v03).toContain('### 2.1 AsciiDoc notes');
+    expect(JSON.parse(readFileSync(join(SPEC, 'archive/v0.3/tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.3/');
     const archived = readFileSync(join(SPEC, 'archive/v0.2/SPEC.md'), 'utf8');
     expect(archived).toContain('# Typed Graph Schema (TGS) 0.2');
     expect(archived).not.toContain('AsciiDoc');
-    expect(readFileSync(join(__dirname, '../../../site/build-spec.mjs'), 'utf8')).toContain("const VERSION = '0.3'");
+  });
+
+  // @tg: verifies:: [[openspec:document-elements#TGS 0.4 published#Published 0.4]] {level: unit}
+  // @lat: [[tests/document-elements#TGS 0.4 published beside 0.3]]
+  it('publishes 0.4 as the current version with 0.3 archived', () => {
+    const spec = readFileSync(join(SPEC, 'SPEC.md'), 'utf8');
+    expect(spec).toContain('# Typed Graph Schema (TGS) 0.4');
+    expect(spec).toContain('spec/tgs/v0.4/');
+    expect(spec).toContain('### 4.2 Elements and sections');
+    expect(JSON.parse(readFileSync(join(SPEC, 'tgs.schema.json'), 'utf8')).$id).toContain('/spec/tgs/v0.4/');
+    expect(readFileSync(join(SPEC, 'archive/v0.3/SPEC.md'), 'utf8')).not.toContain('### 4.2 Elements and sections');
+    expect(readFileSync(join(__dirname, '../../../site/build-spec.mjs'), 'utf8')).toContain("const VERSION = '0.4'");
   });
 });

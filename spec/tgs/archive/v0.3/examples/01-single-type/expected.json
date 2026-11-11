@@ -1,0 +1,81 @@
+{
+  "invalidAgainstJsonSchema": [],
+  "types": [
+    {
+      "name": "Person",
+      "note": "Types/Person.md",
+      "iri": "urn:tgs:Person",
+      "properties": [
+        {
+          "name": "name",
+          "iri": "urn:tgs:name",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "email",
+          "iri": "urn:tgs:email",
+          "kind": "text",
+          "required": true,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "born",
+          "iri": "urn:tgs:born",
+          "kind": "date",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "status",
+          "iri": "urn:tgs:status",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": [
+            "active",
+            "alumni"
+          ],
+          "default": "active"
+        },
+        {
+          "name": "aliases",
+          "iri": "urn:tgs:aliases",
+          "kind": "list",
+          "required": false,
+          "many": true,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": [
+        {
+          "type": "knows",
+          "targets": [
+            "Person"
+          ],
+          "many": true,
+          "required": false
+        },
+        {
+          "type": "worksAt",
+          "targets": [
+            "Company"
+          ],
+          "many": true,
+          "required": false
+        }
+      ],
+      "template": null
+    }
+  ],
+  "edgeTypes": [],
+  "diagnostics": []
+}

@@ -1,4 +1,4 @@
-import { DEFAULT_BASE_IRI, iriOf, TGS_VERSION, type EdgeRule, type PropertySchema, type SchemaSet } from '../schema/schema.js';
+import { compactElements, compactSections, DEFAULT_BASE_IRI, iriOf, TGS_VERSION, type EdgeRule, type PropertySchema, type SchemaSet } from '../schema/schema.js';
 import { KIND_DATATYPE, RDF, SH, TGS, XSD } from './vocab.js';
 
 export interface ShaclExportOptions {
@@ -24,6 +24,7 @@ type Entry = [predicate: string, object: Obj];
 // @tg: implements:: [[openspec:shacl-interop#Lossless round trip]]
 // @tg: implements:: [[openspec:shacl-interop#Node type mapping]]
 // @tg: implements:: [[openspec:shacl-interop#Typed Graph annotations]]
+// @tg: implements:: [[openspec:document-elements#SHACL exchange of descriptions and elements]]
 export function exportShacl(set: SchemaSet, opts: ShaclExportOptions = {}): string {
   const base = opts.base ?? DEFAULT_BASE_IRI;
   const prefixes = set.prefixes;
@@ -49,6 +50,7 @@ export function exportShacl(set: SchemaSet, opts: ShaclExportOptions = {}): stri
       else e.push([term(`${TGS}default`), literal(stableJson(p.default))]);
     }
     if (p.values) e.push([term(`${SH}in`), `( ${p.values.map((v) => literal(isScalar(v) ? v : stableJson(v))).join(' ')} )`]);
+    if (p.description) e.push([term(`${SH}description`), literal(p.description)]);
     e.push([term(`${SH}order`), String(order)]);
     return e;
   };
@@ -62,6 +64,7 @@ export function exportShacl(set: SchemaSet, opts: ShaclExportOptions = {}): stri
     else e.push([term(`${SH}nodeKind`), term(`${SH}IRI`)], [term(`${TGS}edge`), 'true']);
     if (r.required) e.push([term(`${SH}minCount`), '1']);
     if (!r.many) e.push([term(`${SH}maxCount`), '1']);
+    if (r.description) e.push([term(`${SH}description`), literal(r.description)]);
     e.push([term(`${SH}order`), String(order)]);
     return e;
   };
@@ -74,11 +77,15 @@ export function exportShacl(set: SchemaSet, opts: ShaclExportOptions = {}): stri
       [term(`${SH}name`), literal(t.type)],
       [term(`${TGS}note`), literal(t.path)],
     ];
+    if (t.description) e.push([term(`${SH}description`), literal(t.description)]);
     if (t.edges) e.push([term(`${TGS}edgesClosed`), 'true']);
     if (t.template) e.push([term(`${TGS}template`), literal(t.template)]);
     const body = t.bodyIsTemplate ? opts.body?.(t.path)?.trim() : '';
     if (body) e.push([term(`${TGS}templateBody`), literal(body)]);
     if (t.style) e.push([term(`${TGS}visualization`), literal(stableJson(t.style))]);
+    // Declaration order matters for elements and sections, and is itself deterministic, so keys are not sorted.
+    if (t.sections?.length) e.push([term(`${TGS}sections`), literal(JSON.stringify(compactSections(t.sections)))]);
+    if (t.elements?.length) e.push([term(`${TGS}elements`), literal(JSON.stringify(compactElements(t.elements)))]);
     let order = 0;
     for (const p of t.properties) e.push([term(`${SH}property`), propertyShape(p, order++)]);
     for (const r of t.edges ?? []) e.push([term(`${SH}property`), edgeShape(r, order++)]);
@@ -90,6 +97,7 @@ export function exportShacl(set: SchemaSet, opts: ShaclExportOptions = {}): stri
       [term(`${SH}name`), literal(et.type)],
       [term(`${TGS}note`), literal(et.path)],
     ];
+    if (et.description) e.push([term(`${SH}description`), literal(et.description)]);
     if (et.style) e.push([term(`${TGS}visualization`), literal(stableJson(et.style))]);
     e.push([term(`${SH}property`), [[term(`${SH}path`), term(`${RDF}predicate`)], [term(`${SH}hasValue`), edgeIri(et.type)]]]);
     if (et.from?.length) e.push([term(`${SH}property`), [[term(`${SH}path`), term(`${RDF}subject`)], ...classes(et.from)]]);

@@ -165,13 +165,14 @@ export function checkAnnotationTarget(index: LatIndex, edge: AnnotationEdge): An
   const r: LinkResult = index.resolve(edge.target);
   switch (r.kind) {
     case 'section':
+    case 'element':
       return null;
     case 'code':
       return { kind: 'code', target: edge.target, file: r.file, symbol: r.symbol };
     case 'ambiguous':
       return { kind: 'ambiguous', target: edge.target, candidates: r.candidates, suggested: r.suggested };
     case 'missing':
-      return { kind: 'broken', target: edge.target, message: r.reason === 'unsupported-extension' ? `unsupported file extension "${r.ext}"` : 'no matching section found', suggestion: r.suggestion };
+      return { kind: 'broken', target: edge.target, message: r.reason === 'unsupported-extension' ? `unsupported file extension "${r.ext}"` : r.reason === 'no-element' ? 'no element with that id' : 'no matching section found', suggestion: r.suggestion };
   }
 }
 

@@ -13,6 +13,7 @@ description: Query the typed graph of docs, requirements and code with openCyphe
 - Edges: `contains` (parent section to child section), `references` (a plain wiki link that resolves to a section), and **typed edges written in docs**: a line `- motivated_by:: [[constraints#Session limit]] {weight: primary}` in a section is an edge of type `motivated_by` from that section, carrying its properties (`r.weight`). Its target may be a section, a `Requirement` or `Scenario`, or a code node.
 - Edge properties: `r.sign` (+1 or -1), `r.id`, and every property written in the edge's `{...}` block (`r.since`, `r.ticket`, `r.confidence`, ...). `type(r)` gives the edge name.
 - With a spec framework ({{spec-names}}): `Requirement` nodes (`requirement` id, `framework`, `capability` group, `name`, `text`, `file`, `line`, `status` active, pending or retired, `change`) and `Scenario` nodes (`scenario` id, `requirement`, `name`), joined by `contains`; decision records are `Decision` nodes. Each also carries its framework's label and properties — `UserStory {priority}`, `FunctionalRequirement`, `SuccessCriterion` (Spec Kit), `AcceptanceCriterion {ears}` (Kiro, BMAD), `Story`, `ADR {adrStatus, date}` — declared in `Types/spec-types.md`; ADRs that supersede or amend each other are joined by `supersedes` and `amends`. A lat.md file's `openspec:` or `specs:` frontmatter adds `references` from its root section to each requirement it names. Example: `MATCH (u:UserStory {priority: 'P1'})-[:contains]->(s:Scenario) OPTIONAL MATCH (t)-[:verifies]->(s) RETURN u.requirement, s.name, count(t)`.
+- **Elements**: a block-level XML element inside a section or spec file (`<option id="redis" outcome="rejected">`) is an `Element` node when it has an `id`, or when the ontology declares its tag with a `type` (then it carries that label too, e.g. `<rule>` is also a `Requirement`). Properties: `element` (its id, `file#^id`), `tag`, `file`, `line`, `endLine`, `text`, `owner`, `description` (from the ontology) and each attribute (`e.outcome`). Its section, requirement, scenario or enclosing element `contains` it, and typed edge lines written inside it start at it. Other elements are text, so ask `tg ontology` which tags exist.
 - With `--code annotated` or `all`: `CodeFile` and `CodeSymbol` nodes (`path`, `symbol`, `kind`, `lang`, `startLine`), and `@tg:` annotations as edges of their own type (`implements`, `verifies`, ...) to sections, requirements or scenarios; a test's annotation starts at its file and carries `test`.
 
 ## Examples
@@ -26,6 +27,14 @@ MATCH (a:Section)-[:references]->(b:Section {title: "Packaging"}) RETURN a.secti
 
 // Biggest hubs
 MATCH (s:Section)<-[r:references]-() RETURN s.section, count(r) AS n ORDER BY n DESC LIMIT 10
+```
+
+```cypher
+// The options a decision weighed, and what happened to each
+MATCH (d:Decision)-[:contains]->(o:Element {tag: "option"}) RETURN d.title, o.element, o.outcome
+
+// Rules inside requirements that no code implements yet
+MATCH (r:Requirement:Element) OPTIONAL MATCH (c)-[i:implements]->(r) WITH r, count(i) AS n WHERE n = 0 RETURN r.element, r.text
 ```
 
 ## Ontology queries

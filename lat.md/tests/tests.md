@@ -48,3 +48,5 @@ Test specifications whose leaf sections must each be referenced by exactly one `
 - [[spec-frameworks]] — Spec Kit, Kiro, BMAD, GSD and ADR readers, the init framework step, installers, patches and the spec ontology
 - [[tg-validate]] — `tg validate` findings, codes, exit codes, formats and plugin agreement
 - [[asciidoc-notes]] — AsciiDoc notes: parser, render safety, graph, links, chunks, export, new notes and hosts
+- [[document-elements]] — descriptions, element and section declarations, scanner, `#^id` links, element nodes, shape checks, SHACL and CLI
+- [[tg-upgrade]] — the update check of `tg init` and `tg upgrade`, and refreshing an existing project's tg files

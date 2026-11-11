@@ -2,8 +2,9 @@
 
 This project traces {{name}} requirements to code and records its intent as a typed graph with `tg` (see the `tg-trace`, `tg-docs` and `tg-graph` skills). While writing the spec:
 
-- Run `tg ontology` first and use its type and edge names; never invent a synonym.
+- Run `tg ontology` first and use its type and edge names; never invent a synonym. Read the descriptions: they say what each type, edge, heading and element is for.
 - Before writing, run `tg trace` and `tg search "<topic>"` for what is already specified, implemented and explained, and ask the graph what binds the area: `tg cypher "MATCH (x)-[r:constrains|motivated_by|contradicts]-(s) WHERE s.title CONTAINS '<topic>' RETURN type(r), x.title, s.title"`.
 - Requirement ids become link targets that code and tests point at (`{{requirement}}`, `{{scenario}}`). Keep existing ids exactly: add new ones instead of renumbering or renaming.
 - Give every requirement acceptance criteria a test can prove; each will get a `@tg: verifies::` line on its test.
+- When one requirement holds several rules that code implements separately, mark each as an element with an id, `<rule id="lockout" strength="must">` ... `</rule>`, with blank lines inside, and link it as `<requirement id>#^lockout` (`openspec:auth#^lockout`). Use `<example>` with `<input>` and `<output>` for a worked case and `<non-goal>` for what is out of scope. Mark only what something must point at or check; the rest stays prose.
 - Record any architectural decision the spec implies as a `Decision` section in `lat.md/` (or an ADR) with `- motivated_by::` edges to its reasons.

@@ -1,0 +1,141 @@
+{
+  "invalidAgainstJsonSchema": [],
+  "types": [
+    {
+      "name": "Company",
+      "note": "Types/Org.md",
+      "iri": "urn:tgs:Company",
+      "properties": [],
+      "edges": null,
+      "template": null
+    },
+    {
+      "name": "Person",
+      "note": "Types/Org.md",
+      "iri": "urn:tgs:Person",
+      "properties": [
+        {
+          "name": "email",
+          "iri": "urn:tgs:email",
+          "kind": "text",
+          "required": true,
+          "many": false,
+          "values": null,
+          "default": null
+        },
+        {
+          "name": "status",
+          "iri": "urn:tgs:status",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": [
+            "active",
+            "alumni"
+          ],
+          "default": null
+        },
+        {
+          "name": "nick",
+          "iri": "urn:tgs:nick",
+          "kind": "text",
+          "required": false,
+          "many": false,
+          "values": null,
+          "default": null
+        }
+      ],
+      "edges": [
+        {
+          "type": "worksAt",
+          "targets": [
+            "Company"
+          ],
+          "many": false,
+          "required": true
+        },
+        {
+          "type": "knows",
+          "targets": [
+            "Person"
+          ],
+          "many": true,
+          "required": false
+        }
+      ],
+      "template": null
+    }
+  ],
+  "edgeTypes": [
+    {
+      "name": "worksAt",
+      "note": "Types/Org.md",
+      "iri": "urn:tgs:worksAt",
+      "from": [
+        "Person"
+      ],
+      "to": null,
+      "properties": [
+        {
+          "name": "role",
+          "iri": "urn:tgs:role",
+          "kind": "text",
+          "required": true,
+          "many": false,
+          "values": [
+            "engineer",
+            "manager"
+          ],
+          "default": null
+        }
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "path": "Acme.md",
+      "line": 4,
+      "diagnostic": "wrong-source-type"
+    },
+    {
+      "path": "Alice.md",
+      "line": 8,
+      "diagnostic": "edge-value-not-allowed"
+    },
+    {
+      "path": "Alice.md",
+      "line": 8,
+      "diagnostic": "too-many-edges"
+    },
+    {
+      "path": "Alice.md",
+      "line": 9,
+      "diagnostic": "edge-not-allowed"
+    },
+    {
+      "path": "Alice.md",
+      "line": null,
+      "diagnostic": "unexpected-list"
+    },
+    {
+      "path": "Alice.md",
+      "line": null,
+      "diagnostic": "value-not-allowed"
+    },
+    {
+      "path": "Bob.md",
+      "line": 4,
+      "diagnostic": "wrong-target-type"
+    },
+    {
+      "path": "Bob.md",
+      "line": null,
+      "diagnostic": "missing-edge"
+    },
+    {
+      "path": "Bob.md",
+      "line": null,
+      "diagnostic": "missing-property"
+    }
+  ]
+}
