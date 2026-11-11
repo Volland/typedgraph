@@ -41,9 +41,11 @@
       <a href="#embeds">Edge embeds</a>
       <div class="group">Querying</div>
       <a href="#blocks">Query blocks</a>
+      <a href="#variables">Variables and metadata</a>
       <a href="#cypher">openCypher subset</a>
       <a href="#styling">Styling</a>
       <a href="#graph-view">Graph view</a>
+      <a href="query-cheatsheet.html">Query cheat sheet ↗</a>
       <div class="group">Sidecar</div>
       <a href="#sidecar">Running it</a>
       <a href="#ladybug">Ladybug backend</a>
@@ -209,9 +211,33 @@ RETURN a.title AS who, r.since AS since
         <tr><td><code>columns</code></td><td>Table columns to show, in order</td></tr>
         <tr><td><code>height</code></td><td>Graph height in pixels (100–4000)</td></tr>
         <tr><td><code>backend</code></td><td><code>builtin</code> or <code>ladybug</code> (needs the sidecar)</td></tr>
+        <tr><td><code>code</code></td><td><code>show</code> (default) or <code>hide</code> source-code nodes in graph results</td></tr>
+        <tr><td><code>forces</code></td><td>Initial layout forces, e.g. <code>center=0.3, repel=12, link=0.6, distance=200, edgeRepel=0.4, labelRepel=0.8, pinOnDrag=true</code></td></tr>
+        <tr><td><code>display</code></td><td>e.g. <code>arrows=true, edgeLabels=true, fade=0.12, nodeSize=0.75, linkSize=0.5, hide=requirement|feature</code></td></tr>
+        <tr><td><code>pin</code></td><td><code>self</code> (default), <code>none</code>, or note names; the first goes to the centre</td></tr>
+        <tr><td><code>controls</code></td><td><code>show</code> (default), <code>open</code> or <code>hide</code> the graph controls button</td></tr>
         <tr><td><code>node.&lt;Type&gt;</code> / <code>edge.&lt;type&gt;</code></td><td>Style overrides for this block</td></tr>
       </table>
-      <p>Results refresh live. Graphs larger than the element limit fall back to a table.</p>
+      <p>Results refresh live. Graphs larger than the element limit fall back to a table. The gear button's <em>Copy as block options</em> writes the current <code>forces</code>, <code>display</code> and <code>pin</code> lines for you.</p>
+
+      <h2 id="variables">Variables and metadata</h2>
+      <p>A block can refer to the note it sits in with <code>{{…}}</code> variables. Each one is replaced by a Cypher literal before the query is parsed, so this block always shows its own note's neighbourhood, wherever you paste it:</p>
+<pre>```graph-query
+MATCH (me {path: {{path}}})-[r]-(x)
+WHERE x.status = {{fm.status}}
+RETURN me, r, x
+```</pre>
+      <table>
+        <tr><th>Variable</th><th>Value for <code>Projects/Atlas/Plan.md</code></th></tr>
+        <tr><td><code>{{path}}</code></td><td><code>"Projects/Atlas/Plan.md"</code></td></tr>
+        <tr><td><code>{{name}}</code></td><td><code>"Plan.md"</code></td></tr>
+        <tr><td><code>{{title}}</code></td><td><code>"Plan"</code>, the file name without extension (frontmatter <code>title</code> is <code>{{fm.title}}</code>)</td></tr>
+        <tr><td><code>{{folder}}</code></td><td><code>"Projects/Atlas"</code>; <code>""</code> at the vault root</td></tr>
+        <tr><td><code>{{extension}}</code></td><td><code>"md"</code></td></tr>
+        <tr><td><code>{{fm.&lt;key&gt;}}</code></td><td>Any frontmatter value (also <code>{{frontmatter.&lt;key&gt;}}</code>; dots walk into maps). Strings are quoted, numbers and booleans plain, lists stay lists.</td></tr>
+      </table>
+      <p>Unknown names and values that are not literals become <code>null</code>. Nothing is evaluated: write <code>{{fm.budget}} * 2</code>, not <code>{{fm.budget * 2}}</code>. Variables work on both backends.</p>
+      <p>Every query can also use metadata that Typed Graph adds on its own, with no schema: <code>n.path</code>, <code>n.title</code>, <code>n.stub</code> and every frontmatter key on nodes; <code>type(r)</code>, <code>r.sign</code>, <code>r.id</code> and every <code>{property}</code> on edges. The Graph view also binds the parameter <code>$activeFile</code>. The <a href="query-cheatsheet.html">query cheat sheet</a> lists all of it on one page, including the <code>Section</code>, <code>Requirement</code> and code nodes of <code>tg cypher</code>.</p>
 
       <h2 id="cypher">openCypher subset</h2>
       <ul>
@@ -219,7 +245,7 @@ RETURN a.title AS who, r.since AS since
         <li><strong>Patterns</strong>: labels, property maps, <code>-&gt;</code> <code>&lt;-</code> <code>-</code>, <code>[:a|b]</code>, <code>[:knows*1..3]</code>, <code>p = (...)</code>.</li>
         <li><strong>Aggregates</strong>: <code>count(*)</code>, <code>count</code>, <code>sum</code>, <code>avg</code>, <code>min</code>, <code>max</code>, <code>collect</code> (with <code>DISTINCT</code>).</li>
         <li><strong>Functions</strong>: <code>id type labels keys properties startNode endNode length nodes relationships toLower toUpper trim replace substring split left right size coalesce toString toInteger toFloat abs round floor ceil sign head last reverse</code>.</li>
-        <li><strong>Built-ins</strong>: <code>n.stub</code>, <code>n.title</code>, <code>n.path</code>, <code>r.id</code>, <code>r.sign</code>.</li>
+        <li><strong>Built-ins</strong>: <code>n.stub</code>, <code>n.title</code>, <code>n.path</code>, <code>r.id</code>, <code>r.sign</code>, and every frontmatter key or edge property by name. See <a href="#variables">Variables and metadata</a>.</li>
       </ul>
       <div class="callout">Queries are read-only. <code>CREATE</code>, <code>SET</code>, <code>DELETE</code>, <code>MERGE</code> and <code>REMOVE</code> are rejected. <code>UNWIND</code>, <code>UNION</code>, <code>CALL</code>, <code>CASE</code> and <code>=~</code> are not in the built-in subset; use <code>backend: ladybug</code> for those.</div>
 
@@ -237,6 +263,7 @@ RETURN a.title AS who, r.since AS since
       <ul>
         <li>Empty query: follows the active note's neighborhood.</li>
         <li>Enter a query and press Run or ⌘/Ctrl+Enter.</li>
+        <li><code>$activeFile</code> is the path of the last active Markdown note, so <code>MATCH p = (n {path: $activeFile})-[:knows*1..2]-&gt;(y) RETURN p</code> follows you as you switch notes. It is <code>null</code> until a note has been active.</li>
         <li>Right-click or long-press a node to expand it; double-click or ⌘/Ctrl-click to open its note.</li>
         <li>Select a node or edge to see its properties and where each style came from.</li>
       </ul>
@@ -324,7 +351,7 @@ RETURN p.title AS person, proj.title AS project,
         <tr><td><code>tg refs [--scope md|code|md+code] &lt;query&gt;</code></td><td>Sections and code that reference a section.</td></tr>
         <tr><td><code>tg expand &lt;text&gt;</code></td><td>Replace <code>[[refs]]</code> in text with full ids and locations.</td></tr>
         <tr><td><code>tg search [--limit n] [--lexical] &lt;query&gt;</code></td><td>Lexical ranking by default. With <code>TG_EMBED_PROVIDER=ollama|openai</code> or a key (<code>TG_EMBED_KEY</code>, or <code>LAT_LLM_KEY</code>) it fuses lexical and vector ranks. <code>TG_EMBED_URL</code> and <code>TG_EMBED_MODEL</code> pick the endpoint and model. Vectors are cached in <code>.tg/</code>; <code>tg reindex</code> rebuilds them.</td></tr>
-        <tr><td><code>tg cypher [--code off|annotated|all] &lt;query&gt;</code></td><td>Read-only openCypher over the section graph: <code>Section</code> nodes (<code>section</code>, <code>title</code>, <code>file</code>, <code>depth</code>, <code>summary</code>), <code>contains</code> and <code>references</code> edges, and with <code>--code</code> <code>CodeFile</code> and <code>CodeSymbol</code> nodes. Pattern predicates such as <code>WHERE NOT ()-[:x]-&gt;(s)</code> are not supported; use <code>OPTIONAL MATCH</code> with a count.</td></tr>
+        <tr><td><code>tg cypher [--code off|annotated|all] &lt;query&gt;</code></td><td>Read-only openCypher over the section graph: <code>Section</code> nodes (<code>section</code>, <code>title</code>, <code>file</code>, <code>depth</code>, <code>summary</code>), <code>contains</code> and <code>references</code> edges, <code>Requirement</code> and <code>Scenario</code> nodes from spec frameworks, and with <code>--code</code> <code>CodeFile</code> and <code>CodeSymbol</code> nodes; every property is listed in the <a href="query-cheatsheet.html#tg">query cheat sheet</a>. Pattern predicates such as <code>WHERE NOT ()-[:x]-&gt;(s)</code> are not supported; use <code>OPTIONAL MATCH</code> with a count.</td></tr>
         <tr><td><code>tg edges [--type t] [--to s] [--file f]</code></td><td>List annotation edges from code to sections.</td></tr>
         <tr><td><code>tg gen &lt;target&gt;</code></td><td>Print <code>agents.md</code>, <code>claude.md</code>, <code>cursor-rules.md</code>, <code>skill.md</code> or <code>graph-skill.md</code>.</td></tr>
         <tr><td><code>tg init</code>, <code>tg hook</code>, <code>tg mcp</code></td><td>See <a href="#cli-agents">Agents and hooks</a>.</td></tr>

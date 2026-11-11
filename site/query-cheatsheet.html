@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Query cheat sheet — variables, parameters and built-in properties · Typed Graph</title>
+  <meta name="description" content="Typed Graph query cheat sheet: {{path}}, {{title}} and {{fm.*}} note variables in graph-query blocks, the $activeFile parameter, and the properties every node and edge carries automatically: path, title, stub, frontmatter, sign, id, and the Section, Requirement and code nodes of tg cypher.">
+  <meta property="og:title" content="Typed Graph query cheat sheet">
+  <meta property="og:description" content="Note variables, query parameters and the metadata every node and edge carries, on one page.">
+  <meta property="og:image" content="https://typedgraph.org/assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/logo.svg" alt="">Typed Graph</a>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="agents.html">Agents</a>
+        <a href="obsidian.html">Obsidian</a>
+        <a href="teams.html">Teams</a>
+        <a href="docs.html" class="active">Docs</a>
+        <a href="demo.html">Demo</a>
+        <a href="example.html">Example</a>
+        <a href="ontologies.html">Ontologies</a>
+        <a href="blog.html">Blog</a>
+        <a href="https://github.com/Volland/typedgraph">GitHub</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap cheatsheet">
+    <div class="meta"><a href="docs.html#blocks">Docs</a> · Querying · Cheat sheet</div>
+    <h1>Query cheat sheet</h1>
+    <p class="standfirst">What a query can use without declaring anything: variables of the note a block sits in, parameters the host binds, and the properties every node and edge gets automatically.</p>
+    <nav class="cheat-jump" aria-label="On this page">
+      <a href="#variables">Note variables <code>{{…}}</code></a>
+      <a href="#params">Parameters <code>$…</code></a>
+      <a href="#node-props">Node properties</a>
+      <a href="#edge-props">Edge properties</a>
+      <a href="#functions">Functions</a>
+      <a href="#tg">tg cypher graph</a>
+      <a href="#ladybug">Ladybug backend</a>
+      <a href="#recipes">Recipes</a>
+    </nav>
+
+    <section class="cheat-grid">
+      <div class="cheat-card wide" id="variables">
+        <h2>Note variables <code>{{…}}</code></h2>
+        <p>In a <code>graph-query</code> block in Obsidian, <code>{{name}}</code> is replaced by a value of the note holding the block, written as a Cypher literal, <em>before</em> the query is parsed. Values below are for <code>Projects/Atlas/Plan.md</code> with this frontmatter:</p>
+<pre>---
+type: Project
+title: Atlas plan
+status: active
+budget: 1200
+draft: false
+tags: [graph, ml]
+address: {city: Lviv}
+---</pre>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Variable</th><th>Becomes</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>{{path}}</code></td><td><code>"Projects/Atlas/Plan.md"</code></td><td>Vault-relative path. The safest way to match this note: <code>(me {path: {{path}}})</code>.</td></tr>
+            <tr><td><code>{{name}}</code></td><td><code>"Plan.md"</code></td><td>File name with extension.</td></tr>
+            <tr><td><code>{{title}}</code></td><td><code>"Plan"</code></td><td>File name without extension. It ignores frontmatter <code>title</code>; use <code>{{fm.title}}</code> for that.</td></tr>
+            <tr><td><code>{{folder}}</code></td><td><code>"Projects/Atlas"</code></td><td><code>""</code> for a note at the vault root.</td></tr>
+            <tr><td><code>{{extension}}</code></td><td><code>"md"</code></td><td><code>"adoc"</code> for an AsciiDoc note.</td></tr>
+            <tr><td><code>{{fm.status}}</code></td><td><code>"active"</code></td><td>Any frontmatter key. <code>{{frontmatter.status}}</code> is the long form.</td></tr>
+            <tr><td><code>{{fm.title}}</code></td><td><code>"Atlas plan"</code></td><td></td></tr>
+            <tr><td><code>{{fm.budget}}</code></td><td><code>1200</code></td><td>Numbers and booleans are written plain.</td></tr>
+            <tr><td><code>{{fm.draft}}</code></td><td><code>false</code></td><td></td></tr>
+            <tr><td><code>{{fm.tags}}</code></td><td><code>["graph", "ml"]</code></td><td>A list of strings, numbers or booleans becomes a list. A nested list inside it becomes <code>null</code>.</td></tr>
+            <tr><td><code>{{fm.address.city}}</code></td><td><code>"Lviv"</code></td><td>Dots walk into maps.</td></tr>
+            <tr><td><code>{{fm.address}}</code></td><td><code>null</code></td><td>A map is not a literal, so it becomes <code>null</code>.</td></tr>
+            <tr><td><code>{{fm.owner}}</code></td><td><code>null</code></td><td>A missing key becomes <code>null</code>; so does any unknown name.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <ul class="rules">
+          <li>Strings are quoted and escaped, so a value with quotes cannot break or extend the query.</li>
+          <li>Spaces inside the braces are allowed: <code>{{ fm.status }}</code>.</li>
+          <li>Only names and dots are substituted. Nothing is evaluated: <code>{{fm.budget * 2}}</code> stays in the text and fails to parse. Write <code>{{fm.budget}} * 2</code> instead.</li>
+          <li>Line numbers are kept, so error positions still point into the block.</li>
+          <li>Substitution happens before the backend is chosen, so variables work with <code>backend: ladybug</code> too.</li>
+          <li>Blocks re-run when the note changes, so a block that uses <code>{{fm.*}}</code> follows edits to its own frontmatter.</li>
+        </ul>
+      </div>
+
+      <div class="cheat-card" id="params">
+        <h2>Parameters <code>$…</code></h2>
+        <p>A <code>$name</code> is a real Cypher parameter, bound by the host at run time.</p>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Parameter</th><th>Where</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td><code>$activeFile</code></td><td>Graph view (full pane)</td><td>Vault-relative path of the last active Markdown note. It keeps that path when focus moves away from Markdown, and is <code>null</code> before any note has been active.</td></tr>
+            <tr><td>any <code>$name</code></td><td>Sidecar <code>POST /query</code> and the MCP tool <code>cypher_query</code></td><td>Whatever you pass in <code>params</code>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="note"><code>graph-query</code> blocks and <code>tg cypher</code> bind no parameters. A block that uses <code>$x</code> fails with <em>Missing parameter $x</em>, so use a <code>{{…}}</code> variable there.</p>
+<pre>curl -s localhost:8765/query \
+  -H "Authorization: Bearer $OBSIGRAPH_TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"query": "MATCH (n {path: $p})-[r]->(x) RETURN type(r), x.title",
+       "params": {"p": "People/Alice.md"}}'</pre>
+      </div>
+
+      <div class="cheat-card" id="node-props">
+        <h2>Node properties</h2>
+        <p>Every note node in a vault (Obsidian plugin, sidecar) has these without any schema:</p>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Use</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td><code>n.path</code></td><td>Vault-relative path, such as <code>"People/Alice.md"</code>. <code>null</code> for a stub.</td></tr>
+            <tr><td><code>n.title</code></td><td>Frontmatter <code>title</code>, else an AsciiDoc <code>= Title</code>, else the file name without extension. A stub's title is its link text.</td></tr>
+            <tr><td><code>n.stub</code></td><td><code>true</code> for a link target with no note behind it.</td></tr>
+            <tr><td><code>n.&lt;key&gt;</code></td><td>Every frontmatter key as written: <code>n.type</code>, <code>n.tags</code>, <code>n.aliases</code>, <code>n.status</code>, generated ids such as <code>n.uuid</code>.</td></tr>
+            <tr><td><code>id(n)</code></td><td>The note path; for a stub, its link text.</td></tr>
+            <tr><td><code>labels(n)</code></td><td>From frontmatter <code>type</code> and <code>types</code>, or the folder and tag fallbacks in settings.</td></tr>
+            <tr><td><code>n:Person</code></td><td>Label test, usable in <code>WHERE</code>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="note"><code>path</code> and <code>title</code> are always set by Typed Graph, and a frontmatter <code>path</code> key is replaced. Headings and blocks are not nodes.</p>
+      </div>
+
+      <div class="cheat-card" id="edge-props">
+        <h2>Edge properties</h2>
+        <p>Written as <code>-distrusts:: [[Mallory]] {since: 2021, id: d-1}</code>:</p>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Use</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td><code>type(r)</code></td><td>The edge type without its sign: <code>"distrusts"</code>.</td></tr>
+            <tr><td><code>r.sign</code></td><td><code>1</code>, or <code>-1</code> for a type written with a leading <code>-</code>.</td></tr>
+            <tr><td><code>r.id</code></td><td>The pinned <code>{id: …}</code>, an edge note's path, or a derived <code>&lt;source&gt;#&lt;type&gt;#&lt;target&gt;#&lt;n&gt;</code>.</td></tr>
+            <tr><td><code>r.&lt;key&gt;</code></td><td>Each <code>{key: value}</code> property, or an edge note's frontmatter: <code>r.since</code>.</td></tr>
+            <tr><td><code>[:knows|likes]</code></td><td>Type alternation in a pattern.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="note">With <em>Plain links as links_to edges</em> on, every prose link is also an untyped <code>links_to</code> edge with sign 1. The heading and line an edge was written under are not properties.</p>
+      </div>
+
+      <div class="cheat-card" id="functions">
+        <h2>Functions over metadata</h2>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Function</th><th>Returns</th></tr></thead>
+          <tbody>
+            <tr><td><code>keys(n)</code>, <code>keys(r)</code></td><td>Property names, including <code>path</code> and <code>title</code>.</td></tr>
+            <tr><td><code>properties(n)</code></td><td>A map of all properties.</td></tr>
+            <tr><td><code>startNode(r)</code>, <code>endNode(r)</code></td><td>The endpoints of an edge.</td></tr>
+            <tr><td><code>labels(n)</code>, <code>type(r)</code>, <code>id(x)</code></td><td>Labels, edge type, node or edge id.</td></tr>
+            <tr><td><code>coalesce(n.subtitle, n.title)</code></td><td>First non-null value.</td></tr>
+            <tr><td><code>x IN n.tags</code></td><td>List membership, for <code>tags</code> or <code>aliases</code>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="note">The first three are built-in engine only; see <a href="#ladybug">Ladybug backend</a>.</p>
+      </div>
+
+      <div class="cheat-card wide" id="tg">
+        <h2><code>tg cypher</code> graph (code projects)</h2>
+        <p><code>tg cypher</code> and the <code>tg_cypher</code> MCP tool query a graph of <code>lat.md/</code> sections, spec requirements and, with <code>--code annotated|all</code>, source code. Every node also has <code>path</code> (its id) and <code>title</code>, plus <code>type</code>.</p>
+        <div class="table-scroll">
+        <table class="labels">
+          <thead><tr><th>Label</th><th>Properties</th><th>Id looks like</th></tr></thead>
+          <tbody>
+            <tr><td><code>Section</code>, plus the file's <code>type:</code> labels for sections below the title</td><td><code>section</code>, <code>title</code> (the heading), <code>file</code>, <code>depth</code>, <code>startLine</code>, <code>endLine</code>, <code>summary</code> (first paragraph)</td><td><code>lat.md/cli#CLI#Requirement trace</code></td></tr>
+            <tr><td><code>Requirement</code>, or <code>Decision</code> for an ADR, plus the framework's own label (<code>UserStory</code>, <code>ADR</code>, …)</td><td><code>requirement</code>, <code>framework</code>, <code>capability</code>, <code>name</code>, <code>text</code>, <code>file</code>, <code>line</code>, <code>status</code>, <code>change</code>, <code>removedBy</code></td><td><code>openspec:auth#Login</code>, <code>adr:0003</code></td></tr>
+            <tr><td><code>Scenario</code> (spec)</td><td><code>scenario</code>, <code>requirement</code>, <code>name</code>, <code>file</code>, <code>line</code></td><td><code>openspec:auth#Login#Valid password</code></td></tr>
+            <tr><td><code>CodeFile</code></td><td><code>lang</code>, <code>lines</code> (line count)</td><td><code>src/auth/token.ts</code></td></tr>
+            <tr><td><code>CodeSymbol</code></td><td><code>name</code>, <code>kind</code>, <code>symbol</code>, <code>lang</code>, <code>lines</code> (<code>"12-40"</code>), <code>startLine</code>, <code>endLine</code>, <code>signature</code></td><td><code>src/auth/token.ts#refresh</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <ul class="rules">
+          <li>Edges: <code>contains</code> (parent section to child, requirement to scenario), <code>references</code> (plain wiki links and <code>openspec:</code>/<code>specs:</code> frontmatter), and every typed edge line with its <code>{properties}</code>.</li>
+          <li><code>@tg:</code> edges from code carry what you wrote, such as <code>r.since</code>. When the comment sits above a test call they also carry <code>r.test</code>, the test's name.</li>
+          <li>Test-spec sections in a file typed <code>Scenario</code> are labelled <code>Scenario</code> too. Use <code>s.scenario IS NOT NULL</code> to keep only spec scenarios.</li>
+        </ul>
+      </div>
+
+      <div class="cheat-card wide" id="ladybug">
+        <h2>Ladybug backend</h2>
+        <p>With <code>backend: ladybug</code> the names are the same and the same text runs. The differences:</p>
+        <ul class="rules">
+          <li><code>keys</code>, <code>properties</code>, <code>startNode</code> and <code>endNode</code> are not available.</li>
+          <li><code>n.title</code>, <code>n.stub</code>, <code>r.id</code> and <code>r.sign</code> are stored columns. Other properties get a typed column per kind, so one property holding numbers in some notes and text in others is read as one kind, with a notice.</li>
+          <li><code>UNWIND</code>, <code>CASE</code> and other read Cypher outside the built-in subset run there.</li>
+        </ul>
+      </div>
+
+      <div class="cheat-card wide" id="recipes">
+        <h2>Recipes</h2>
+        <div class="recipe-grid">
+          <div>
+            <h3>This note's neighbourhood</h3>
+<pre>```graph-query
+MATCH (me {path: {{path}}})-[r]-(x)
+RETURN me, r, x
+```</pre>
+          </div>
+          <div>
+            <h3>Typed backlinks as a table</h3>
+<pre>```graph-query
+view: table
+
+MATCH (x)-[r]-&gt;(me {path: {{path}}})
+RETURN x.title AS from, type(r) AS edge,
+       r.sign AS sign
+```</pre>
+          </div>
+          <div>
+            <h3>Other notes in this folder</h3>
+<pre>```graph-query
+MATCH (n)
+WHERE n.path STARTS WITH {{folder}} + '/'
+  AND n.path &lt;&gt; {{path}}
+RETURN n.title ORDER BY n.title
+```</pre>
+            <p class="note">For a note at the vault root, <code>{{folder}}</code> is <code>""</code>, so this matches nothing.</p>
+          </div>
+          <div>
+            <h3>Same status as this note</h3>
+<pre>```graph-query
+MATCH (p:Project)
+WHERE p.status = {{fm.status}}
+  AND p.path &lt;&gt; {{path}}
+RETURN p.title, p.budget
+```</pre>
+          </div>
+          <div>
+            <h3>Notes with a tag</h3>
+<pre>MATCH (n) WHERE 'ml' IN n.tags
+RETURN n.title</pre>
+          </div>
+          <div>
+            <h3>Negative edges</h3>
+<pre>MATCH (a)-[r]-&gt;(b) WHERE r.sign = -1
+RETURN a.title, type(r), b.title</pre>
+          </div>
+          <div>
+            <h3>Links to missing notes</h3>
+<pre>MATCH (a)-[r]-&gt;(s) WHERE s.stub
+RETURN a.path, type(r), s.title</pre>
+          </div>
+          <div>
+            <h3>Graph view: follow the open note</h3>
+<pre>MATCH p = (n {path: $activeFile})
+          -[:knows*1..2]-&gt;(y)
+RETURN p</pre>
+          </div>
+          <div>
+            <h3>Sections of one doc file</h3>
+<pre>tg cypher "MATCH (s:Section)
+  WHERE s.file = 'lat.md/cli.md'
+  RETURN s.title, s.startLine"</pre>
+          </div>
+          <div>
+            <h3>Unimplemented requirements</h3>
+<pre>tg cypher "MATCH (q:Requirement)
+  OPTIONAL MATCH (c)-[i:implements]-&gt;(q)
+  WITH q, count(i) AS n WHERE n = 0
+  RETURN q.requirement, q.status"</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="next">More: <a href="docs.html#blocks">Query blocks</a> · <a href="docs.html#cypher">openCypher subset</a> · <a href="docs.html#graph-view">Graph view</a> · <a href="docs.html#cli">CLI</a></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Typed Graph · MIT · by Volodymyr Pavlyshyn. Not affiliated with Obsidian, LadybugDB or lat.md.</span>
+      <span><a href="install.html">Install</a> · <a href="docs.html">Docs</a> · <a href="demo.html">Demo</a> · <a href="ontologies.html">Ontologies</a> · <a href="https://github.com/Volland/typedgraph">GitHub</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="agb.html">AGB</a></span>
+    </div>
+  </footer>
+  <script src="assets/site.js"></script>
+</body>
+</html>

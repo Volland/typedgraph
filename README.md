@@ -51,6 +51,7 @@ ORDER BY hours DESC
 - **Typed, signed edges with properties.** `type:: [[Target]] {props}` works like Graph Link Types, so your existing lines keep working. A `-` prefix makes an edge negative, and edges can have stable or pinned ids.
 - **Typed nodes and schema notes.** Frontmatter `type` gives a note its labels. A note in `Types/` declares a type's properties, allowed edges, template and look.
 - **openCypher queries.** `MATCH`, `OPTIONAL MATCH`, `WITH`, aggregates, variable-length paths and path variables. Queries are read-only and errors are clear.
+- **Note variables and built-in metadata.** A block can use the note it sits in: `{{path}}`, `{{title}}`, `{{folder}}` and frontmatter as `{{fm.status}}` become Cypher literals, so `MATCH (me {path: {{path}}})-[r]-(x) RETURN me, r, x` works in any note. Every node has `path`, `title`, `stub` and its frontmatter, and every edge has `r.sign`, `r.id` and its `{props}`, with no schema. The Graph view binds `$activeFile`. See the [query cheat sheet](https://typedgraph.org/query-cheatsheet.html).
 - **Graph or table, live.** Results render as a labeled, styled graph or a table, and refresh as you edit.
 - **Graph view.** A full-pane explorer that follows the active note, expands neighbors and explains where each style comes from. Frontmatter `subtitle: billing` draws `specs/billing/spec.md` as *spec — billing*, so notes that share a file name stay apart. It is a separate view. Obsidian's core Graph view is left unchanged, but you can color types there yourself with groups such as `[type:Person]` (see the [docs](https://typedgraph.org/docs.html#graph-view)).
 - **AsciiDoc notes.** `.adoc` files are typed notes too: properties in a leading `////` block or `:tg-*:` attributes, edges in `// @tg: cites:: [[Source]]` comments, so Asciidoctor renders the file exactly as before. See the [docs](https://typedgraph.org/docs.html#asciidoc).
@@ -81,7 +82,7 @@ The plugin works on desktop and mobile, and it never modifies your notes.
 
 **Try the demo vault:** download [typed-graph-demo-vault.zip](https://github.com/Volland/typedgraph/releases/latest/download/typed-graph-demo-vault.zip), unzip it and open the folder as a vault. The plugin is preinstalled. Open **Start Here** for a tour and a hands-on Cypher manual. From a clone, `npm run example:install` builds the plugin into `example/` instead.
 
-The full guide covers edge syntax, schema notes, styling precedence, the Cypher subset, embeds and settings: **[typedgraph.org/docs.html](https://typedgraph.org/docs.html)**.
+The full guide covers edge syntax, schema notes, styling precedence, the Cypher subset, embeds and settings: **[typedgraph.org/docs.html](https://typedgraph.org/docs.html)**. For the variables and properties a query can use without declaring anything, keep the **[query cheat sheet](https://typedgraph.org/query-cheatsheet.html)** open.
 
 ## CLI: `tg`
 

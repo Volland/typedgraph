@@ -706,3 +706,36 @@ footer .wrap {
 }
 .spec-panel > p { color: var(--muted); margin: 6px 0 12px; }
 .spec-panel .two-col pre { margin: 0; }
+
+/* ---- query cheat sheet ---- */
+.cheatsheet { padding-top: 44px; padding-bottom: 70px; }
+.cheatsheet h1 { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.15; letter-spacing: -0.02em; margin: 8px 0 12px; }
+.cheatsheet .meta { color: var(--faint); font-size: 14px; }
+.cheatsheet .standfirst { font-size: 19px; color: var(--muted); margin: 14px 0 20px; max-width: 46em; }
+.cheatsheet .next { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+.cheat-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 26px; }
+.cheat-jump a { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 14px; color: var(--text); }
+.cheat-jump a:hover { border-color: var(--accent); text-decoration: none; }
+.cheat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.cheat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow); min-width: 0; scroll-margin-top: 80px; }
+.cheat-card.wide { grid-column: 1 / -1; }
+.cheat-card h2 { margin: 0 0 10px; font-size: 21px; }
+.cheat-card h3 { margin: 0 0 6px; font-size: 15px; }
+.cheat-card p { margin: 0 0 12px; font-size: 15px; }
+.cheat-card pre { margin: 0 0 12px; font-size: 13px; }
+.cheat-card table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 0 0 12px; }
+.cheat-card th, .cheat-card td { border: 1px solid var(--border); padding: 6px 9px; text-align: left; vertical-align: top; }
+.cheat-card th { background: var(--bg-soft); }
+.cheat-card td:first-child { white-space: nowrap; }
+.cheat-card table.labels td:first-child { white-space: normal; width: 28%; }
+.cheat-card table.labels td:nth-child(2) { width: 44%; }
+.cheat-card .note { color: var(--muted); font-size: 14px; }
+.cheat-card .rules { margin: 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+.cheat-card .rules li { margin: 3px 0; }
+.recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px 20px; }
+.recipe-grid pre { margin-bottom: 6px; }
+@media (max-width: 860px) {
+  .cheat-grid { grid-template-columns: minmax(0, 1fr); }
+  .cheat-card { padding: 16px; }
+  .cheat-card td:first-child { white-space: normal; }
+}
