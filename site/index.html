@@ -37,7 +37,7 @@
       <div class="wrap">
         <div>
           <h1>A shared space for <span class="grad">agents and humans</span>.</h1>
-          <p class="lead">Typed Graph turns your Markdown and your code into one typed, checked graph. You write it in Obsidian or your editor. Your agent queries it from Claude Code, Cursor or any MCP client. Both see the same truth, in plain files.</p>
+          <p class="lead">Typed Graph turns your Markdown and your code into one typed, checked graph, with an ontology that explains every type, link and block inside your documents. You write it in Obsidian or your editor. Your agent learns what each part means, then queries it from Claude Code, Cursor or any MCP client. Both see the same truth, in plain files.</p>
           <div class="buttons">
             <a class="btn primary" href="install.html">Install in 60 seconds →</a>
             <a class="btn" href="demo.html">Try the live demo</a>
@@ -94,6 +94,68 @@ tg mcp</pre><p><a href="agents.html">Agents guide →</a></p></div>
       </div>
     </section>
 
+    <section id="ontology">
+      <div class="wrap">
+        <h2>An ontology that explains your documents to agents</h2>
+        <p class="section-lead">A type says what a document is. It also says what goes inside it: the headings it has and the blocks it holds, such as a decision's options, a requirement's rules or a runbook's rollback, each described in plain words. Your agent reads what every part means before it writes one, and <code>tg</code> checks what it wrote.</p>
+        <div class="two-col">
+          <div>
+            <h3>You declare it once</h3>
+<pre># Types/Runbook.md
+schema:
+  description: How to operate one part of the system
+    when something goes wrong.
+  sections:
+    Symptoms: {required: true, description: What an
+      on-call engineer sees first.}
+  elements:
+    step:
+      description: One action, in order, that an
+        engineer or an agent can run.
+      attributes:
+        risk: {values: [safe, disruptive], required: true}
+      elements:
+        check: {required: true, description: How to
+          tell that the step worked.}
+    rollback:
+      description: How to undo the steps.
+      required: true
+      many: false</pre>
+          </div>
+          <div>
+            <h3>The agent reads it, and the check holds it</h3>
+<pre>$ tg ontology
+  Runbook  (Types/Runbook.md)
+    How to operate one part of the system ...
+    sections:
+      ## Symptoms  (required) — What an on-call ...
+    elements:
+      &lt;step&gt; — One action, in order, that an ...
+        attributes:
+          risk (text, safe|disruptive, required)
+        elements:
+          &lt;check&gt;  (required) — How to tell that ...
+      &lt;rollback&gt;  (exactly one) — How to undo ...
+
+$ tg ontology check
+- lat.md/runbooks.md:28: &lt;step&gt; has no &lt;check&gt;:
+  How to tell that the step worked.</pre>
+          </div>
+        </div>
+        <div class="grid" style="margin-top:28px">
+          <div class="card"><div class="icon">✎</div><h3>Every name explained</h3><p>Types, properties, edges and blocks carry a <code>description</code>. <code>tg ontology</code> prints it for agents and people, and the SHACL export carries it to RDF tools.</p></div>
+          <div class="card"><div class="icon">▤</div><h3>The inside of a document, checked</h3><p>A type declares its headings and the XML blocks its sections hold, nested with a clear scope. <code>tg ontology check</code> reports a missing or repeated block with its description. Anything undeclared stays prose.</p></div>
+          <div class="card"><div class="icon">#</div><h3>Parts you can point at</h3><p>Give a block an <code>id</code> and it becomes a node: link <code>[[decisions#^redis]]</code> from docs or code, and query every option your team ever rejected.</p></div>
+        </div>
+        <div class="buttons" style="margin-top:28px">
+          <a class="btn primary" href="blog-explainable-blocks.html">Read: explainable blocks →</a>
+          <a class="btn" href="blog-declaring-elements.html">How to declare elements</a>
+          <a class="btn" href="spec/tgs/v0.5/">Typed Graph Schema 0.5</a>
+          <a class="btn" href="ontologies.html">Ontology gallery</a>
+        </div>
+      </div>
+    </section>
+
     <section>
       <div class="wrap two-col">
         <div>
@@ -139,7 +201,8 @@ ORDER BY hours DESC
         <p class="section-lead">From a quick typed link to RAG-ready storage for agents.</p>
         <div class="grid">
           <div class="card"><div class="icon">↗</div><h3>Typed, signed edges</h3><p><code>type:: [[X]]</code>, a <code>-</code> prefix for negative edges, properties in braces, stable or pinned ids.</p></div>
-          <div class="card"><div class="icon">◆</div><h3>Typed nodes &amp; schemas</h3><p>Frontmatter <code>type</code> gives labels; schema notes declare properties, allowed edges, templates and looks.</p></div>
+          <div class="card"><div class="icon">◆</div><h3>Typed nodes &amp; schemas</h3><p>Frontmatter <code>type</code> gives labels; schema notes declare and describe properties, allowed edges, templates and looks.</p></div>
+          <div class="card"><div class="icon">▤</div><h3>Document elements</h3><p>Types declare the headings and blocks inside a document, explained for agents; blocks with an id become nodes, and the shape is checked.</p></div>
           <div class="card"><div class="icon">⌕</div><h3>openCypher</h3><p>MATCH, OPTIONAL MATCH, WITH, aggregation, variable-length paths — read-only, with clear errors.</p></div>
           <div class="card"><div class="icon">◎</div><h3>Graph view</h3><p>A full-pane explorer that follows the active note, expands neighbors and explains every style.</p></div>
           <div class="card"><div class="icon">{}</div><h3>Edge property embeds</h3><p><code>{{edge: Alice -knows-> Bob . since}}</code> shows a value in prose and warns about unstable references.</p></div>
@@ -314,6 +377,8 @@ function legacyCheck() {}</pre>
         <h2>Learn more</h2>
         <p class="section-lead">Articles, a gallery of ready-made ontologies and a vault to explore.</p>
         <div class="grid">
+          <a class="post-card" href="blog-explainable-blocks.html"><div class="meta">Blog · Ontology</div><h2>Explainable blocks</h2><p>An ontology for the inside of your documents: blocks an agent understands, code can point at and tg checks.</p></a>
+          <a class="post-card" href="blog-declaring-elements.html"><div class="meta">Blog · Guide</div><h2>Declaring document elements</h2><p>One shape, one reading: attributes, nesting and scope, and the normal form of TGS 0.5, with a checklist.</p></a>
           <a class="post-card" href="blog-spec-frameworks.html"><div class="meta">Blog · Developers</div><h2>Bring your own spec framework</h2><p>OpenSpec, Spec Kit, Kiro-style specs, BMAD, GSD and ADRs, traced to code and tests by one command.</p></a>
           <a class="post-card" href="blog-shared-space.html"><div class="meta">Blog · Manifesto</div><h2>A shared space for agents and humans</h2><p>Why coding agents need the same documented, checked knowledge as people, in plain files.</p></a>
           <a class="post-card" href="blog-claude-code-memory.html"><div class="meta">Blog · Tutorial</div><h2>Give Claude Code a memory in five minutes</h2><p>Install tg, run tg init, write a typed link, and let the agent search, query and check.</p></a>
