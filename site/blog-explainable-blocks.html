@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Explainable Blocks</title>
+  <meta name="description" content="Typed Graph 0.26 lets a type declare and explain the XML blocks inside its sections. Blocks with an id become graph nodes that code can point at, the rest stays prose, and tg checks both.">
+  <meta property="og:title" content="Explainable blocks: an ontology for the inside of your documents">
+  <meta property="og:description" content="Typed Graph 0.26 lets a type declare and explain the XML blocks inside its sections. Blocks with an id become graph nodes that code can point at, the rest stays prose, and tg checks both.">
+  <meta property="og:image" content="https://typedgraph.org/assets/og.png">
+  <meta property="og:type" content="article">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/logo.svg" alt="">Typed Graph</a>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="agents.html">Agents</a>
+        <a href="obsidian.html">Obsidian</a>
+        <a href="teams.html">Teams</a>
+        <a href="docs.html">Docs</a>
+        <a href="demo.html">Demo</a>
+        <a href="example.html">Example</a>
+        <a href="ontologies.html">Ontologies</a>
+        <a href="blog.html" class="active">Blog</a>
+        <a href="https://github.com/Volland/typedgraph">GitHub</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap post">
+    <div class="meta"><a href="blog.html">Blog</a> · 11 November 2026 · Volodymyr Pavlyshyn</div>
+    <h1>Explainable blocks: an ontology for the inside of your documents</h1>
+    <p class="standfirst">Until now, <code>tg</code> stopped at the heading. Typed Graph 0.26 lets a type say what goes inside its sections: XML blocks such as <code>&lt;option&gt;</code>, <code>&lt;rule&gt;</code> or <code>&lt;rollback&gt;</code>, each with a description an agent can read before writing one. Blocks you give an id become graph nodes that code can point at. The rest stays prose, and <code>tg</code> checks it all.</p>
+
+<h2>The graph stopped at the section</h2>
+<p><a href="https://typedgraph.org">Typed Graph</a> keeps a project&#39;s intent in small Markdown files with types: a <code>Decision</code> here, a <code>Requirement</code> there. Typed edges join them, as in <code>motivated_by:: [[constraints#Session limit]]</code>. <code>tg</code> turns all of it into a graph you can check and query. The smallest node in that graph used to be a section.</p>
+<p>A section is often too coarse. Take a decision. It records what was chosen, but also the options weighed and the consequences accepted. A rejected option is the part people ask about a year later (&quot;why not Redis?&quot;). A requirement often bundles several rules that different functions implement. A runbook needs a rollback, and when it is missing someone finds out at 3 a.m.</p>
+<p>Writers already mark these parts. Prompt files, Claude skills and agent instructions are full of <code>&lt;example&gt;</code>, <code>&lt;constraint&gt;</code> and <code>&lt;when_to_use&gt;</code> tags. Anthropic recommends XML tags for separating the parts of a prompt, and our <a href="blog-one-file-or-a-graph.html">research long read</a> sums up the mixed evidence on formats. But nothing says what a tag means. To the next writer, human or agent, <code>&lt;consequence&gt;</code> is a guess, and no tool can check, link or query what is inside it.</p>
+<p>Version 0.26 closes that gap in three steps. The ontology explains itself, types declare the blocks their sections hold, and blocks you name become part of the graph.</p>
+<h2>Step one: the ontology explains itself</h2>
+<p>Every type, property, edge and edge type in a schema note can now carry a <code>description</code>. This is part of version 0.4 of the Typed Graph Schema specification (TGS), which also adds the <code>elements</code> and <code>sections</code> keys used below. The bundled code ontology that <code>tg init</code> installs describes every name it declares. Here is what <code>tg ontology</code> prints for <code>Decision</code> in a fresh project:</p>
+<pre>  Decision  (Types/code-types.md)
+    A choice that was made, with its reason and the alternatives rejected. An ADR is one.
+    properties:
+      status (text, proposed|accepted|superseded|rejected, default proposed) — Where the decision is in its life.
+      date (date) — When it was decided.
+      owner (text) — Who answers for it.
+    edges: supersedes → Decision; contradicts → Decision|Requirement|Constraint; motivated_by → Constraint|Concept|Decision; changed_by → Change
+    elements:
+      &lt;option id outcome=chosen|rejected|deferred&gt; — An alternative that was considered, and why it won or lost. Give it an id when code or a later decision must point at it.
+      &lt;consequence kind=good|bad|risk&gt; — What becomes easier, harder or riskier because of the decision.</pre>
+<p>That listing is what a coding agent reads before it writes. The agent instructions and the <code>tg-docs</code> skill that <code>tg init</code> installs tell it to run <code>tg ontology</code> first. An agent no longer has to infer what <code>refines</code> means from its name or guess which attributes <code>&lt;option&gt;</code> takes: the ontology says so in plain words. The SHACL export writes the same text as <code>sh:description</code>, so RDF tools see it too.</p>
+<h2>Step two: blocks inside a section</h2>
+<p>The <code>elements</code> key of a type declares the XML tags its sections may hold. A Decision section can now look like this:</p>
+<pre>## Short-lived access tokens
+
+Access tokens expire after 15 minutes and refresh tokens rotate on every use.
+
+&lt;option id=&quot;redis-sessions&quot; outcome=&quot;rejected&quot;&gt;
+
+Keep server sessions in Redis: simple revocation, but one more stateful service to run and fail over.
+
+- motivated_by:: [[constraints#Session limit]]
+
+&lt;/option&gt;
+
+&lt;option id=&quot;jwt-rotation&quot; outcome=&quot;chosen&quot;&gt;
+
+Stateless JWTs with rotating refresh tokens and a small revocation list.
+
+&lt;/option&gt;
+
+&lt;consequence kind=&quot;risk&quot;&gt;
+
+A stolen refresh token works until its next rotation.
+
+&lt;/consequence&gt;</pre>
+<p>Two details matter. The tags sit on their own lines with blank lines inside, so every Markdown reader still renders the text and <code>tg check</code> still reads the links in it. And the typed edge inside the first option belongs to that option, not to the whole section. The session limit was the reason Redis lost, not the reason for the decision. The graph says exactly that:</p>
+<pre>$ tg cypher 'MATCH (o:Element)-[r:motivated_by]-&gt;(c) RETURN o.element, type(r), c.title'
+o.element                        | type(r)      | c.title
+---------------------------------+--------------+--------------
+lat.md/decisions#^redis-sessions | motivated_by | Session limit</pre>
+<p>Every option the project ever weighed is now one query away, including the options in its architecture decision records:</p>
+<pre>$ tg cypher 'MATCH (d:Decision)-[:contains]-&gt;(o:Element {tag: &quot;option&quot;}) RETURN d.title, o.element, o.outcome'
+d.title                         | o.element                        | o.outcome
+--------------------------------+----------------------------------+----------
+Short-lived access tokens       | lat.md/decisions#^redis-sessions | rejected
+Short-lived access tokens       | lat.md/decisions#^jwt-rotation   | chosen
+Use Postgres for sessions audit | adr:0002#^postgres               | chosen
+Use Postgres for sessions audit | adr:0002#^kafka                  | rejected</pre>
+<h2>Step three: an id is an address</h2>
+<p>An element with an <code>id</code> can be linked as <code>file#^id</code>. That is the form Obsidian uses for block references, and it keeps working when you move the block to another section. Code points at it like any other target:</p>
+<pre>// @<span></span>tg: implements:: [[decisions#^jwt-rotation]]
+export function rotateRefreshToken(old: string): string {
+  return old;
+}
+
+// @<span></span>tg: implements:: [[adr:2#^postgres]]
+export function auditRotation(id: string): void {}</pre>
+<p>The second annotation points into an ADR, <code>docs/adr/0002-use-postgres.md</code>. Elements in spec files work the same way: <code>[[adr:3#^redis]]</code> and <code>[[openspec:auth#^lockout]]</code> resolve, with any alias of the record or group. Now the question &quot;which code realizes the option we chose?&quot; has an answer:</p>
+<pre>$ tg cypher 'MATCH (c:CodeSymbol)-[:implements]-&gt;(o:Element) RETURN c.symbol, o.element, o.outcome'
+c.symbol           | o.element                      | o.outcome
+-------------------+--------------------------------+----------
+rotateRefreshToken | lat.md/decisions#^jwt-rotation | chosen
+auditRotation      | adr:0002#^postgres             | chosen</pre>
+<p><code>tg check</code> resolves these links, so a typo fails the build and gets a suggestion:</p>
+<pre>- src/tokens.ts:1: @<span></span>tg: [[decisions#^jwt-rotaton]] — no element with that id — did you mean '[[lat.md/decisions#^jwt-rotation]]'?</pre>
+<h2>The balance rule: an id or a type makes a node</h2>
+<p>A graph with a node for every paragraph is as unreadable as no graph at all. So <code>tg</code> follows one rule. <strong>An element becomes a node only when it has an <code>id</code>, or when the ontology gives its tag a <code>type</code>.</strong> An id means the author wants to point at it. A type means the block is an ontology thing in its own right. Everything else stays text in its section. It is still described and checked, but it adds nothing to the graph.</p>
+<p>The <code>&lt;consequence&gt;</code> above has no id and no type, so it is not a node. Undeclared tags like <code>&lt;details&gt;</code> are just HTML. The code ontology guide that <code>tg init</code> installs gives the rule as a table, and the <code>tg-docs</code> skill teaches it to agents:</p>
+<table>
+<thead>
+<tr>
+<th>The part</th>
+<th>Write it as</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>nothing points at it and nobody checks it</td>
+<td>prose</td>
+</tr>
+<tr>
+<td>it lives only inside its section, but something links to it, queries it or checks it</td>
+<td>an element, with an <code>id</code> if it is linked</td>
+</tr>
+<tr>
+<td>readers navigate to it</td>
+<td>a heading</td>
+</tr>
+<tr>
+<td>it has a life of its own: edges from several places, its own status, several paragraphs</td>
+<td>a separate typed section</td>
+</tr>
+</tbody></table>
+<p>The bundled ontology uses <code>type</code> exactly once, on purpose. A Requirement&#39;s <code>&lt;rule&gt;</code> is itself a <code>Requirement</code>, so a long requirement can be implemented and tested one rule at a time:</p>
+<pre>## Password policy
+
+Passwords are checked when they are set or changed.
+
+&lt;rule id=&quot;min-length&quot; strength=&quot;must&quot;&gt;
+
+At least 12 characters.
+
+&lt;/rule&gt;
+
+&lt;rule id=&quot;breached&quot; strength=&quot;must&quot;&gt;
+
+Not in the breached-password list.
+
+&lt;/rule&gt;</pre>
+<p>With one function annotated <code>implements:: [[requirements#^min-length]]</code>, the gap shows up at once:</p>
+<pre>$ tg cypher 'MATCH (r:Requirement:Element) OPTIONAL MATCH (c)-[i:implements]-&gt;(r) RETURN r.element, r.strength, count(i) AS implemented'
+r.element                       | r.strength | implemented
+--------------------------------+------------+------------
+lat.md/requirements#^min-length | must       | 1
+lat.md/requirements#^breached   | must       | 0</pre>
+<p>The other blocks in the bundled ontology are text with a meaning: <code>&lt;example&gt;</code> with <code>&lt;input&gt;</code> and <code>&lt;output&gt;</code>, <code>&lt;non-goal&gt;</code>, Scenario&#39;s <code>&lt;given&gt;</code>, <code>&lt;when&gt;</code> and <code>&lt;then&gt;</code>, Constraint&#39;s <code>&lt;exception&gt;</code>, and Concept&#39;s <code>&lt;example&gt;</code> and <code>&lt;counterexample&gt;</code>. None of them is required, so existing docs stay clean.</p>
+<h2>Your own document types, checked</h2>
+<p>The bundled vocabulary is a start. The same keys describe any kind of document your team writes. A runbook type, in a schema note at <code>Types/Runbook.md</code>:</p>
+<pre>tgs: &quot;0.4&quot;
+schema:
+  description: How to operate one part of the system when something goes wrong.
+  sections:
+    Symptoms: {required: true, description: What an on-call engineer sees first.}
+  elements:
+    step:
+      description: One action, in order, that an engineer or an agent can run.
+      attributes:
+        risk: {values: [safe, disruptive], required: true}
+    rollback:
+      description: How to undo the steps if they make things worse.
+      required: true
+      many: false</pre>
+<p><code>tg ontology</code> turns it into a writing guide:</p>
+<pre>  Runbook  (Types/Runbook.md)
+    How to operate one part of the system when something goes wrong.
+    sections:
+      ## Symptoms  (required) — What an on-call engineer sees first.
+    elements:
+      &lt;step risk=safe|disruptive!&gt; — One action, in order, that an engineer or an agent can run.
+      &lt;rollback&gt;  (required, one) — How to undo the steps if they make things worse.</pre>
+<p>And <code>tg ontology check</code> holds every runbook to it. Here is a runbook with a symptoms section and two steps, but no rollback and one step without a risk:</p>
+<pre>- lat.md/runbooks.md:8: 'Token service down' (Runbook) has no &lt;rollback&gt;: How to undo the steps if they make things worse.
+- lat.md/runbooks.md:22: &lt;step&gt; needs the attribute 'risk'
+
+2 findings. Run tg ontology to see the declared types and edges.</pre>
+<p>The finding repeats the description, so whoever fixes it, human or agent, learns what the missing block is for. The same checks run in <code>tg validate</code> and in the Obsidian plugin&#39;s diagnostics, where each typed note is one document. They report:</p>
+<ul>
+<li>required blocks and headings that are missing</li>
+<li>a single-use block that appears twice</li>
+<li>attribute values outside the declared ones</li>
+<li>a declared tag that is never closed</li>
+</ul>
+<p>The descriptions also matter for retrieval. When an agent pulls one block out of a long file, <code>&lt;rollback&gt;</code> arrives with its meaning attached.</p>
+<h2>ADRs and specs get the same treatment</h2>
+<p><code>tg init --spec adr</code> now writes an ADR template whose considered options are <code>&lt;option&gt;</code> blocks and whose consequences are <code>&lt;consequence&gt;</code> blocks. The ADR type declares MADR&#39;s headings with descriptions. An ADR is also a Decision, so it inherits Decision&#39;s blocks. The spec authoring guidance that <code>tg init</code> adds to OpenSpec, Spec Kit, Kiro, BMAD and GSD skills tells agents to mark a rule with an id only when code or a test will point at it.</p>
+<h2>Upgrading a project set up earlier</h2>
+<p>A project set up with an older <code>tg</code> has older skills and an ontology without any of this. Version 0.26 adds <code>tg upgrade</code>. It works out what <code>tg init</code> set up earlier, then refreshes those files and nothing else. In a terminal it first offers a newer <code>tg</code> if npm has one. Here it is on a project with an outdated skill, a deleted skill and a pre-0.4 ontology:</p>
+<pre>$ tg upgrade --yes
+tg 0.26.0 has newer files for aged (instructions, hooks, skills, ontology; Claude Code):
+  ~ updated .claude/skills/tg-docs/SKILL.md
+  + new     .claude/skills/tg-graph/SKILL.md
+  ~ updated Types/code-types.md
+  Types/code-types.md gains 41 descriptions or declarations; nothing in it is overwritten.
+Wrote 3 files. Run tg check and tg ontology check.</pre>
+<p><code>Types/code-types.md</code> belongs to you, so <code>tg upgrade</code> never replaces it. Declarations it shares with the new ontology gain only the descriptions, elements and sections they lack. Your own values, comments and types stay, and a type you deleted does not come back.</p>
+<h2>What it is not</h2>
+<ul>
+<li><strong>Not a full XML parser.</strong> Blocks start at the beginning of a line and end at the end of one. Inline tags are text, and text that is not attribute syntax, like <code>&lt;insert a summary here&gt;</code>, is not a tag.</li>
+<li><strong>No content models.</strong> <code>required</code>, <code>many</code> and nesting are the whole grammar, with no ordering rules. That is deliberate: DTD-style schemas are why DocBook and DITA feel heavy.</li>
+<li><strong>Not in the editor graphs yet.</strong> The Obsidian plugin and the VS Code extension read the new keys and report the findings, but still draw one node per note. Element nodes live in the <code>tg</code> graph that <code>tg cypher</code>, <code>tg ontology check</code> and the MCP tools query.</li>
+<li><strong>Not known to lat.md.</strong> <code>lat check</code> does not understand <code>#^</code> links, so projects that use them differ from it on those links only.</li>
+</ul>
+<h2>Try it</h2>
+<pre>npm install -g @typedgraph/cli
+tg init            # or: tg upgrade, in a project set up earlier
+tg ontology        # read what every type, edge and block means</pre>
+<p>Then mark one rejected option in a decision you still get asked about, give it an id, and point at it from the code that made it lose. The spec is <a href="https://typedgraph.org/spec/tgs/v0.4/">Typed Graph Schema 0.4</a>, and the <a href="https://typedgraph.org/docs.html">docs</a> cover the rest.</p>
+<p class="note"><em>Every command output above comes from a real run of tg 0.26.0 on a fresh project, set up with <code>tg init --yes --spec adr</code>, on 11 November 2026.</em></p>
+
+    <div class="next">Related: <a href="blog-code-ontology.html">One vocabulary for the whole team: using the code ontology →</a></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Typed Graph · MIT · by Volodymyr Pavlyshyn. Not affiliated with Obsidian, LadybugDB or lat.md.</span>
+      <span><a href="docs.html">Docs</a> · <a href="blog.html">Blog</a> · <a href="https://github.com/Volland/typedgraph">GitHub</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="agb.html">AGB</a></span>
+    </div>
+  </footer>
+  <script src="assets/site.js"></script>
+</body>
+</html>
