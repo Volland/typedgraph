@@ -253,7 +253,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const types = typesIn(index!, schemaFolder());
     if (types.length === 0) return void vscode.window.showInformationMessage(`No schema notes found in ${schemaFolder()}. Set typegraph.schemaFolder or add types.`);
     const pick = await vscode.window.showQuickPick(
-      types.map((t) => ({ label: t.type, description: t.ids.map((r) => `${r.kind}${r.auto ? '' : ' on request'}`).join(', '), detail: t.properties.map((p) => p.name).join(', '), type: t.type })),
+      types.map((t) => ({ label: t.type, description: t.ids.map((r) => `${r.kind}${r.auto ? '' : ' on request'}`).join(', '), detail: t.description ?? t.properties.map((p) => p.name).join(', '), type: t.type })),
       { placeHolder: 'Choose a type', matchOnDetail: true },
     );
     if (!pick) return;
