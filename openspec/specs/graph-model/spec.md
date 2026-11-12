@@ -86,11 +86,19 @@ The system SHALL use a non-empty string frontmatter `title` as the node's `title
 - **THEN** the node has labels `Person` and `Engineer`
 
 ### Requirement: Link resolution outside Obsidian
-Outside Obsidian (sidecar, CLI, VS Code), the system SHALL resolve a link with Obsidian-compatible rules: an exact vault path first, otherwise a path whose suffix matches, preferring a match in the source note's folder and then the shortest path.
+Outside Obsidian (sidecar, CLI, VS Code), the system SHALL resolve a link with Obsidian-compatible rules: an exact vault path first, otherwise a path whose suffix matches, preferring a match in the source note's folder and then the shortest path. A link starting with `./` or `../` SHALL instead be resolved against the source note's folder, with `.` and `..` segments removed, and SHALL match only that exact path; it SHALL resolve to nothing when it climbs above the vault root or ends in a folder.
 
 #### Scenario: Same folder preferred
 - **WHEN** `People/Alice.md` links `[[Bob]]` and both `People/Bob.md` and `Archive/Old/Bob.md` exist
 - **THEN** the edge targets `People/Bob.md`
+
+#### Scenario: Relative link from the source folder
+- **WHEN** `topics/sub/q.md` links `[[../../objectives/P1.i]]` and `objectives/P1.i.md` exists
+- **THEN** the edge targets `objectives/P1.i.md`, so schema checks such as `wrong-target-type` apply to it
+
+#### Scenario: Relative link outside the vault
+- **WHEN** `topics/sub/q.md` links `[[../../../notes/a]]`, or a relative link ends in `.` or `..`
+- **THEN** the link resolves to nothing and the edge targets a stub
 
 ### Requirement: Duplicate pinned edge ids
 The system SHALL keep the first edge that pins a given id, SHALL leave any later edge with the same id out of the graph, and SHALL report a duplicate edge id diagnostic at that later edge's line.
