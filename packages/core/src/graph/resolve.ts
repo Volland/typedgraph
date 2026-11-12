@@ -21,11 +21,14 @@ const RELATIVE = /^\.\.?\//;
 
 /**
  * A `./` or `../` link joined to the source note's folder, with `.` and `..` segments removed, or null when
- * it climbs above the vault root.
+ * it climbs above the vault root or ends in a folder (`.`, `..`, `/`). The last segment stays the note's
+ * file name, which every resolver relies on (see lat.md/architecture.md).
  */
 function anchored(target: string, sourcePath: string): string | null {
+  const segs = target.split('/');
+  if (['', '.', '..'].includes(segs[segs.length - 1]!)) return null;
   const parts = sourcePath.split('/').slice(0, -1);
-  for (const seg of target.split('/')) {
+  for (const seg of segs) {
     if (seg === '' || seg === '.') continue;
     if (seg === '..') {
       if (parts.length === 0) return null;
@@ -46,12 +49,14 @@ function exact(all: string[], name: string): string | null {
  * Obsidian-like link resolution over a set of note paths, for hosts without
  * Obsidian (the sidecar): an exact path wins; otherwise a note whose path ends
  * with the link, preferring the source note's folder, then the shortest path.
+ * A `./` or `../` link is anchored to the source note's folder and matches that exact path only.
  * A bare link matches `.md` and `.adoc` notes; when both exist it is ambiguous, resolves to nothing and
  * is reported through the resolver's `ambiguous` method. An explicit extension matches that file only.
  */
 // @tg: implements:: [[sidecar#Shared core]] {since: "2026-10-03"}
 // @lat: [[sidecar#Shared core]]
 // @tg: implements:: [[openspec:asciidoc-notes#Link resolution across formats]]
+// @tg: implements:: [[openspec:graph-model#Link resolution outside Obsidian]]
 export function pathResolver(paths: () => Iterable<string>): LinkResolver {
   const candidates = (link: string, sourcePath: string): string[] => {
     const raw = link.trim();
