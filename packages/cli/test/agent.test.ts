@@ -189,10 +189,40 @@ it('serves the tools over MCP and tg_cypher returns the tagged result contract',
 // @tg: verifies:: [[tests/tg-agent#Bundled skills#Skills installed]] {since: "2026-10-04", level: unit}
 // @lat: [[tests/tg-agent#Bundled skills#Skills installed]]
 // @tg: verifies:: [[openspec:tg-agent-integration#Bundled skills#Skills installed]]
-it('installs all five skills for Claude Code', async () => {
+it('installs all seven skills for Claude Code', async () => {
   const dir = project();
   await tg(dir, ['init', '--write']);
-  for (const name of ['tg-docs', 'tg-graph', 'tg-trace', 'tg-impact', 'tg-audit', 'tg-migrate']) expect(read(dir, `.claude/skills/${name}/SKILL.md`)).toContain(`name: ${name}`);
+  for (const name of ['tg-docs', 'tg-graph', 'tg-trace', 'tg-impact', 'tg-audit', 'tg-migrate', 'tg-team']) expect(read(dir, `.claude/skills/${name}/SKILL.md`)).toContain(`name: ${name}`);
+});
+
+// @tg: verifies:: [[tests/tg-agent#Team ontology#Team ontology printed]] {since: "2026-11-18", level: unit}
+// @lat: [[tests/tg-agent#Team ontology#Team ontology printed]]
+// @tg: verifies:: [[openspec:tg-agent-integration#Team ontology template#Team ontology printed]]
+it('prints the team ontology on request and never writes it on init', async () => {
+  const r = await tg(project(), ['gen', 'team-types.md']);
+  expect(r.code).toBe(0);
+  for (const type of ['Person:', 'Team:', 'Agent:', 'decided_by:', 'knows_about:', 'acts_for:']) expect(r.out).toContain(type);
+  const dir = project();
+  await tg(dir, ['init', '--write']);
+  expect(existsSync(join(dir, 'Types/team-types.md'))).toBe(false);
+});
+
+// @tg: verifies:: [[tests/tg-agent#Team ontology#Only people decide]] {since: "2026-11-18", level: integration}
+// @lat: [[tests/tg-agent#Team ontology#Only people decide]]
+// @tg: verifies:: [[openspec:tg-agent-integration#Team ontology template#Only people decide]]
+it('lets only a person be the one who decided', async () => {
+  const dir = project();
+  await tg(dir, ['init', '--write']);
+  writeFileSync(join(dir, 'Types/team-types.md'), (await tg(dir, ['gen', 'team-types.md'])).out);
+  writeFileSync(join(dir, 'lat.md/people.md'), '---\ntype: Person\n---\n# People\n\nThe team.\n\n## Alice\n\n@alice, tech lead.\n');
+  writeFileSync(join(dir, 'lat.md/agents.md'), '---\ntype: Agent\n---\n# Agents\n\nThe agents.\n\n## Bot\n\nA coding agent.\n\n- acts_for:: [[people#Alice]] {autonomy: ask-first}\n');
+  const decision = (who: string) => `---\ntype: Decision\n---\n# Decisions\n\nChoices.\n\n## Retry three times\n\nRetry a failed charge three times.\n\n- decided_by:: [[${who}]] {role: driver}\n- proposed_by:: [[agents#Bot]]\n`;
+  writeFileSync(join(dir, 'lat.md/decisions.md'), decision('agents#Bot'));
+  const bad = await tg(dir, ['ontology', 'check']);
+  expect(bad.code).toBe(1);
+  expect(bad.out).toContain("'decided_by' ends at Person, not Agent");
+  writeFileSync(join(dir, 'lat.md/decisions.md'), decision('people#Alice'));
+  expect((await tg(dir, ['ontology', 'check'])).code).toBe(0);
 });
 
 const OPENSPEC_SKILL = '---\nname: openspec-apply-change\n---\n\nImplement tasks from an OpenSpec change.\n';
@@ -265,7 +295,7 @@ it('writes only skills and OpenSpec patches with --skills-only', async () => {
   writeFileSync(join(dir, 'CLAUDE.md'), '%% lat:begin %%\nlat block\n%% lat:end %%\n');
   const r = await tg(dir, ['init', '--skills-only', '--write', '--json']);
   const paths = (JSON.parse(r.out) as { changes: { path: string }[] }).changes.map((c) => c.path);
-  expect(paths.length).toBe(8);
+  expect(paths.length).toBe(9);
   expect(paths.every((p) => p.startsWith('.claude/skills/') || p.startsWith('.claude/commands/'))).toBe(true);
   expect(read(dir, 'CLAUDE.md')).toBe('%% lat:begin %%\nlat block\n%% lat:end %%\n');
   expect(existsSync(join(dir, '.claude/settings.json'))).toBe(false);

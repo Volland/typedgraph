@@ -76,7 +76,7 @@ tg cypher "MATCH (c:CodeSymbol)-[:implements]->(s:Section)
 | Oh My Pi | `AGENTS.md` | `.omp/skills` |
 | Any other agent | `AGENTS.md` | `.agents/skills` |
 
-Six skills come with it: `tg-docs` (keep the docs in sync), `tg-graph` (query the graph), `tg-trace` (link requirements to code and tests), `tg-impact` (what a change touches, before and after the edit), `tg-audit` (find where specs and code disagree) and `tg-migrate` (finish a migration from lat.md). Re-running `tg init` only replaces its own marked blocks, and `tg init --dry-run` shows the diff without writing.
+Seven skills come with it: `tg-docs` (keep the docs in sync), `tg-graph` (query the graph), `tg-trace` (link requirements to code and tests), `tg-impact` (what a change touches, before and after the edit), `tg-audit` (find where specs and code disagree), `tg-migrate` (finish a migration from lat.md) and `tg-team` (the team map: who owns, knows and decided what, and which agent acts for whom). The team map's ontology is opt-in: `tg gen team-types.md > Types/team-types.md`. Re-running `tg init` only replaces its own marked blocks, and `tg init --dry-run` shows the diff without writing.
 
 **Search that needs nothing.** `tg search "how are tokens refreshed"` ranks sections lexically with no model to download and no key. Point it at Ollama or an OpenAI-compatible endpoint and it becomes hybrid lexical plus vector search.
 

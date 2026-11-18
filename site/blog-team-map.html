@@ -35,7 +35,7 @@
   <main class="wrap post">
     <div class="meta"><a href="blog.html">Blog</a> · 18 November 2026 · Volodymyr Pavlyshyn</div>
     <h1>Who knows, who decides, what the agent may do: a team map in tg</h1>
-    <p class="standfirst">A practical companion to &quot;From Islands to Archipelago&quot;. How to write your team&#39;s transactive memory down as a typed graph next to the code: who owns what, who decided what, which agent acts for whom. Then how to teach your agents to route people to each other instead of around each other. Every file and query here was run with tg 0.28.1.</p>
+    <p class="standfirst">A practical companion to &quot;From Islands to Archipelago&quot;. How to write your team&#39;s transactive memory down as a typed graph next to the code: who owns what, who decided what, which agent acts for whom. Then how to teach your agents to route people to each other instead of around each other. Every file and query here was run with tg 0.28.1. Since tg 0.29.0, the team ontology is one command away (<code>tg gen team-types.md</code>) and <code>tg init</code> installs the <code>tg-team</code> skill.</p>
 
 <h2>The bridge, not the island</h2>
 <p><a href="https://volodymyrpavlyshyn.substack.com/p/from-islands-to-archipelago-building">From Islands to Archipelago</a>, the second part of <em>The AI Cohesion Paradox</em>, argues that a team using AI without a plan turns into islands: each person with an agent is productive, and disconnected from everyone else. Its fix is mostly social. It proposes seven habits, a handful of rituals, a rotating context steward and incentives that reward sharing. Tools come last, with one test: <em>does it help the agent route people to each other, or around each other?</em></p>
@@ -76,7 +76,7 @@
 </tbody></table>
 <p>The order matters. Agents inherit only what people agreed and wrote down. If channel 1 never happened, channel 3 has nothing to share. So we start with people.</p>
 <h2>Step 1: extend the ontology with a team layer</h2>
-<p><code>tg init</code> installs a code ontology in <code>Types/code-types.md</code>: <code>Decision</code>, <code>Requirement</code>, <code>Scenario</code>, <code>Constraint</code>, <code>Concept</code> and <code>Change</code>, plus edges such as <code>implements</code> and <code>motivated_by</code>. It has no people in it, on purpose: who your team is and how it decides is yours to say. Add it as a second schema file, <code>Types/team-types.md</code>:</p>
+<p><code>tg init</code> installs a code ontology in <code>Types/code-types.md</code>: <code>Decision</code>, <code>Requirement</code>, <code>Scenario</code>, <code>Constraint</code>, <code>Concept</code> and <code>Change</code>, plus edges such as <code>implements</code> and <code>motivated_by</code>. It has no people in it, on purpose: who your team is and how it decides is yours to say. Add it as a second schema file, <code>Types/team-types.md</code>. Since tg 0.29.0 you don&#39;t have to type it: <code>tg gen team-types.md &gt; Types/team-types.md</code> writes exactly this schema, with a short usage note.</p>
 <pre>---
 tgs: &quot;0.6&quot;
 schemas:
@@ -302,9 +302,9 @@ $ tg ontology check
 - run: tg ontology check</pre>
 <h2>Step 4: teach the agents, by updating the skills</h2>
 <p>An ontology tells an agent what the words mean. It doesn&#39;t tell the agent how to behave with them. That&#39;s the skills&#39; job, and it&#39;s the half people forget.</p>
-<p>The <code>tg-docs</code> skill that <code>tg init</code> installs already tells agents to read <code>tg ontology</code> once per session and to &quot;prefer a fitting domain type over a generic one&quot;. So the moment <code>Types/team-types.md</code> exists, an agent writing docs knows <code>Person</code>, <code>decided_by</code> and <code>assisted_by</code>. What it doesn&#39;t know is the <em>routing</em> behavior the essay asks for: <em>ask humans &quot;why&quot;, ask agents &quot;how&quot;.</em> Write that down as a project skill of your own, <code>.claude/skills/team-map/SKILL.md</code>:</p>
+<p>The <code>tg-docs</code> skill that <code>tg init</code> installs already tells agents to read <code>tg ontology</code> once per session and to &quot;prefer a fitting domain type over a generic one&quot;. So the moment <code>Types/team-types.md</code> exists, an agent writing docs knows <code>Person</code>, <code>decided_by</code> and <code>assisted_by</code>. What it doesn&#39;t know is the <em>routing</em> behavior the essay asks for: <em>ask humans &quot;why&quot;, ask agents &quot;how&quot;.</em> Since tg 0.29.0, <code>tg init</code> installs that behavior as the bundled <code>tg-team</code> skill, and <code>tg upgrade</code> adds it to projects set up earlier. Here is the core of it, as you&#39;d write it for a project of your own:</p>
 <pre>---
-name: team-map
+name: tg-team
 description: Route questions to the people who own or know the answer, and record who decided what, using the team ontology in Types/team-types.md. Use when asked why something is the way it is, who owns or knows a piece of code or a decision, or when drafting a decision record.
 ---
 
@@ -394,8 +394,9 @@ With `ask-first`, ask before every write.</pre>
 </ul>
 <h2>Try it</h2>
 <pre>npm install -g @typedgraph/cli
-tg init                        # code ontology, agent instructions, hooks, skills
-# add Types/team-types.md, lat.md/people.md, teams.md, agents.md as above
+tg init                        # code ontology, agent instructions, hooks, skills (tg-team among them)
+tg gen team-types.md &gt; Types/team-types.md
+# add lat.md/people.md, teams.md, agents.md as above, or ask your agent: the tg-team skill knows how
 tg check &amp;&amp; tg ontology check  # links resolve, edges fit the ontology
 tg cypher 'MATCH (p:Person)-[:owns|knows_about]-&gt;(x) RETURN p.title, collect(x.title)'</pre>
 <p>Then do the part no tool does: pick one habit from the essay, run the &quot;waiting for a person&quot; query at your next retro, and talk about each row.</p>

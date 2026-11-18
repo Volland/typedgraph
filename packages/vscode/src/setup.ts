@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** Files `tg init` creates or changes in a fresh project with its defaults (Claude Code, every part); verified against the CLI by a test. */
-export const SETUP_FILES = ['lat.md/lat.md', 'CLAUDE.md', '.claude/settings.json', '.mcp.json', '.claude/skills/tg-docs/SKILL.md', '.claude/skills/tg-graph/SKILL.md', '.claude/skills/tg-trace/SKILL.md', '.claude/skills/tg-impact/SKILL.md', '.claude/skills/tg-audit/SKILL.md', '.claude/skills/tg-migrate/SKILL.md', 'lat.md/code-ontology.md', 'Types/code-types.md', 'Templates/Decision.md', 'Templates/Requirement.md', 'Templates/Scenario.md', 'Templates/Constraint.md', 'Templates/Concept.md', 'Templates/Change.md'] as const;
+export const SETUP_FILES = ['lat.md/lat.md', 'CLAUDE.md', '.claude/settings.json', '.mcp.json', '.claude/skills/tg-docs/SKILL.md', '.claude/skills/tg-graph/SKILL.md', '.claude/skills/tg-trace/SKILL.md', '.claude/skills/tg-impact/SKILL.md', '.claude/skills/tg-audit/SKILL.md', '.claude/skills/tg-migrate/SKILL.md', '.claude/skills/tg-team/SKILL.md', 'lat.md/code-ontology.md', 'Types/code-types.md', 'Templates/Decision.md', 'Templates/Requirement.md', 'Templates/Scenario.md', 'Templates/Constraint.md', 'Templates/Concept.md', 'Templates/Change.md'] as const;
 
 /** True when the workspace lacks a docs folder (`lat.md/` or `tg.md/`) or any tg-managed instruction block. */
 // @tg: implements:: [[openspec:vscode-extension#Set up TypeGraph]]

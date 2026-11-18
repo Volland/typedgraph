@@ -6,12 +6,14 @@ import traceSkill from '../../templates/skills/tg-trace/SKILL.md';
 import impactSkill from '../../templates/skills/tg-impact/SKILL.md';
 import auditSkill from '../../templates/skills/tg-audit/SKILL.md';
 import migrateSkill from '../../templates/skills/tg-migrate/SKILL.md';
+import teamSkill from '../../templates/skills/tg-team/SKILL.md';
 import openspecPropose from '../../templates/openspec/propose.md';
 import openspecApply from '../../templates/openspec/apply.md';
 import openspecArchive from '../../templates/openspec/archive.md';
 import openspecExplore from '../../templates/openspec/explore.md';
 import ontologyGuide from '../../templates/ontology/code-ontology.md';
 import ontologySchema from '../../templates/ontology/code-types.md';
+import teamSchema from '../../templates/ontology/team-types.md';
 import decisionTemplate from '../../templates/ontology/templates/Decision.md';
 import requirementTemplate from '../../templates/ontology/templates/Requirement.md';
 import scenarioTemplate from '../../templates/ontology/templates/Scenario.md';
@@ -34,7 +36,7 @@ export const TEMPLATES = { agents, cursor, docsSkill, graphSkill, traceSkill, im
 
 /** Skills installed for Claude Code, by folder name under `.claude/skills/`. */
 // @tg: implements:: [[openspec:tg-agent-integration#Bundled skills]]
-export const SKILLS: Record<string, string> = { 'tg-docs': docsSkill, 'tg-graph': graphSkill, 'tg-trace': traceSkill, 'tg-impact': impactSkill, 'tg-audit': auditSkill, 'tg-migrate': migrateSkill };
+export const SKILLS: Record<string, string> = { 'tg-docs': docsSkill, 'tg-graph': graphSkill, 'tg-trace': traceSkill, 'tg-impact': impactSkill, 'tg-audit': auditSkill, 'tg-migrate': migrateSkill, 'tg-team': teamSkill };
 
 /** Blocks appended to OpenSpec's skills and commands, by workflow stage. */
 /** Template notes for the code ontology's types, by type name; `tg init` writes them to `Templates/<Type>.md`. */
@@ -57,6 +59,7 @@ export const SPEC_TEMPLATES = { kiroSteering, adrTemplate, adrFirst };
 
 // @tg: implements:: [[openspec:tg-agent-integration#Instruction generation]]
 // @tg: implements:: [[openspec:tg-agent-integration#Skill text available]]
+// @tg: implements:: [[openspec:tg-agent-integration#Team ontology template]]
 const TARGETS: Record<string, string> = {
   'agents.md': agents,
   'claude.md': agents,
@@ -67,12 +70,14 @@ const TARGETS: Record<string, string> = {
   'impact-skill.md': impactSkill,
   'audit-skill.md': auditSkill,
   'migrate-skill.md': migrateSkill,
+  'team-skill.md': teamSkill,
   'openspec-propose.md': openspecPropose,
   'openspec-apply.md': openspecApply,
   'openspec-archive.md': openspecArchive,
   'openspec-explore.md': openspecExplore,
   'ontology.md': ontologyGuide,
   'ontology-schema.md': ontologySchema,
+  'team-types.md': teamSchema,
   'openspec-rules.md': openspecRules,
   ...Object.fromEntries(Object.entries(ONTOLOGY_TEMPLATES).map(([type, text]) => [`template-${type.toLowerCase()}.md`, text])),
   'kiro-steering.md': kiroSteering,

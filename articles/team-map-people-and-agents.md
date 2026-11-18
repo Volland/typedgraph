@@ -1,6 +1,6 @@
 # Who knows, who decides, what the agent may do: a team map in tg
 
-*A practical companion to "From Islands to Archipelago". How to write your team's transactive memory down as a typed graph next to the code: who owns what, who decided what, which agent acts for whom. Then how to teach your agents to route people to each other instead of around each other. Every file and query here was run with tg 0.28.1.*
+*A practical companion to "From Islands to Archipelago". How to write your team's transactive memory down as a typed graph next to the code: who owns what, who decided what, which agent acts for whom. Then how to teach your agents to route people to each other instead of around each other. Every file and query here was run with tg 0.28.1. Since tg 0.29.0, the team ontology is one command away (`tg gen team-types.md`) and `tg init` installs the `tg-team` skill.*
 
 ---
 
@@ -32,7 +32,7 @@ The order matters. Agents inherit only what people agreed and wrote down. If cha
 
 ## Step 1: extend the ontology with a team layer
 
-`tg init` installs a code ontology in `Types/code-types.md`: `Decision`, `Requirement`, `Scenario`, `Constraint`, `Concept` and `Change`, plus edges such as `implements` and `motivated_by`. It has no people in it, on purpose: who your team is and how it decides is yours to say. Add it as a second schema file, `Types/team-types.md`:
+`tg init` installs a code ontology in `Types/code-types.md`: `Decision`, `Requirement`, `Scenario`, `Constraint`, `Concept` and `Change`, plus edges such as `implements` and `motivated_by`. It has no people in it, on purpose: who your team is and how it decides is yours to say. Add it as a second schema file, `Types/team-types.md`. Since tg 0.29.0 you don't have to type it: `tg gen team-types.md > Types/team-types.md` writes exactly this schema, with a short usage note.
 
 ```yaml
 ---
@@ -330,11 +330,11 @@ I decided an agent may act for a team, and widened the endpoint to `[Person, Tea
 
 An ontology tells an agent what the words mean. It doesn't tell the agent how to behave with them. That's the skills' job, and it's the half people forget.
 
-The `tg-docs` skill that `tg init` installs already tells agents to read `tg ontology` once per session and to "prefer a fitting domain type over a generic one". So the moment `Types/team-types.md` exists, an agent writing docs knows `Person`, `decided_by` and `assisted_by`. What it doesn't know is the *routing* behavior the essay asks for: *ask humans "why", ask agents "how".* Write that down as a project skill of your own, `.claude/skills/team-map/SKILL.md`:
+The `tg-docs` skill that `tg init` installs already tells agents to read `tg ontology` once per session and to "prefer a fitting domain type over a generic one". So the moment `Types/team-types.md` exists, an agent writing docs knows `Person`, `decided_by` and `assisted_by`. What it doesn't know is the *routing* behavior the essay asks for: *ask humans "why", ask agents "how".* Since tg 0.29.0, `tg init` installs that behavior as the bundled `tg-team` skill, and `tg upgrade` adds it to projects set up earlier. Here is the core of it, as you'd write it for a project of your own:
 
 ```markdown
 ---
-name: team-map
+name: tg-team
 description: Route questions to the people who own or know the answer, and record who decided what, using the team ontology in Types/team-types.md. Use when asked why something is the way it is, who owns or knows a piece of code or a decision, or when drafting a decision record.
 ---
 
@@ -434,8 +434,9 @@ The next part of the series takes this further with Promise Theory as the vocabu
 
 ```
 npm install -g @typedgraph/cli
-tg init                        # code ontology, agent instructions, hooks, skills
-# add Types/team-types.md, lat.md/people.md, teams.md, agents.md as above
+tg init                        # code ontology, agent instructions, hooks, skills (tg-team among them)
+tg gen team-types.md > Types/team-types.md
+# add lat.md/people.md, teams.md, agents.md as above, or ask your agent: the tg-team skill knows how
 tg check && tg ontology check  # links resolve, edges fit the ontology
 tg cypher 'MATCH (p:Person)-[:owns|knows_about]->(x) RETURN p.title, collect(x.title)'
 ```

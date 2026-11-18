@@ -77,7 +77,19 @@ Skills shipped with the package.
 
 ### Skills installed
 
-`tg init --write` for Claude Code creates the five skills (`tg-docs`, `tg-graph`, `tg-trace`, `tg-impact`, `tg-audit`) under `.claude/skills/`.
+`tg init --write` for Claude Code creates the seven skills (`tg-docs`, `tg-graph`, `tg-trace`, `tg-impact`, `tg-audit`, `tg-migrate`, `tg-team`) under `.claude/skills/`.
+
+## Team ontology
+
+The opt-in team ontology that `tg gen team-types.md` prints for the `tg-team` skill.
+
+### Team ontology printed
+
+`tg gen team-types.md` prints a schema declaring `Person`, `Team` and `Agent`, and `tg init --write` writes no `Types/team-types.md`.
+
+### Only people decide
+
+With the printed schema saved, `tg ontology check` reports a `decided_by` edge that ends at an `Agent` section and passes once it points at a `Person`.
 
 ## OpenSpec skill patching
 

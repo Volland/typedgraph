@@ -69,11 +69,22 @@ The system SHALL serve the tools `tg_locate`, `tg_section`, `tg_refs`, `tg_searc
 - **THEN** every tool name starts with `tg_` and the list includes `tg_locate`, `tg_section`, `tg_refs`, `tg_search`, `tg_expand`, `tg_check`, `tg_cypher` and `tg_edges`
 
 ### Requirement: Bundled skills
-The system SHALL ship the skills `tg-docs` (docs maintenance), `tg-graph` (graph queries), `tg-trace` (OpenSpec traceability), `tg-impact` (change impact), `tg-audit` (spec audit) and `tg-migrate` (lat.md to typed graph migration) and install all of them with `tg init --write` into the skills folder of every selected agent.
+The system SHALL ship the skills `tg-docs` (docs maintenance), `tg-graph` (graph queries), `tg-trace` (OpenSpec traceability), `tg-impact` (change impact), `tg-audit` (spec audit), `tg-migrate` (lat.md to typed graph migration) and `tg-team` (the team map: who owns, knows and decided what) and install all of them with `tg init --write` into the skills folder of every selected agent.
 
 #### Scenario: Skills installed
 - **WHEN** `tg init --write` runs for Claude Code
-- **THEN** all six skills exist under the project's skills directory
+- **THEN** all seven skills exist under the project's skills directory
+
+### Requirement: Team ontology template
+`tg gen team-types.md` SHALL print the team ontology, a schema note declaring the types `Person`, `Team` and `Agent` and the edge types `member_of`, `owns`, `knows_about`, `decided_by`, `proposed_by`, `acts_for` and `hands_off_to`, whose `decided_by` ends only at `Person`. `tg init` SHALL NOT write it, so a project adds the team map only by choice.
+
+#### Scenario: Team ontology printed
+- **WHEN** `tg gen team-types.md` runs
+- **THEN** it prints a schema note declaring `Person`, `Team` and `Agent`, and `tg init --write` in a new project writes no `Types/team-types.md`
+
+#### Scenario: Only people decide
+- **WHEN** a project saves that output as `Types/team-types.md` and a decision has `decided_by:: [[agents#Bot]]` where `agents.md` is typed `Agent`
+- **THEN** `tg ontology check` reports that `decided_by` ends at Person, not Agent, and passes once the edge points at a person
 
 ### Requirement: Code ontology install
 `tg init --write` SHALL install the code ontology guide `lat.md/code-ontology.md`, its schema `Types/code-types.md` and one template note per type under `Templates/`, each only when absent, SHALL link each type to its template, SHALL list the guide in the `lat.md` index so `tg check` stays clean, SHALL note an `ontology/code-types.md` left by an older version, and SHALL skip all of them when the `ontology` part is not selected.

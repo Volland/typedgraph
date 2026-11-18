@@ -2,6 +2,15 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## 0.29.0 — 2026-11-18
+
+The team map: who owns, knows and decided what, and which agent acts for whom.
+
+### Added
+
+- **`tg-team` skill.** `tg init` installs a seventh skill for every agent, and `tg upgrade` adds it to projects set up earlier. It keeps the team's who-knows-what map (transactive memory) in the typed graph and routes people to each other: ask people "why" and agents "how". Given a "why", the agent quotes the decision and its reasons and names who decided it and who knows it. Before a change, it finds the owners of the decisions the code implements. When it drafts a decision, it records itself with `proposed_by` and leaves `decided_by` to a person. It also stays inside its own `acts_for` scope and offers the queries that keep the map alive (topics only one person knows, a handover list). Read [Who knows, who decides, what the agent may do](https://typedgraph.org/blog-team-map.html) for the whole approach.
+- **Team ontology, opt-in.** `tg gen team-types.md > Types/team-types.md` adds `Person`, `Team` and `Agent` and the edges `member_of`, `owns`, `knows_about` (with `depth`), `decided_by` (with `role`, `date` and `assisted_by`, so AI help is disclosed as data), `proposed_by`, `acts_for` (with `scope` and `autonomy`) and `hands_off_to`. `decided_by` ends only at a `Person`, so `tg ontology check` reports an agent recorded as the decider. `tg init` never writes this file; the project chooses to add it, and owns it afterwards.
+
 ## 0.28.1 — 2026-11-18
 
 Two fixes from [@Zpankz](https://github.com/Zpankz) (Hani Mikhail): relative links resolve outside Obsidian ([#16](https://github.com/Volland/typedgraph/pull/16)), and frontmatter is read to its real end ([#18](https://github.com/Volland/typedgraph/pull/18)). Thank you for the careful reports and reproductions in #15 and #17.
