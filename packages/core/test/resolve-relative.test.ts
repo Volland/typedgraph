@@ -69,3 +69,12 @@ describe('validateVault with relative frontmatter links (#15)', () => {
     expect(wrong).toEqual(['topics/sub/q-relative.md', 'topics/sub/q-root.md']);
   });
 });
+
+describe('pathResolver bare links', () => {
+  // @tg: verifies:: [[openspec:graph-model#Link resolution outside Obsidian#Same folder preferred]]
+  it('prefers a match in the source note folder over a shorter path elsewhere', () => {
+    const r = pathResolver(() => ['Archive/Old/Bob.md', 'People/Bob.md', 'People/Alice.md']);
+    expect(r('Bob', 'People/Alice.md')).toBe('People/Bob.md');
+    expect(pathResolver(() => ['Archive/Old/Bob.md', 'Bob.md'])('Bob', 'People/Alice.md')).toBe('Bob.md');
+  });
+});

@@ -118,3 +118,14 @@ The system SHALL, when the frontmatter edges option is on, turn each wikilink or
 #### Scenario: Schema checks apply
 - **WHEN** the option is on, `requirement` is declared as an edge type from `Task` to `Requirement`, and a Task's `requirement` property links to a Bug
 - **THEN** validation reports a wrong-target-type finding at that note, and reports none when the option is off
+
+### Requirement: Frontmatter closing fence
+The system SHALL end frontmatter at the first later line that is `---` or `...` starting at column 0, optionally followed by spaces or tabs; an indented `---` or `...` SHALL be content of the frontmatter, as in a YAML block scalar. Every reader that splits or skips frontmatter (properties, frontmatter edges, body edges, headings and elements) SHALL use this one rule.
+
+#### Scenario: Indented fence in a block scalar
+- **WHEN** a note's frontmatter has a block scalar containing an indented `---`, followed by `concept: ["[[topic]]"]`
+- **THEN** the frontmatter keeps the block scalar text and `concept`, and the body yields no edge or heading from those lines
+
+#### Scenario: Column-0 fence with trailing whitespace
+- **WHEN** the closing fence is `---` followed by spaces or tabs, or is `...`
+- **THEN** it closes the frontmatter

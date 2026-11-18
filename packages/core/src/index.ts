@@ -53,7 +53,7 @@ export { ELEMENT_LABEL, elementDeclarations, findElementDecl, isElementNode, lat
 export type { ElementNode } from './elements/nodes.js';
 export { checkDocuments, noteDocumentDiagnostics } from './elements/validate.js';
 export type { DocumentFinding, DocumentFindingKind } from './elements/validate.js';
-export { splitFrontmatter, toYaml } from './schema/frontmatter.js';
+export { frontmatterClose, splitFrontmatter, toYaml } from './schema/frontmatter.js';
 export {
   compareLuhmann,
   dateParts,
