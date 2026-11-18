@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.0
+
+- **Set up TypeGraph installs the team map skill and the shared core.** The setup flow runs Typed Graph 0.30.0, so it adds the `tg-team` skill (who owns, knows and decided what, and which agent acts for whom) and `Types/core-types.md`, the edge types the code ontology shares with the ontology gallery. The confirmation lists both files.
+- Picks up the shared core of Typed Graph 0.30.0: the code ontology's types are open to other ontologies, and every gallery ontology composes with it without a duplicate declaration.
+
 ## 0.14.0
 
 - **Type descriptions in New Typed Note.** The type picker shows what each type means, from the `description` a schema note declares (Typed Graph Schema 0.4), and still matches on it as you type. Types without a description show their properties as before.
