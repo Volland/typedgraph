@@ -1,8 +1,11 @@
+/** A closing fence starts at column 0; an indented `---` or `...` is content of a block scalar. */
+const CLOSE = /^(?:---|\.\.\.)[ \t]*$/;
+
 /** Split a note into its YAML frontmatter source and body. */
 export function splitFrontmatter(text: string): { yaml: string | null; body: string } {
   const lines = text.split(/\r?\n/);
   if (lines[0]?.trim() !== '---') return { yaml: null, body: text };
-  const close = lines.findIndex((l, i) => i > 0 && (l.trim() === '---' || l.trim() === '...'));
+  const close = lines.findIndex((l, i) => i > 0 && CLOSE.test(l));
   if (close < 0) return { yaml: null, body: text };
   return { yaml: lines.slice(1, close).join('\n'), body: lines.slice(close + 1).join('\n').replace(/^\n+/, '') };
 }
