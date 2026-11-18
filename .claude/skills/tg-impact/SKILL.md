@@ -1,6 +1,6 @@
 ---
 name: tg-impact
-description: Find what a code change touches before making it - the OpenSpec requirements a file or symbol implements, the scenarios and tests that verify them, and the lat.md sections that explain them - then re-check after the edit. Use before modifying, refactoring, renaming or deleting code in a project that uses tg, and when asked about the blast radius of a change.
+description: Find what a code change touches before making it - the spec requirements (OpenSpec, Spec Kit, Kiro, BMAD, GSD) and decision records a file or symbol implements, the scenarios and tests that verify them, and the lat.md sections that explain them - then re-check after the edit. Use before modifying, refactoring, renaming or deleting code in a project that uses tg, and when asked about the blast radius of a change.
 ---
 
 # Change impact with tg
@@ -60,7 +60,7 @@ RETURN q.title, k.title
 
 Edge names come from the project ontology: run `tg ontology` to see which relations this project records (it may add its own, such as `owned_by` or `mitigates`), and include them in the queries above.
 
-Read the requirement text itself in `openspec/specs/<capability>/spec.md` (the `file` and `line` properties of the node point at it). If the change you were asked for contradicts it, stop and say so: either the spec changes first (an OpenSpec change) or the code change is wrong.
+Read the requirement text itself in its spec file (the `file` and `line` properties of the node point at it; `framework` says which tool wrote it). If the change you were asked for contradicts it, stop and say so: either the spec changes first (an OpenSpec change) or the code change is wrong.
 
 ## 2. Make the edit
 
@@ -75,7 +75,7 @@ Read the requirement text itself in `openspec/specs/<capability>/spec.md` (the `
 1. Run the tests listed in step 1, then the wider suite.
 2. `tg check`: every annotation still resolves. `tg ontology check`: every typed edge you added uses a declared name, direction and properties.
 3. `tg trace <capability> --gaps`: nothing became unimplemented or unverified.
-4. If behavior a requirement describes changed on purpose, update the spec in an OpenSpec change and the lat.md section from step 1.
+4. If behavior a requirement describes changed on purpose, update the spec the way its framework changes specs (an OpenSpec change, an edited Spec Kit or Kiro spec, a superseding ADR) and the lat.md section from step 1.
 
 ## Hot spots
 

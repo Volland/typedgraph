@@ -48,7 +48,8 @@ Run `tg --help` when in doubt about available commands or options.
 - **Name every relation.** When a section relates to another section, a requirement or code, write the relation as a typed edge line, not only as prose.
 - **Put facts about a relation on the edge**: `{since: "2.3"}`, `{ticket: "PLAT-481", until: "2026-Q4"}`, `{confidence: partial}`, `{strength: must}`. `tg ontology` lists the properties each edge type takes.
 - **The minus sign means disagreement** and nothing else: `-contradicts::` marks something knowingly in conflict.
-- **A relation the ontology lacks** is a schema change: add the edge type to `Types/` (with `from`, `to` and properties) instead of inventing a one-off name, then use it.
+- **A relation the ontology lacks** is a schema change: add the edge type to `Types/` (with `from`, `to`, properties and a `description`) instead of inventing a one-off name, then use it.
+- **Mark a part only when something points at it.** A section may hold the XML elements its type declares (`tg ontology` lists them with what they mean), such as `<option id="redis" outcome="rejected">` in a Decision or `<rule id="lockout">` in a Requirement, with blank lines inside. An `id` makes it addressable as `[[file#^id]]` and a typed edge line inside it starts at the element; leave everything else as prose.
 
 # Writing typed docs
 
@@ -73,15 +74,18 @@ Access tokens expire after 15 minutes and refresh tokens rotate on every use.
 The refresh endpoint keeps a small revocation list, which is why the gateway is no longer fully stateless.
 ```
 
-Edges can point at sections (`[[file#Section]]`), at OpenSpec requirements and scenarios (`[[openspec:<capability>#<Requirement>]]`) and at code (`[[src/auth/token.ts#refresh]]`).
+Edges can point at sections (`[[file#Section]]`), at spec requirements and scenarios (OpenSpec, ADRs, e.g. `[[openspec:<capability>#<Requirement>]]`) and at code (`[[src/auth/token.ts#refresh]]`).
 
 # Syntax primer
 
 - **Section ids**: `lat.md/path/to/file#Heading#SubHeading` — full form uses the project-root-relative path. Short form uses the bare file name when unique (e.g. `search#RAG Replay Tests`).
 - **Wiki links**: `[[target]]` or `[[target|alias]]` — cross-references between sections. Can also reference source code: `[[src/foo.ts#myFunction]]`, `[[src/server.ts#App#listen]]` (class method).
 - **Typed doc edges**: `- type:: [[target]] {key: value}` on its own line in a section — a named edge from that section; `-type::` makes it negative.
+- **Element ids**: `[[decisions#^redis]]` reaches the element with `id="redis"` in that file; in spec files `[[adr:0003#^redis]]` or `[[openspec:auth#^lockout]]`.
 - **Typed code edges**: `// @tg: implements:: [[decisions#Short-lived access tokens]] {since: "2.3"}` — a named edge from the next declaration; a bare `// @tg: [[x]]` or `// @lat: [[x]]` is a plain link.
-- **OpenSpec requirements**: if the project has `openspec/`, point code at the requirement it realizes with `// @tg: implements:: [[openspec:<capability>#<Requirement>]]` and tests at the scenario they prove with `// @tg: verifies:: [[openspec:<capability>#<Requirement>#<Scenario>]]` directly above the `it(`. List the capabilities a lat.md file explains as `openspec: [capability]` in its frontmatter. `tg trace --gaps` shows what is unimplemented or unverified.
+- **Spec requirements** — `tg trace --gaps` shows what is unimplemented or unverified across every spec framework the project uses:
+- **OpenSpec** (`openspec/specs/<capability>/spec.md`): point code at the requirement it realizes with `// @tg: implements:: [[openspec:<capability>#<Requirement>]]` and tests at the scenario they prove with `// @tg: verifies:: [[openspec:<capability>#<Requirement>#<Scenario>]]` directly above the `it(`. List what a lat.md file explains as `openspec: [<capability>]` in its frontmatter.
+- **ADRs** (`docs/adr/0003-<title>.md`): point code at the decision it realizes with `// @tg: implements:: [[adr:0003]]`. List what a lat.md file explains as `specs: ["adr:0003"]` in its frontmatter.
 
 # Questions to ask the graph
 
