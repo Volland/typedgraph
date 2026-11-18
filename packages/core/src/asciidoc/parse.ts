@@ -1,6 +1,6 @@
 import { parseEdges, type Diagnostic, type ParsedEdge, LINK_EDGE_TYPE } from '../edges/parse.js';
 import type { Props } from '../edges/props.js';
-import { splitFrontmatter } from '../schema/frontmatter.js';
+import { frontmatterClose, splitFrontmatter } from '../schema/frontmatter.js';
 import { oneLineYaml, parseMapping, type YamlParser } from './meta.js';
 import { scanLines, type ScannedLine } from './scan.js';
 
@@ -218,7 +218,7 @@ export function parseAsciidoc(text: string, path: string, options: AsciidocOptio
       let yaml = body;
       const fence = yaml.findIndex((l) => l.trim() === '---');
       if (fence >= 0 && yaml.slice(0, fence).every((l) => !l.trim())) {
-        const end = yaml.findIndex((l, i) => i > fence && (l.trim() === '---' || l.trim() === '...'));
+        const end = frontmatterClose(yaml, fence);
         if (end > fence) yaml = yaml.slice(fence + 1, end);
       }
       try {

@@ -1,4 +1,4 @@
-import { key, scalar as quoted, splitFrontmatter } from '../schema/frontmatter.js';
+import { frontmatterClose, key, scalar as quoted, splitFrontmatter } from '../schema/frontmatter.js';
 import { compactElements, compactProperties, compactSections, normalizeFolder, readSchemaNote, type EdgeRule, type PropertySchema } from '../schema/schema.js';
 import { titleOf } from '../graph/graph.js';
 import type { ImportedEdgeType, ImportedType, ShaclImport } from './import.js';
@@ -239,7 +239,7 @@ export function replaceSchemaKeys(text: string, yaml: string): string {
   if (splitFrontmatter(text).yaml === null) return `---\n${yaml}\n---\n${text.startsWith('\n') ? '' : '\n'}${text}`;
   const nl = text.includes('\r\n') ? '\r\n' : '\n';
   const lines = text.split(/\r?\n/);
-  const close = lines.findIndex((l, i) => i > 0 && (l.trim() === '---' || l.trim() === '...'));
+  const close = frontmatterClose(lines);
   const fm = lines.slice(1, close);
   const kept: string[] = [];
   let insertAt = -1;

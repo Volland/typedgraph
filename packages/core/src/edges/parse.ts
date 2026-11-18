@@ -1,4 +1,5 @@
 import { parseProps, PropsSyntaxError, type Props } from './props.js';
+import { frontmatterClose } from '../schema/frontmatter.js';
 
 export type Sign = 1 | -1;
 
@@ -79,10 +80,8 @@ export function parseEdges(text: string, path: string | null = null, options: Pa
   let start = 0;
 
   // Skip YAML frontmatter.
-  if (lines[0]?.trim() === '---') {
-    const close = lines.findIndex((l, idx) => idx > 0 && (l.trim() === '---' || l.trim() === '...'));
-    if (close > 0) start = close + 1;
-  }
+  const fmClose = frontmatterClose(lines);
+  if (fmClose > 0) start = fmClose + 1;
 
   for (let n = start; n < lines.length; n++) {
     const line = lines[n]!;

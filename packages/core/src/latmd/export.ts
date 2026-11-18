@@ -4,6 +4,7 @@ import { Graph } from '../graph/graph.js';
 import { pathResolver } from '../graph/resolve.js';
 import { LatIndex } from './index.js';
 import { parseMarkdown } from './markdown.js';
+import { frontmatterClose } from '../schema/frontmatter.js';
 
 export interface ExportNote {
   /** Path within the exported folder, posix, ending in `.md`. */
@@ -79,10 +80,8 @@ const titleOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1).
 export function mapProse(text: string, fn: (line: string, n: number) => string): string {
   const lines = text.split('\n');
   let i = 0;
-  if (lines[0]?.trim() === '---') {
-    const close = lines.findIndex((l, idx) => idx > 0 && (l.trim() === '---' || l.trim() === '...'));
-    if (close > 0) i = close + 1;
-  }
+  const fmClose = frontmatterClose(lines);
+  if (fmClose > 0) i = fmClose + 1;
   let fence: string | null = null;
   for (; i < lines.length; i++) {
     const f = FENCE.exec(lines[i]!);
@@ -138,10 +137,8 @@ function ensureHeading(path: string, text: string, report: Report): string {
   report.add('added-heading', path);
   const lines = text.split('\n');
   let at = 0;
-  if (lines[0]?.trim() === '---') {
-    const close = lines.findIndex((l, idx) => idx > 0 && (l.trim() === '---' || l.trim() === '...'));
-    if (close > 0) at = close + 1;
-  }
+  const fmClose = frontmatterClose(lines);
+  if (fmClose > 0) at = fmClose + 1;
   lines.splice(at, 0, `# ${titleOf(path)}`, '');
   return lines.join('\n');
 }

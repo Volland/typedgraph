@@ -1,3 +1,5 @@
+import { frontmatterClose } from '../schema/frontmatter.js';
+
 /**
  * Block-level XML elements inside Markdown: `<tag attr="v">` on its own line
  * (or with text after it), closed by `</tag>`. Prompt files, skills, ADRs and
@@ -66,10 +68,8 @@ export function scanElements(text: string): ElementOccurrence[] {
   const roots: ElementOccurrence[] = [];
   const stack: Open[] = [];
   let start = 0;
-  if (lines[0]?.trim() === '---') {
-    const close = lines.findIndex((l, idx) => idx > 0 && (l.trim() === '---' || l.trim() === '...'));
-    if (close > 0) start = close + 1;
-  }
+  const fmClose = frontmatterClose(lines);
+  if (fmClose > 0) start = fmClose + 1;
   const sink = () => (stack.length ? stack[stack.length - 1]!.children : roots);
   const addText = (t: string) => {
     for (const o of stack) o.text.push(t);
@@ -150,10 +150,8 @@ export function scanHeadings(text: string): { line: number; depth: number; text:
   const out: { line: number; depth: number; text: string }[] = [];
   const lines = text.split(/\r?\n/);
   let start = 0;
-  if (lines[0]?.trim() === '---') {
-    const close = lines.findIndex((l, idx) => idx > 0 && (l.trim() === '---' || l.trim() === '...'));
-    if (close > 0) start = close + 1;
-  }
+  const fmClose = frontmatterClose(lines);
+  if (fmClose > 0) start = fmClose + 1;
   let fence: string | null = null;
   for (let i = start; i < lines.length; i++) {
     const l = lines[i]!;
