@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A Team Map in tg</title>
+  <meta name="description" content="Write your team's transactive memory down as a typed graph next to the code: who owns, who knows, who decided, which agent acts for whom, and the skills that teach agents to route people to each other.">
+  <meta property="og:title" content="Who knows, who decides, what the agent may do: a team map in tg">
+  <meta property="og:description" content="Write your team's transactive memory down as a typed graph next to the code: who owns, who knows, who decided, which agent acts for whom, and the skills that teach agents to route people to each other.">
+  <meta property="og:image" content="https://typedgraph.org/assets/og.png">
+  <meta property="og:type" content="article">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/logo.svg" alt="">Typed Graph</a>
+      <nav class="nav">
+        <a href="./">Home</a>
+        <a href="agents.html">Agents</a>
+        <a href="obsidian.html">Obsidian</a>
+        <a href="teams.html">Teams</a>
+        <a href="docs.html">Docs</a>
+        <a href="demo.html">Demo</a>
+        <a href="example.html">Example</a>
+        <a href="ontologies.html">Ontologies</a>
+        <a href="blog.html" class="active">Blog</a>
+        <a href="https://github.com/Volland/typedgraph">GitHub</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☾</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap post">
+    <div class="meta"><a href="blog.html">Blog</a> · 18 November 2026 · Volodymyr Pavlyshyn</div>
+    <h1>Who knows, who decides, what the agent may do: a team map in tg</h1>
+    <p class="standfirst">A practical companion to &quot;From Islands to Archipelago&quot;. How to write your team&#39;s transactive memory down as a typed graph next to the code: who owns what, who decided what, which agent acts for whom. Then how to teach your agents to route people to each other instead of around each other. Every file and query here was run with tg 0.28.1.</p>
+
+<h2>The bridge, not the island</h2>
+<p><a href="https://volodymyrpavlyshyn.substack.com/p/from-islands-to-archipelago-building">From Islands to Archipelago</a>, the second part of <em>The AI Cohesion Paradox</em>, argues that a team using AI without a plan turns into islands: each person with an agent is productive, and disconnected from everyone else. Its fix is mostly social. It proposes seven habits, a handful of rituals, a rotating context steward and incentives that reward sharing. Tools come last, with one test: <em>does it help the agent route people to each other, or around each other?</em></p>
+<p>This article is the &quot;tools&quot; section of that essay, written out in full. It assumes the habits and shows what to write down so they hold. The essay&#39;s warning applies to everything below: <em>a well-typed graph that nobody talks about is just a nicer-looking island.</em> The graph doesn&#39;t replace a single conversation. It makes conversations cheaper to start, and it keeps a record of the ones that ended in a decision.</p>
+<h2>Transactive memory, briefly</h2>
+<p>Daniel Wegner&#39;s term for how a group remembers is <em>transactive memory</em>. It is often misremembered as &quot;transactional&quot;. Nobody in a team holds everything. Everyone holds a map of who holds what, and asks. Each question does two jobs: it gets an answer, and it updates the map. You learn that Bogdan knows the idempotency layer because you asked him once.</p>
+<p>AI erodes this quietly. A question you used to ask a colleague now goes to your agent. You still get an answer, but the map stops updating. Worse, what your agent learned in its session sits in a chat history nobody else will read. After a year the team no longer knows who knows what. Hopf and colleagues (<em>Journal of Information Technology</em>, 2025) found that people and agents <em>can</em> build a joint transactive memory, but only by design.</p>
+<p>tg can hold that design. It cannot make anyone share. What it can do is turn &quot;who knows what&quot; and &quot;who decided what&quot; from folklore into typed edges that sit beside the decisions and code they point at. People and agents both read them, and <code>tg check</code> fails when they break.</p>
+<h2>Three channels, and what each needs written down</h2>
+<p>The essay names three channels of interaction and one dependency between them: <em>channel 3 can only be as good as channel 1.</em></p>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>What crosses it</th>
+<th>What the graph holds</th>
+<th>Edges in this article</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Human to human</td>
+<td>trust, judgment, disagreement, &quot;why&quot;</td>
+<td>who owns, who knows, who decided and in what role</td>
+<td><code>owns</code>, <code>knows_about</code>, <code>decided_by</code>, <code>member_of</code></td>
+</tr>
+<tr>
+<td>Human to agent</td>
+<td>intent, context, review</td>
+<td>whom an agent acts for and what it may touch; what it proposed; where it helped</td>
+<td><code>acts_for</code>, <code>proposed_by</code>, <code>assisted_by</code> (a property)</td>
+</tr>
+<tr>
+<td>Agent to agent</td>
+<td>specs, contracts, hand-offs</td>
+<td>which document work passes through, and the decisions both agents read</td>
+<td><code>hands_off_to</code>, plus the code ontology&#39;s <code>implements</code>, <code>motivated_by</code></td>
+</tr>
+</tbody></table>
+<p>The order matters. Agents inherit only what people agreed and wrote down. If channel 1 never happened, channel 3 has nothing to share. So we start with people.</p>
+<h2>Step 1: extend the ontology with a team layer</h2>
+<p><code>tg init</code> installs a code ontology in <code>Types/code-types.md</code>: <code>Decision</code>, <code>Requirement</code>, <code>Scenario</code>, <code>Constraint</code>, <code>Concept</code> and <code>Change</code>, plus edges such as <code>implements</code> and <code>motivated_by</code>. It has no people in it, on purpose: who your team is and how it decides is yours to say. Add it as a second schema file, <code>Types/team-types.md</code>:</p>
+<pre>---
+tgs: &quot;0.6&quot;
+schemas:
+  Person:
+    description: &quot;Someone on the team. A section per person, titled with the name people use; its first sentence gives their handle and role.&quot;
+  Team:
+    description: &quot;A group that owns things together and answers for them as one; its first sentence says where to ask it.&quot;
+  Agent:
+    description: &quot;A coding agent or automation that does work in this repository on someone's behalf; its first sentence names the product.&quot;
+edgeTypes:
+  member_of:
+    description: A person belongs to a team.
+    from: Person
+    to: Team
+    properties:
+      since: {kind: text, description: Date they joined.}
+  owns:
+    description: Answers for this decision, requirement, term or code; the first person to ask, and the one who says yes to a change.
+    from: [Person, Team]
+    to: [Decision, Requirement, Concept, Constraint, CodeFile, CodeSymbol]
+    properties:
+      since: {kind: text, description: Date ownership started.}
+  knows_about:
+    description: Can explain this without looking it up. The who-knows-what map, kept beside what it points at.
+    from: [Person, Agent]
+    to: [Decision, Requirement, Concept, Constraint, CodeFile, CodeSymbol]
+    properties:
+      depth: {values: [expert, working, aware], description: How far you can rely on them.}
+      since: {kind: text, description: Date from which it holds.}
+  decided_by:
+    description: Who made this decision, and in what role. An agent can propose; only people decide.
+    from: Decision
+    to: Person
+    properties:
+      role: {values: [driver, approver, consulted], description: &quot;RACI-style part in the decision.&quot;}
+      date: {kind: date, description: When they took that part.}
+      assisted_by: {kind: text, description: &quot;The agent that helped draft or analyse it, if any. Disclosure as data.&quot;}
+  proposed_by:
+    description: Who first wrote this down, a person or an agent.
+    from: [Decision, Requirement, Change]
+    to: [Person, Agent]
+    properties:
+      session: {kind: text, description: A link to the agent session or pull request where it started.}
+  acts_for:
+    description: An agent works on this person's or team's behalf and inherits their permissions and accountability.
+    from: Agent
+    to: [Person, Team]
+    properties:
+      scope: {kind: text, description: &quot;What it may touch, such as a folder or a kind of task.&quot;}
+      autonomy: {values: [suggest, ask-first, autonomous], description: How far it may act without the person.}
+  hands_off_to:
+    description: One agent passes work to another, through a document both can read.
+    from: Agent
+    to: Agent
+    properties:
+      via: {kind: text, description: The section or spec the work passes through.}
+      when: {kind: text, description: The trigger for the hand-off.}
+---
+The team ontology: who is here, what each person and agent answers for or knows, and who decided what.
+It extends the code ontology in `code-types.md`; it adds no types the code ontology already has.</pre>
+<p>The design choices are the useful part. Each one is a rule you can reuse:</p>
+<ul>
+<li><strong>Separate the layers.</strong> People change faster than code types. Keeping them in their own file means a reorganization touches one file. It also means <code>tg upgrade</code>, which refreshes what <code>tg init</code> installed, never touches it. I checked: after adding this file and a custom skill, <code>tg upgrade --dry-run</code> reports nothing to change.</li>
+<li><strong>Point at the code ontology instead of copying it.</strong> <code>owns</code> ends at <code>Decision</code>, <code>Requirement</code>, <code>CodeFile</code> and <code>CodeSymbol</code>, types that already exist. The team layer adds edges <em>into</em> the intent graph; it doesn&#39;t add a parallel vocabulary.</li>
+<li><strong>Put accountability in the endpoints.</strong> <code>decided_by</code> runs from <code>Decision</code> to <code>Person</code> and nothing else. That one line is the rule &quot;an agent can propose; only people decide&quot;, and <code>tg ontology check</code> enforces it (see below).</li>
+<li><strong>Put facts on edges, not on sections.</strong> In a tg project a section node has a title, a summary (its leading paragraph), a file and lines, but no properties of its own. A frontmatter key such as <code>source:</code> doesn&#39;t reach the sections below it. So everything you want to query goes on an edge: <code>autonomy</code> sits on <code>acts_for</code>, <code>role</code> and <code>date</code> on <code>decided_by</code>. Contact details go in the first sentence, which queries return as <code>summary</code>. My first draft declared <code>handle</code> and <code>autonomy</code> as properties of <code>Person</code> and <code>Agent</code>. The check accepted that, and every query returned <code>null</code>.</li>
+<li><strong>Make disclosure a property, not a confession.</strong> The essay&#39;s third habit is &quot;make disclosure boring&quot;. <code>assisted_by</code> on <code>decided_by</code> turns &quot;AI-assisted&quot; into one more field on the edge, as routine as a date.</li>
+<li><strong>Separate owning from knowing.</strong> <code>owns</code> names the one person who says yes to a change. <code>knows_about</code> with a <code>depth</code> is the transactive memory itself: many people, graded. Most teams mix the two up, and that&#39;s how &quot;ask Alice&quot; becomes the answer to everything.</li>
+<li><strong>Describe every name.</strong> <code>tg ontology</code> prints each description, and the <code>tg-docs</code> skill tells agents to read it before writing. A description is the definition both people and agents get.</li>
+</ul>
+<p><strong>Tip: quote descriptions that contain a comma.</strong> In a <code>{…}</code> flow map, an unquoted value ends at the first comma. My first draft had <code>description: The chat or forge handle, so an agent can tell you who to message.</code> and <code>tg ontology</code> showed only &quot;The chat or forge handle&quot;. Quote the value or move it to its own block. The schema above quotes every description that has a comma.</p>
+<h2>Step 2: write the map</h2>
+<p>People, teams and agents are sections, like everything else in <code>lat.md/</code>. Give each file a type and every section below the title gets that label:</p>
+<pre>---
+type: Person
+---
+# People
+
+The people on the payments team, with what they own and what they can explain without looking it up.
+
+## Alice Moreau
+
+@alice, tech lead for payments; owns the retry policy and the payment provider contract.
+
+- member_of:: [[teams#Payments]] {since: &quot;2024-03-01&quot;}
+- owns:: [[decisions#Retry a failed charge three times]] {since: &quot;2026-02-10&quot;}
+- knows_about:: [[constraints#Provider rate limit]] {depth: expert}
+- knows_about:: [[src/payments/retry.ts#chargeWithRetry]] {depth: expert}
+
+## Bogdan Kovalenko
+
+@bogdan, backend engineer; wrote the idempotency layer and is the person to ask about duplicate charges.
+
+- member_of:: [[teams#Payments]] {since: &quot;2025-09-15&quot;}
+- knows_about:: [[concepts#Idempotency key]] {depth: expert}
+- knows_about:: [[decisions#Retry a failed charge three times]] {depth: working}</pre>
+<p>Agents get the same treatment, with whom they act for and how far they may go:</p>
+<pre>---
+type: Agent
+---
+# Agents
+
+The coding agents that work in this repository, whom each acts for and how far it may go alone.
+
+## Alice's Claude Code
+
+Claude Code, working for Alice; drafts payment changes and decision records for her review.
+
+- acts_for:: [[people#Alice Moreau]] {scope: &quot;src/payments, lat.md/decisions.md&quot;, autonomy: ask-first}
+- knows_about:: [[decisions#Retry a failed charge three times]] {depth: working}
+- hands_off_to:: [[agents#Review bot]] {via: &quot;the pull request description&quot;, when: &quot;a change touches src/payments&quot;}
+
+## Review bot
+
+A CI review agent; checks every payment pull request against the decisions it touches.
+
+- acts_for:: [[teams#Payments]] {scope: &quot;read only&quot;, autonomy: autonomous}</pre>
+<p>And a decision records who made it, in what role, with what help, and where it started:</p>
+<pre>## Retry a failed charge three times
+
+A charge that fails with a network or 5xx error is retried three times with backoff, then reported to checkout as failed.
+
+- motivated_by:: [[constraints#Provider rate limit]] {weight: primary}
+- motivated_by:: [[concepts#Idempotency key]] {weight: secondary}
+- decided_by:: [[people#Alice Moreau]] {role: driver, date: 2026-02-10, assisted_by: &quot;Claude Code&quot;}
+- decided_by:: [[people#Chen Wei]] {role: consulted, date: 2026-02-09}
+- proposed_by:: [[agents#Alice's Claude Code]] {session: &quot;PR #212&quot;}
+
+&lt;option id=&quot;three&quot; outcome=&quot;chosen&quot;&gt;
+
+Three retries plus the first attempt stays inside the provider's four attempts an hour.
+
+&lt;/option&gt;
+
+&lt;option id=&quot;five&quot; outcome=&quot;rejected&quot;&gt;
+
+Five retries recovered slightly more charges in the load test but the fifth attempt trips the rate limit.
+
+&lt;/option&gt;</pre>
+<p>The code that realizes it points back with one comment:</p>
+<pre>// @<span></span>tg: implements:: [[decisions#Retry a failed charge three times]] {since: &quot;2026-02&quot;}
+export async function chargeWithRetry(charge: () =&gt; Promise&lt;void&gt;): Promise&lt;void&gt; { … }</pre>
+<p>This is the essay&#39;s opening question, <em>why does the payment service retry three times, and is three a requirement?</em>, answered in a place both a person and an agent will find it. Three is the limit of a constraint, which a named person decided on with a named colleague consulted, after rejecting five for a stated reason. The agent that drafted the record is on file, and so is the session where it started.</p>
+<p>Some writing tips that save trouble later:</p>
+<ul>
+<li><strong>One person, one section, a name people actually use.</strong> Links are <code>[[people#Alice Moreau]]</code>. If you rename the heading, <code>tg check</code> reports every link that broke. That&#39;s the point: the map can&#39;t drift silently.</li>
+<li><strong>Write <code>knows_about</code> from the person&#39;s side, and let them write it.</strong> Self-reported knowledge is imperfect, but it&#39;s honest. A manager-written skills matrix is neither. A short <code>depth</code> scale (expert, working, aware) beats a 1-to-10 score nobody calibrates.</li>
+<li><strong>Put dates on edges, not in prose.</strong> <code>since</code> and <code>date</code> are queryable, while &quot;a while ago&quot; isn&#39;t. Edges with dates are how you find stale knowledge later.</li>
+<li><strong>Record the consulted, not only the deciders.</strong> <code>role: consulted</code> is how the product manager&#39;s input survives. It&#39;s also the cheapest way to show that a decision crossed an island.</li>
+</ul>
+<h2>Step 3: ask the map</h2>
+<p>Everything above is now one graph that <code>tg cypher</code> can query. Agents get the same queries through the <code>tg_cypher</code> tool of <code>tg mcp</code>. These are real outputs from the example project.</p>
+<p><strong>Who should I ask about the retry policy?</strong> Owners first, then people who can explain it:</p>
+<pre>tg cypher 'MATCH (p:Person)-[r:owns|knows_about]-&gt;(d:Decision {title: &quot;Retry a failed charge three times&quot;})
+           RETURN p.title AS ask, type(r) AS because, r.depth AS depth ORDER BY because DESC'
+
+ask              | because     | depth
+-----------------+-------------+--------
+Alice Moreau     | owns        | null
+Bogdan Kovalenko | knows_about | working</pre>
+<p><strong>Who decided, in what role, and with what help?</strong></p>
+<pre>tg cypher 'MATCH (d:Decision)-[r:decided_by]-&gt;(p:Person)
+           RETURN d.title, p.title, r.role, r.date, r.assisted_by'
+
+d.title                           | p.title      | r.role    | r.date     | r.assisted_by
+----------------------------------+--------------+-----------+------------+--------------
+Retry a failed charge three times | Alice Moreau | driver    | 2026-02-10 | Claude Code
+Retry a failed charge three times | Chen Wei     | consulted | 2026-02-09 | null</pre>
+<p><strong>I&#39;m about to change this function. Whom do I talk to?</strong> This walks from code through the decision it implements to the person who owns it, the &quot;collision check&quot; from the essay as a query:</p>
+<pre>tg cypher --code annotated 'MATCH (c:CodeSymbol)-[:implements]-&gt;(d:Decision)&lt;-[:owns]-(p:Person)
+                            RETURN c.name AS code, d.title AS decision, p.title AS owner'
+
+code            | decision                          | owner
+----------------+-----------------------------------+-------------
+chargeWithRetry | Retry a failed charge three times | Alice Moreau</pre>
+<p><strong>Where does only one person hold the knowledge?</strong> This is the bus-factor view of transactive memory:</p>
+<pre>tg cypher 'MATCH (p:Person)-[:owns|knows_about]-&gt;(x)
+           WITH x, count(DISTINCT p) AS people, collect(p.title) AS who WHERE people &lt; 2
+           RETURN x.title AS topic, who'
+
+topic           | who
+----------------+---------------------
+chargeWithRetry | [&quot;Alice Moreau&quot;]
+Idempotency key | [&quot;Bogdan Kovalenko&quot;]</pre>
+<p>Each row is a pairing waiting to happen. The essay&#39;s fifth habit is to pair across islands. This query tells you which pairs.</p>
+<p><strong>What did an agent propose that no person has decided yet?</strong></p>
+<pre>tg cypher 'MATCH (d:Decision)-[:proposed_by]-&gt;(a:Agent)
+           OPTIONAL MATCH (d)-[r:decided_by]-&gt;(p:Person)
+           WITH d, a, count(p) AS deciders WHERE deciders = 0
+           RETURN d.title AS waiting_for_a_person, a.title AS proposed_by'
+
+waiting_for_a_person                  | proposed_by
+--------------------------------------+--------------------
+Cache provider tokens for ten minutes | Alice's Claude Code</pre>
+<p>This is the most important query in the article. An agent can write a perfectly reasonable decision record and open a pull request, and nobody has to agree to it before the code ships. This query shows that gap, and a context steward can run it every Monday.</p>
+<p><strong>Which agents act for whom, and how far may they go?</strong></p>
+<pre>tg cypher 'MATCH (a:Agent)-[r:acts_for]-&gt;(x)
+           RETURN a.title AS agent, x.title AS on_behalf_of, r.scope AS scope, r.autonomy AS autonomy'
+
+agent               | on_behalf_of | scope                             | autonomy
+--------------------+--------------+-----------------------------------+-----------
+Alice's Claude Code | Alice Moreau | src/payments, lat.md/decisions.md | ask-first
+Review bot          | Payments     | read only                         | autonomous</pre>
+<p><code>tg refs</code> gives the reverse view for one person: every section that points at them. That&#39;s the starting list for a handover when someone moves teams:</p>
+<pre>tg refs &quot;people#Alice Moreau&quot;
+
+* Section: [[lat.md/agents#Agents#Alice's Claude Code]] (wiki link)
+* Section: [[lat.md/decisions#Decisions#Retry a failed charge three times]] (wiki link)</pre>
+<p>What she owns and knows sits on her own section&#39;s outgoing edges: <code>MATCH (p:Person {title: &quot;Alice Moreau&quot;})-[r]-&gt;(x) RETURN type(r), x.title</code>.</p>
+<h2>The ontology is the guardrail</h2>
+<p>Writing the rules into the schema pays off the first time someone, or something, breaks them. Here is what <code>tg ontology check</code> said when an agent recorded itself as the decider:</p>
+<pre>- decided_by:: [[agents#Alice's Claude Code]] {role: driver}
+
+$ tg ontology check
+- lat.md/decisions.md:35: 'decided_by' ends at Person, not Agent
+
+1 finding. Run tg ontology to see the declared types and edges.</pre>
+<p>And here is what it said about my own first draft, where the review bot acted for a team while <code>acts_for</code> was only declared for people:</p>
+<pre>- lat.md/agents.md:20: 'acts_for' ends at Person, not Team</pre>
+<p>I decided an agent may act for a team, and widened the endpoint to <code>[Person, Team]</code>. That&#39;s the right response to a finding: either the data is wrong or the rule is. Either way, the change goes through review as a diff to <code>Types/team-types.md</code>, where the team can argue about it.</p>
+<p><strong>Tip: put <code>tg ontology check</code> in CI next to <code>tg check</code>.</strong> The Stop hook that <code>tg init</code> installs for Claude Code blocks an agent from finishing in two cases: when <code>tg check</code> finds errors, or when code changed and <code>lat.md/</code> didn&#39;t. It doesn&#39;t run the ontology check. Two lines in CI close that gap for people and agents alike:</p>
+<pre>- run: tg check
+- run: tg ontology check</pre>
+<h2>Step 4: teach the agents, by updating the skills</h2>
+<p>An ontology tells an agent what the words mean. It doesn&#39;t tell the agent how to behave with them. That&#39;s the skills&#39; job, and it&#39;s the half people forget.</p>
+<p>The <code>tg-docs</code> skill that <code>tg init</code> installs already tells agents to read <code>tg ontology</code> once per session and to &quot;prefer a fitting domain type over a generic one&quot;. So the moment <code>Types/team-types.md</code> exists, an agent writing docs knows <code>Person</code>, <code>decided_by</code> and <code>assisted_by</code>. What it doesn&#39;t know is the <em>routing</em> behavior the essay asks for: <em>ask humans &quot;why&quot;, ask agents &quot;how&quot;.</em> Write that down as a project skill of your own, <code>.claude/skills/team-map/SKILL.md</code>:</p>
+<pre>---
+name: team-map
+description: Route questions to the people who own or know the answer, and record who decided what, using the team ontology in Types/team-types.md. Use when asked why something is the way it is, who owns or knows a piece of code or a decision, or when drafting a decision record.
+---
+
+# Team map
+
+The team's who-knows-what map is in lat.md/people.md, teams.md and agents.md, typed by
+Types/team-types.md. Read `tg ontology` for the edge meanings before using them.
+
+## When someone asks &quot;why&quot;
+
+1. Find the decision: `tg search`, then follow `implements` from the code if you started there.
+2. Answer with what the decision says and its `motivated_by` reasons, quoted, not paraphrased.
+3. Name who decided it and who knows it; their section's first sentence (`summary`) has their handle:
+   MATCH (p:Person)-[r:owns|knows_about|decided_by]-(d:Decision {title: &quot;&lt;decision title&gt;&quot;})
+   RETURN p.title, p.summary, type(r), r.role
+4. If the record does not answer the question, say so and suggest asking the owner. Never invent a reason.
+
+## When you are about to change code
+
+Run the tg-impact skill first. For each decision or requirement the change touches, list its owner
+and tell the user whom to talk to before the pull request, not after.
+
+## When you draft a decision
+
+- Write it with `status: proposed` and `proposed_by:: [[agents#&lt;your agent section&gt;]] {session: &quot;&lt;PR or session link&gt;&quot;}`.
+- Never write `decided_by` for yourself; the ontology forbids it. Leave it for the person you act for.
+- When the person accepts, they add `decided_by:: [[people#&lt;name&gt;]] {role: driver, date: &lt;date&gt;, assisted_by: &quot;&lt;agent&gt;&quot;}`.
+
+## What you may touch
+
+Read your own `acts_for` edge, its `scope` and its `autonomy`. Outside that scope, propose; do not edit.
+With `ask-first`, ask before every write.</pre>
+<p>A few tips from writing skills like this:</p>
+<ul>
+<li><strong>Point the skill at queries, not at people&#39;s names.</strong> Names change, and the query reads the current graph. A skill that says &quot;ask Alice about payments&quot; is stale the day Alice moves teams.</li>
+<li><strong>Keep the skill&#39;s rules and the ontology&#39;s rules the same rules.</strong> &quot;Never write <code>decided_by</code> for yourself&quot; is in the skill <em>and</em> enforced by the <code>decided_by</code> endpoint. The skill explains it, and the schema enforces it. If they ever disagree, the check wins and the skill is the thing to fix.</li>
+<li><strong>Review skills like code.</strong> The essay&#39;s third process change is &quot;agent context as team property&quot;. A skill is a file in git. It gets a pull request, a reviewer and a <code>git blame</code> like any other file, and <code>tg upgrade</code> leaves your own skills and <code>Types/</code> files untouched.</li>
+<li><strong>Update the skill when you change the ontology, in the same pull request.</strong> Adding an edge type without telling the agents how to use it gives you an edge nobody writes. Changing the skill without the schema gives you instructions the check rejects. Treat <code>Types/*.md</code> and <code>.claude/skills/*</code> as one change.</li>
+</ul>
+<h2>Human to human: what the graph does for the conversation</h2>
+<p>Most of the essay&#39;s habits are about people talking. The graph supports them without replacing them:</p>
+<ul>
+<li><strong>Agree on intent before generating.</strong> The essay&#39;s intent note maps onto a <code>Decision</code> with <code>status: proposed</code>. You write it, one colleague reads it in ten minutes, and the second <code>decided_by</code> line with <code>role: consulted</code> is the proof the conversation happened. The agent then starts from an agreed record instead of a private prompt.</li>
+<li><strong>The weekly agent retro, kept.</strong> The retro asks for one win, one failure and one prompt or skill worth keeping. The skill worth keeping goes into <code>.claude/skills/</code>. A failure that revealed a wrong assumption becomes a <code>Decision</code> that <code>supersedes</code> the old one, or a <code>-contradicts</code> edge with a ticket and a deadline. The retro&#39;s output is a diff, so the next retro can read it.</li>
+<li><strong>The collision check.</strong> The code-to-owner query above, run on the files in this week&#39;s pull requests, answers &quot;whose work touches whose?&quot; with names instead of guesses.</li>
+<li><strong>The context steward&#39;s monthly hour.</strong> Run three queries: decisions an agent proposed that nobody decided, topics that only one person knows, and <code>knows_about</code> edges whose <code>since</code> is older than a year. Each row is a conversation to start, not a cell to fill in.</li>
+<li><strong>Measure shared-context vitality.</strong> The essay suggests counting contributors to shared instructions and decision records each month. With everything in git that&#39;s one command: <code>git shortlog -sn --since=&quot;1 month ago&quot; -- lat.md Types .claude/skills</code>. A falling count means the graph is turning back into an island.</li>
+</ul>
+<h2>Human to agent: intent in, context out, review back</h2>
+<p>The second channel is the one that is &quot;almost entirely private&quot; today, sitting in individual chat histories. tg changes where it lives:</p>
+<ul>
+<li><strong>Context comes from the shared graph, not from your prompt.</strong> The prompt hook that <code>tg init</code> installs runs <code>tg search</code> on every message and adds the matching sections. The person and the agent start from the same decisions, and the agent cites them rather than half-remembering a conversation.</li>
+<li><strong>The agent&#39;s work becomes visible by default.</strong> <code>proposed_by</code> with a <code>session</code> link turns &quot;work out loud with your agent&quot;, the second habit, into a field. The dead end the agent hit last week is one click away for the next person, instead of being lost in someone&#39;s history.</li>
+<li><strong>Disclosure is metadata.</strong> <code>assisted_by</code> makes AI help visible without making it an event. The query that lists it is the same query that lists the human deciders, which is exactly how boring it should be.</li>
+<li><strong>Review is a conversation about intent.</strong> Because the decision record is in the diff next to the code, the reviewer can ask &quot;why?&quot; about the decision instead of &quot;what?&quot; about the code, as the seventh habit asks. With <code>tg-impact</code>, the author&#39;s agent can list every decision a change touches before review begins.</li>
+</ul>
+<h2>Agent to agent: the channel that barely exists</h2>
+<p>The essay says agent-to-agent interaction &quot;barely exists yet&quot; and inherits only what humans agreed and wrote down. The typed graph makes that literal. Two agents that never talk directly still read the same <code>Decision</code> and <code>Requirement</code> sections, so they start from the same agreed intent. They are the essay&#39;s two crews who &quot;meet in the middle&quot;.</p>
+<p><code>hands_off_to</code> names a hand-off and, more usefully, its <code>via</code>: the document the work passes through. In the example, Alice&#39;s agent hands off to the review bot through the pull request description. The review bot then runs <code>tg-impact</code> on the diff, finds the decisions the change touches, and checks the change against them. Neither agent has to trust the other&#39;s memory. Both trust the graph, which <code>tg check</code> keeps honest.</p>
+<p>Two rules keep this channel healthy:</p>
+<ul>
+<li><strong>An agent hands off through a document, never through a private context.</strong> If the next agent needs to know it, it goes in a section with an edge. That&#39;s the only way the third channel stays as good as the first.</li>
+<li><strong>Delegation follows accountability.</strong> Each agent has an <code>acts_for</code> edge, and a hand-off never widens its scope. When the review bot finds a problem in a decision, it doesn&#39;t fix the decision. It names the owner, because it acts for a team with <code>scope: &quot;read only&quot;</code>.</li>
+</ul>
+<p>The next part of the series takes this further with Promise Theory as the vocabulary for what agents may promise each other. The graph above is where those promises will be written down.</p>
+<h2>Tips and tricks, collected</h2>
+<ol>
+<li><strong>Say <em>transactive</em>, model it as <code>knows_about</code> with <code>depth</code>.</strong> Keep it separate from <code>owns</code>.</li>
+<li><strong>Put team types in their own <code>Types/</code> file.</strong> <code>tg upgrade</code> will never touch it.</li>
+<li><strong>Write accountability rules as edge endpoints</strong>, such as <code>decided_by: Decision → Person</code>, so <code>tg ontology check</code> enforces them.</li>
+<li><strong>Put facts on edges:</strong> <code>role</code>, <code>date</code>, <code>since</code>, <code>assisted_by</code>, <code>scope</code>, <code>autonomy</code>, <code>via</code>. A section has no properties of its own. Its first sentence comes back as <code>summary</code>, so contact details go there.</li>
+<li><strong>Quote any YAML description with a comma</strong> in a <code>{…}</code> map.</li>
+<li><strong>Run <code>tg ontology check</code> in CI.</strong> The agent Stop hook runs <code>tg check</code> only.</li>
+<li><strong>Ship a project skill with the ontology, and change both in the same pull request.</strong></li>
+<li><strong>Write queries into skills, not names.</strong></li>
+<li><strong>Keep three queries for the context steward:</strong> undecided agent proposals, single-holder topics, stale <code>knows_about</code>.</li>
+<li><strong>Use <code>tg refs</code> on a person</strong> to start a handover, and outgoing edges for what they own.</li>
+<li><strong>Follow <code>implements</code> back to owners before a change</strong> (<code>tg cypher --code annotated</code>), and talk to them first.</li>
+<li><strong>Measure contributors to <code>lat.md</code>, <code>Types</code> and skills</strong> with <code>git shortlog</code> each month.</li>
+</ol>
+<h2>What it does not do</h2>
+<ul>
+<li><strong>It doesn&#39;t create the will to share.</strong> The essay is right that the bridges are habits. A team that never talks will produce a tidy, accurate, ignored graph.</li>
+<li><strong>It isn&#39;t an org chart or an HR system.</strong> Keep only what helps route work: names people use, handles, roles in their own words. Leave out anything personal that the work doesn&#39;t need. The files are in git and everyone with the repository can read them.</li>
+<li><strong><code>knows_about</code> goes stale.</strong> People forget and move on. Dates on edges and a monthly look at the old ones are the fix, not a bigger schema.</li>
+<li><strong>It doesn&#39;t decide.</strong> The graph records who decided. Nothing in tg chooses for you, and the ontology above makes sure an agent can&#39;t record itself as having chosen.</li>
+</ul>
+<h2>Try it</h2>
+<pre>npm install -g @typedgraph/cli
+tg init                        # code ontology, agent instructions, hooks, skills
+# add Types/team-types.md, lat.md/people.md, teams.md, agents.md as above
+tg check &amp;&amp; tg ontology check  # links resolve, edges fit the ontology
+tg cypher 'MATCH (p:Person)-[:owns|knows_about]-&gt;(x) RETURN p.title, collect(x.title)'</pre>
+<p>Then do the part no tool does: pick one habit from the essay, run the &quot;waiting for a person&quot; query at your next retro, and talk about each row.</p>
+<p class="note"><em>Typed Graph is an open-source Obsidian plugin and CLI that turns Markdown notes and code annotations into a typed, queryable graph. The examples in this article were run with tg 0.28.1.</em></p>
+
+    <div class="next">Related: <a href="blog-shared-space.html">A shared space for agents and humans →</a></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Typed Graph · MIT · by Volodymyr Pavlyshyn. Not affiliated with Obsidian, LadybugDB or lat.md.</span>
+      <span><a href="docs.html">Docs</a> · <a href="blog.html">Blog</a> · <a href="https://github.com/Volland/typedgraph">GitHub</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a> · <a href="agb.html">AGB</a></span>
+    </div>
+  </footer>
+  <script src="assets/site.js"></script>
+</body>
+</html>

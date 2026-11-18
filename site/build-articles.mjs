@@ -91,8 +91,16 @@ POSTS.push(
     date: '11 November 2026',
     related: ['blog-explainable-blocks.html', 'Explainable blocks: an ontology for the inside of your documents'],
   },
+  {
+    src: 'articles/team-map-people-and-agents.md',
+    out: 'site/blog-team-map.html',
+    title: 'A Team Map in tg',
+    description: 'Write your team\'s transactive memory down as a typed graph next to the code: who owns, who knows, who decided, which agent acts for whom, and the skills that teach agents to route people to each other.',
+    date: '18 November 2026',
+    related: ['blog-shared-space.html', 'A shared space for agents and humans'],
+  },
 );
-const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html', 'bring-your-own-spec-framework.md': 'blog-spec-frameworks.html', 'one-file-or-a-graph.md': 'blog-one-file-or-a-graph.html', 'explainable-blocks.md': 'blog-explainable-blocks.html', 'declaring-document-elements.md': 'blog-declaring-elements.html' };
+const LINKS = { 'shared-space-for-agents-and-humans.md': 'blog-shared-space.html', 'claude-code-memory-in-five-minutes.md': 'blog-claude-code-memory.html', 'typed-graph-for-coders.md': 'blog-typed-graph-for-coders.html', 'code-ontology-in-practice.md': 'blog-code-ontology.html', 'composable-ontologies.md': 'blog-composable-ontologies.html', 'zettelkasten-thinking-machine.md': 'blog-zettelkasten-thinking-machine.html', 'specs-that-know-their-code.md': 'blog-specs-that-know-their-code.html', 'bring-your-own-spec-framework.md': 'blog-spec-frameworks.html', 'one-file-or-a-graph.md': 'blog-one-file-or-a-graph.html', 'explainable-blocks.md': 'blog-explainable-blocks.html', 'declaring-document-elements.md': 'blog-declaring-elements.html', 'team-map-people-and-agents.md': 'blog-team-map.html' };
 const DATE = '6 October 2026';
 
 const escape = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
