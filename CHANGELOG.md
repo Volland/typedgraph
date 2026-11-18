@@ -2,6 +2,16 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## 0.28.1 — 2026-11-18
+
+Two fixes from [@Zpankz](https://github.com/Zpankz) (Hani Mikhail): relative links resolve outside Obsidian ([#16](https://github.com/Volland/typedgraph/pull/16)), and frontmatter is read to its real end ([#18](https://github.com/Volland/typedgraph/pull/18)). Thank you for the careful reports and reproductions in #15 and #17.
+
+### Fixed
+
+- **`./` and `../` links resolve outside Obsidian.** In the CLI, the sidecar, the VS Code extension and lat.md export, a link such as `[[../../objectives/P1.i]]` used to become a stub, so `tg validate` silently skipped `wrong-target-type` and every other target check on it. A link starting with `./` or `../` is now joined to the source note's folder and matches that exact path, case-insensitively. A link that climbs above the vault root, or ends in a folder, resolves to nothing. Bare and vault-path links resolve as before. The Obsidian plugin uses Obsidian's own resolver and was not affected. ([#16](https://github.com/Volland/typedgraph/pull/16), fixes [#15](https://github.com/Volland/typedgraph/issues/15), by @Zpankz)
+- **An indented `---` no longer ends the frontmatter.** A `---` or `...` inside a block scalar (`rationale: |`) closed the frontmatter, so every key after it was dropped and the rest became body text, with no diagnostic. The closing fence must now start at column 0; trailing spaces and tabs are still allowed. A fence written with leading spaces no longer closes the frontmatter, which YAML does not treat as a document marker either. ([#18](https://github.com/Volland/typedgraph/pull/18), fixes [#17](https://github.com/Volland/typedgraph/issues/17), by @Zpankz)
+- **Body edges, headings and elements use the same frontmatter end.** The body edge parser, the heading and element scanners, lat.md export, SHACL import into an existing schema note and AsciiDoc `////` property blocks each had their own copy of the old fence rule. They now share one, so the lines after an indented `---` are no longer also read as body text, which produced duplicate `links_to` edges and stray inline edges from frontmatter.
+
 ## 0.28.0 — 2026-11-11
 
 The specification's addresses resolve again.
