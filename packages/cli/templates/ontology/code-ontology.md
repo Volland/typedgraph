@@ -50,7 +50,7 @@ In code, above the declaration the edge starts at:
 | --- | --- | --- | --- |
 | `implements` | code → Requirement, Decision | `since`, `confidence` (full, partial), `note` | code realizes it |
 | `verifies` | code → Requirement, Scenario | `since`, `level` (unit, integration, e2e, manual) | a test proves it |
-| `-contradicts` | code, Requirement, Decision → Decision, Requirement, Constraint | `until`, `ticket`, `reason` | knowingly in conflict: debt, named |
+| `-contradicts` | any → any (declared in the shared core, `Types/core-types.md`) | `until`, `ticket`, `reason` | knowingly in conflict: debt, named |
 | `supersedes` | Decision → Decision | `since`, `reason` | replaces an older decision |
 | `motivated_by` | Decision → Constraint, Concept, Decision | `since`, `weight` (primary, secondary), `note` | the reason behind a decision |
 | `constrains` | Constraint → Requirement, Decision, code | `strength` (must, should), `source`, `note` | a rule binds it |

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ontology Gallery</title>
-  <meta name="description" content="Ready-made Typed Graph ontologies to download: Zettelkasten, book management, requirements and code, and prompts and agents. Plain Markdown, composable, exportable to SHACL.">
+  <meta name="description" content="Ready-made Typed Graph ontologies to download: Zettelkasten, book management, code, requirements, a team map, prompts and agents, and OKF. Plain Markdown, conflict-free when combined, exportable to SHACL.">
   <meta property="og:title" content="Ontology gallery: download, use and combine">
   <meta property="og:description" content="Ready-made Typed Graph ontologies to download: Zettelkasten, book management, requirements and code, and prompts and agents.">
   <meta property="og:image" content="https://typedgraph.org/assets/og.png">
@@ -66,7 +66,9 @@
     <div class="map-tabs" role="tablist" aria-label="Ontologies">
       <button type="button" role="tab" data-onto="zettelkasten" aria-selected="true">Zettelkasten</button>
       <button type="button" role="tab" data-onto="library" aria-selected="false">Book management</button>
+      <button type="button" role="tab" data-onto="code" aria-selected="false">Code</button>
       <button type="button" role="tab" data-onto="requirements" aria-selected="false">Requirements</button>
+      <button type="button" role="tab" data-onto="team" aria-selected="false">Team</button>
       <button type="button" role="tab" data-onto="agents" aria-selected="false">Prompts and agents</button>
       <button type="button" role="tab" data-onto="okf" aria-selected="false">OKF</button>
     </div>
@@ -102,17 +104,43 @@
           <a class="btn" href="https://github.com/Volland/typedgraph/tree/main/ontologies/library">GitHub</a>
         </div>
       </div>
+      <div class="card onto" id="code">
+        <h3>Code</h3>
+        <p>What the code is meant to do and why: decisions, requirements, scenarios, constraints, concepts and changes. The same file <code>tg init</code> installs in a code project, so the requirements and team ontologies build on it.</p>
+        <p class="chips"><strong>6 types</strong> <span class="tag">Decision</span> <span class="tag">Requirement</span> <span class="tag">Scenario</span> <span class="tag">Constraint</span> <span class="tag">Concept</span> <span class="tag">Change</span></p>
+        <p class="chips"><strong>10 edge types</strong> <span class="tag">implements</span> <span class="tag">verifies</span> <span class="tag">supersedes</span> <span class="tag">motivated_by</span> <span class="tag">constrains</span> <span class="tag">refines</span> <span class="tag">depends_on</span> <span class="tag">defines</span> <span class="tag">introduced_by</span> <span class="tag">changed_by</span> <span class="tag">+ contradicts from core</span></p>
+        <p class="asks"><em>It answers:</em> Why is this decision the way it is? What is knowingly in conflict, and until when?</p>
+        <p><a href="#map-code" data-map="code">See its map ↑</a></p>
+        <div class="buttons">
+          <a class="btn primary" href="ontologies/code.zip" download>Download vault (.zip)</a>
+          <a class="btn" href="ontologies/code/code-types.md" download>Schema note (.md)</a>
+          <a class="btn" href="https://github.com/Volland/typedgraph/tree/main/ontologies/code">GitHub</a>
+        </div>
+      </div>
       <div class="card onto" id="requirements">
-        <h3>Coding and requirements</h3>
-        <p>Requirements, scenarios, decisions, constraints and concepts, grown with stakeholders, releases and risks. The code ontology that <code>tg init</code> installs, extended for product work.</p>
-        <p class="chips"><strong>9 types</strong> <span class="tag">Requirement</span> <span class="tag">Scenario</span> <span class="tag">Decision</span> <span class="tag">Constraint</span> <span class="tag">Concept</span> <span class="tag">Change</span> <span class="tag">Stakeholder</span> <span class="tag">Release</span> <span class="tag">Risk</span></p>
-        <p class="chips"><strong>15 edge types</strong> <span class="tag">refines</span> <span class="tag">depends_on</span> <span class="tag">requested_by</span> <span class="tag">ships_in</span> <span class="tag">supersedes</span> <span class="tag">motivated_by</span> <span class="tag">constrains</span> <span class="tag">defines</span> <span class="tag">threatens</span> <span class="tag">mitigated_by</span> <span class="tag">introduced_by</span> <span class="tag">changed_by</span> <span class="tag">contradicts</span></p>
+        <h3>Requirements and product</h3>
+        <p>Stakeholders, releases and risks on top of the code ontology, for product work. The download includes the code ontology; in a tg project, copy only this note.</p>
+        <p class="chips"><strong>3 types</strong> <span class="tag">Stakeholder</span> <span class="tag">Release</span> <span class="tag">Risk</span> <span class="tag">+ the code ontology</span></p>
+        <p class="chips"><strong>4 edge types</strong> <span class="tag">requested_by</span> <span class="tag">ships_in</span> <span class="tag">threatens</span> <span class="tag">mitigated_by</span></p>
         <p class="asks"><em>It answers:</em> Which must-have requirements have no release? Which open risks threaten stable requirements?</p>
         <p><a href="#map-requirements" data-map="requirements">See its map ↑</a></p>
         <div class="buttons">
           <a class="btn primary" href="ontologies/requirements.zip" download>Download vault (.zip)</a>
           <a class="btn" href="ontologies/requirements/Requirements.md" download>Schema note (.md)</a>
           <a class="btn" href="https://github.com/Volland/typedgraph/tree/main/ontologies/requirements">GitHub</a>
+        </div>
+      </div>
+      <div class="card onto" id="team">
+        <h3>Team map</h3>
+        <p>The team's who-knows-what map next to the decisions it points at: who owns and knows what, who decided with which agent's help, and which agent acts for whom. Built on the code ontology; <code>tg gen team-types.md</code> writes the same file.</p>
+        <p class="chips"><strong>3 types</strong> <span class="tag">Member</span> <span class="tag">Team</span> <span class="tag">TeamAgent</span> <span class="tag">+ the code ontology</span></p>
+        <p class="chips"><strong>7 edge types</strong> <span class="tag">member_of</span> <span class="tag">owns</span> <span class="tag">knows_about</span> <span class="tag">decided_by</span> <span class="tag">proposed_by</span> <span class="tag">acts_for</span> <span class="tag">hands_off_to</span></p>
+        <p class="asks"><em>It answers:</em> Who should I ask about this decision? What did an agent propose that no person has decided? See <a href="blog-team-map.html">the team map article</a>.</p>
+        <p><a href="#map-team" data-map="team">See its map ↑</a></p>
+        <div class="buttons">
+          <a class="btn primary" href="ontologies/team.zip" download>Download vault (.zip)</a>
+          <a class="btn" href="ontologies/team/team-types.md" download>Schema note (.md)</a>
+          <a class="btn" href="https://github.com/Volland/typedgraph/tree/main/ontologies/team">GitHub</a>
         </div>
       </div>
       <div class="card onto" id="agents">
@@ -142,7 +170,7 @@
         </div>
       </div>
     </div>
-    <p>Several of them use the same edge words: <code>contradicts</code> in Zettelkasten and Requirements, <code>derived_from</code> in Prompts and agents and OKF. Each is declared once in a small shared <a href="ontologies/core/Core.md" download><code>core</code></a> note that every download already contains, which is what lets them be combined. <a href="blog-composable-ontologies.html">The article</a> explains why.</p>
+    <p>Several of them use the same edge words: <code>contradicts</code> in Zettelkasten and Code, <code>derived_from</code> in Prompts and agents and OKF. Each is declared once in a small shared <a href="ontologies/core/core-types.md" download><code>core</code></a> note that every download already contains and that <code>tg init</code> writes too, which is what lets them be combined. <a href="blog-composable-ontologies.html">The article</a> explains why.</p>
 
     <h2>Use one</h2>
     <ol class="steps">
@@ -156,7 +184,8 @@
     <p>Copy the <code>.md</code> files from the ontology's <code>Types/</code> folder into your vault's schema folder. Nothing else changes: notes with no <code>type:</code> are untouched, and notes whose type matches a schema are validated against it. Validation is advisory, so a missing property or a disallowed edge is a warning on the note and never removes anything from the graph.</p>
 
     <h2>Combine several</h2>
-    <p>Put the schema notes of every ontology you want into the same <code>Types/</code> folder, with <code>Core.md</code>. One note can then carry labels from two ontologies, for example <code>type: [Book, BookSource]</code> for a book that is also a source in your Zettelkasten. <code>all.zip</code> is exactly that: all five ontologies composed in one vault. Each type and edge type must be declared in one note only; the reader reports a duplicate and uses the first by path.</p>
+    <p>Put the schema notes of every ontology you want into the same <code>Types/</code> folder, with <code>core-types.md</code>. One note can then carry labels from two ontologies, for example <code>type: [Book, BookSource]</code> for a book that is also a source in your Zettelkasten, or <code>type: [Person, Member]</code> for a data owner in OKF who is also on your team. <code>all.zip</code> is exactly that: all eight ontologies composed in one vault, and a test keeps it free of conflicts.</p>
+    <p>The rules that keep it that way: each type and edge type is declared by one ontology only (the reader reports a duplicate and uses the first by path). An ontology that needs another's types builds on it and ships it in its download, as Requirements and Team build on Code. A type that others build on leaves its outgoing edges open, so their edge types can start at it. In a project set up with <code>tg init</code>, <code>core-types.md</code> and <code>code-types.md</code> are already there under the same names, so copying a download's <code>Types/</code> folder replaces them instead of declaring anything twice.</p>
 
     <h2>Use it from a project or another tool</h2>
 <pre>tg schema export shapes.ttl --vault path/to/vault     # any ontology as W3C SHACL

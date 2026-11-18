@@ -8,11 +8,6 @@ schemas:
       status: {values: [proposed, accepted, superseded, rejected], default: proposed, description: Where the decision is in its life.}
       date: {kind: date, description: When it was decided.}
       owner: {kind: text, description: Who answers for it.}
-    edges:
-      supersedes: Decision
-      contradicts: [Decision, Requirement, Constraint]
-      motivated_by: [Constraint, Concept, Decision]
-      changed_by: Change
     elements:
       option:
         description: An alternative that was considered, and why it won or lost. Give it an id when code or a later decision must point at it.
@@ -30,13 +25,8 @@ schemas:
     properties:
       status: {values: [draft, stable, deprecated], default: draft, description: How settled the requirement is.}
       risk: {values: [low, medium, high], description: What breaks if it is wrong.}
+      priority: {values: [must, should, could, wont], description: "How much it matters for the next release, in MoSCoW terms."}
       owner: {kind: text, description: Who decides what it means.}
-    edges:
-      refines: Requirement
-      depends_on: Requirement
-      contradicts: [Decision, Requirement, Constraint]
-      introduced_by: Change
-      changed_by: Change
     elements:
       rule:
         type: Requirement
@@ -56,8 +46,6 @@ schemas:
     template: "[[Templates/Scenario]]"
     properties:
       status: {values: [draft, stable, deprecated], default: draft, description: How settled the scenario is.}
-    edges:
-      refines: Requirement
     elements:
       given: The state of the world before the action.
       when: The single action or event under test.
@@ -69,8 +57,6 @@ schemas:
     properties:
       source: {kind: text, required: true, description: "Where the rule comes from, such as a law, a contract or a vendor document."}
       owner: {kind: text, description: Who watches it for changes.}
-    edges:
-      constrains: [Requirement, Decision]
     elements:
       exception:
         description: A case the rule does not bind, with who allowed it and until when.
@@ -84,8 +70,6 @@ schemas:
     template: "[[Templates/Concept]]"
     properties:
       status: {values: [draft, stable, deprecated], default: draft, description: How settled the definition is.}
-    edges:
-      defines:
     elements:
       example: A typical instance of the term.
       counterexample: Something often taken for the term that is not it.
@@ -113,15 +97,6 @@ edgeTypes:
     properties:
       since: {kind: text, description: Version or date from which it holds.}
       level: {values: [unit, integration, e2e, manual], description: How the test runs.}
-  contradicts:
-    description: Knowingly in conflict, written with a leading minus. Named debt, with a ticket and a deadline.
-    from: [CodeSymbol, CodeFile, Requirement, Decision]
-    to: [Decision, Requirement, Constraint]
-    properties:
-      until: {kind: text, description: Version or date by which the conflict must be gone.}
-      ticket: {kind: text, description: The issue that tracks it.}
-      reason: text
-    visualization: {color: "#e5484d", line: dashed}
   supersedes:
     description: Replaces an older decision, which stays as history.
     from: Decision
@@ -165,11 +140,13 @@ edgeTypes:
       note: text
   introduced_by:
     description: The change that brought this in.
+    from: Requirement
     to: Change
     properties:
       date: date
   changed_by:
     description: A change that altered this.
+    from: [Decision, Requirement]
     to: Change
     properties:
       date: date
@@ -177,7 +154,9 @@ edgeTypes:
 ---
 # Code Ontology Schema
 
-The Typed Graph Schema (TGS) declaration of the code ontology: six intent types and eleven edge types, readable by the Obsidian plugin, `tg schema` and any TGS or SHACL tool.
+The Typed Graph Schema (TGS) declaration of the code ontology: six intent types and ten edge types, readable by the Obsidian plugin, `tg schema` and any TGS or SHACL tool. The eleventh edge, `-contradicts`, is declared once in the shared core, `core-types.md`, because other ontologies use it too.
+
+The types declare no `edges` list, so their outgoing edges stay open: other ontologies build on these types (the requirements ontology adds `ships_in` to a Requirement, the team ontology `decided_by` to a Decision), and a closed list would forbid that. Each edge type's `from` and `to` say where it may start and end, and validators report an edge that starts or ends at the wrong type.
 
 The vocabulary and its rules of use are in `lat.md/code-ontology.md`; this note is its machine-readable form, so edit both together. It lives in `Types/`, the schema folder the Obsidian plugin, the VS Code extension and `tg validate` read by default, and outside `lat.md/` because every note directly in a schema folder declares a type. Each type's `template` links a note in `Templates/` that new notes of the type start from.
 

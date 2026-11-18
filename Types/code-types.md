@@ -113,15 +113,6 @@ edgeTypes:
     properties:
       since: {kind: text, description: Version or date from which it holds.}
       level: {values: [unit, integration, e2e, manual], description: How the test runs.}
-  contradicts:
-    description: Knowingly in conflict, written with a leading minus. Named debt, with a ticket and a deadline.
-    from: [CodeSymbol, CodeFile, Requirement, Decision]
-    to: [Decision, Requirement, Constraint]
-    properties:
-      until: {kind: text, description: Version or date by which the conflict must be gone.}
-      ticket: {kind: text, description: The issue that tracks it.}
-      reason: text
-    visualization: {color: "#e5484d", line: dashed}
   supersedes:
     description: Replaces an older decision, which stays as history.
     from: Decision

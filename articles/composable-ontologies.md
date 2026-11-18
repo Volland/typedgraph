@@ -124,15 +124,15 @@ edgeTypes:
 ---
 ```
 
-This is `core/Types/Core.md`. It says what each edge is, with no restriction on its ends. Each ontology then says which of its own types may use it, in the type's `edges` list, and how to draw it. Prompts derive from prompts and tables from tables, because each type's own `edges` list says so. Zettelkasten allows `contradicts` between permanent notes, and from one to the fleeting note it rejects. Requirements allow it from a requirement or decision to a decision, requirement or constraint.
+This is `core/Types/core-types.md` (it was `Core.md` until November). It says what each edge is, with no restriction on its ends. Each ontology then says which of its own types may use it, in the type's `edges` list, and how to draw it. Prompts derive from prompts and tables from tables, because each type's own `edges` list says so. Zettelkasten allows `contradicts` between permanent notes, and from one to the fleeting note it rejects. Requirements allow it from a requirement or decision to a decision, requirement or constraint.
 
-Every download already contains `Core.md`, and `all.zip` is the five ontologies and the core composed in one vault. With the core in place, the same combined vault validates with no diagnostics.
+Every download already contains `core-types.md`, and `all.zip` is the five ontologies and the core composed in one vault. With the core in place, the same combined vault validates with no diagnostics.
 
 The rule of thumb: **the first time a second ontology needs a word the first already declared, move the declaration to the core.** Names that only one ontology uses stay in that ontology.
 
 ## Bridging with a mixin
 
-Sharing an edge name is the easy case. The harder one is a link that belongs to neither ontology: a prompt that implements a requirement. `Prompt` knows nothing about `Requirement`, and `Requirement` knows nothing about `Prompt`. You cannot add the edge to `Prompt` without editing the agents ontology, and editing a downloaded ontology is how you lose the ability to update it.
+Sharing an edge name is the easy case. The harder one is a link that belongs to neither ontology: a prompt that fulfills a requirement. `Prompt` knows nothing about `Requirement`, and `Requirement` knows nothing about `Prompt`. You cannot add the edge to `Prompt` without editing the agents ontology, and editing a downloaded ontology is how you lose the ability to update it.
 
 The way out is a **mixin**: a small type, in your own bridge note, that exists only to grant an edge.
 
@@ -141,9 +141,9 @@ The way out is a **mixin**: a small type, in your own bridge note, that exists o
 schemas:
   Traceable:
     edges:
-      implements: Requirement
+      fulfills: Requirement
 edgeTypes:
-  implements: {to: Requirement}
+  fulfills: {from: Traceable, to: Requirement}
 ---
 ```
 
@@ -156,10 +156,10 @@ purpose: Explain token expiry
 ---
 ## Links
 
-implements:: [[Tokens expire after 15 minutes]]
+fulfills:: [[Tokens expire after 15 minutes]]
 ```
 
-Because allowed edges from several labels are combined, the note may have everything a `Prompt` may have and also `implements`. A prompt without the `Traceable` label that tries the same edge gets a warning that `implements` is not allowed. I ran both cases against the real validator, and they behave that way.
+Because allowed edges from several labels are combined, the note may have everything a `Prompt` may have and also `fulfills`. A prompt without the `Traceable` label that tries the same edge gets a warning that `fulfills` is not allowed. The bridge uses a new edge name on purpose: `implements` belongs to the code ontology, which keeps it for code, and declaring it again would be a duplicate. I ran both cases against the real validator, and they behave that way.
 
 This keeps each ontology intact. The agents ontology stays a download you can update. Your bridge note is yours, and it is a few lines.
 
@@ -186,7 +186,8 @@ Your literature note `cites::` it, and your reading log `written_by::` it; each 
 If you build one for the gallery or for your team, these are the habits that kept the five above composable.
 
 - **Prefix a name only when you have to.** Plain names such as `Book` and `cites` read well, but they are the ones that clash. Keep the generic words for the core and make anything specific to your domain unlikely to collide, such as `written_by` over `by`.
-- **Do not restrict the ends of an edge type you expect others to reuse.** Put the restriction on the type's own `edges` list, where it belongs to your ontology, and leave the edge type open.
+- **Do not restrict the ends of an edge type you expect others to reuse.** Leave a shared edge type open and let each ontology say where it may point.
+- **Leave a type open if others build on it.** A type's `edges` list is closed: an edge not on it is reported, and no other ontology can add to it. Close the list only on types nobody extends; on a type others build on, declare no `edges` and let each edge type's `from` and `to` carry the rules.
 - **Give every type and edge type a `uri` when you plan to exchange it.** A type can say it is `schema:Book`, so a tool that knows schema.org understands it, and two ontologies that map to the same identifier can be matched even when their local names differ.
 - **Keep one concern per ontology.** A reading list and a Zettelkasten are separate until a note belongs to both, and then a label bridges them.
 - **Test the composition, not only the parts.** Each ontology here validates alone, and one test puts them all in a folder together. Both clashes above were found by that test, not by reading.
@@ -218,3 +219,17 @@ If you make one you would like to share, send a pull request to the `ontologies/
 ---
 
 *Typed Graph and the `tg` CLI are open source (MIT). Docs and the other articles are at [typedgraph.org/](https://typedgraph.org/). TGS is an open specification and SHACL is a W3C standard.*
+
+## Update, 18 November 2026: eight ontologies, one owner per name
+
+The gallery grew to eight ontologies, and putting them in one folder with the schemas `tg init` writes found clashes the gallery alone never showed. The requirements ontology copied the code ontology's six types instead of building on it, the code ontology declared `contradicts` a second time, and the new team map declared `Person` and `Agent`, words OKF and the agents ontology already owned.
+
+The fix is a shape, not a patch:
+
+- **One owner per name.** `code` is now a gallery ontology, the same `code-types.md` that `tg init` installs, and `requirements` keeps only what product work adds (stakeholders, releases, risks), building on it. `contradicts` lives only in the core.
+- **Build on, and ship what you build on.** `ontologies/requires.json` says that `requirements` and `team` build on `code`, and their downloads include it.
+- **Open where others build.** The code ontology's types and the agents ontology's `Agent` declare no closed `edges` list, so other ontologies' edge types can start at them.
+- **Same files as tg.** `core-types.md`, `code-types.md` and `team-types.md` are byte-identical in the gallery and in tg, so copying a download into a tg project replaces a file instead of declaring a name twice. `tg upgrade` moves `contradicts` from an older project's code ontology to the core, unless the project changed it.
+- **Specific names, two labels.** The team map's types are `Member` and `TeamAgent`. A data owner who is on your team is `type: [Person, Member]`.
+
+Two tests keep it this way: one composes the eight gallery ontologies with notes carrying labels from two of them, and one composes everything tg writes (core, code, every spec framework's ontology and the team map) with every gallery schema note. Both expect no diagnostic.

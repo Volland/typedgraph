@@ -35,7 +35,15 @@ Declaring a shared edge type in a second note is reported as a duplicate declara
 
 ## Mixin bridges two ontologies
 
-A small mixin type that allows an edge to a type from another ontology grants that edge to notes labelled with both types, and the edge is reported as not allowed on notes without the mixin.
+A small mixin type (`Traceable`, granting a new `fulfills` edge) that allows an edge to a type from another ontology grants that edge to notes labelled with both types, and the edge is reported as not allowed on notes without the mixin.
+
+## Same files as tg
+
+The core, code and team schema notes and the code templates are byte-identical to what `tg init` and `tg gen` write, and every dependency named in `requires.json` exists.
+
+## Composes with tg schemas
+
+The core, code, spec (every framework) and team schemas tg writes, placed with every downloadable schema note, produce no diagnostic.
 
 ## OKF ontology exports conformant
 

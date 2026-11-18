@@ -287,7 +287,7 @@ Instead, keep both as they are and compose them. Composition in Typed Graph is d
 
 ```
 Types/
-  Core.md           edge types shared by several ontologies
+  core-types.md     edge types shared by several ontologies
   Zettelkasten.md
   Library.md
 ```
@@ -296,7 +296,7 @@ Types/
 
 Look at the Zettelkasten's source types: `BookSource` and `Writer`, not `Book` and `Author`. That is on purpose. The two ontologies were designed to meet, so the Zettelkasten avoids the library's names. Its README says: *"Writers are `Writer` here so the ontology composes with the library's `Author`."*
 
-The shared words live in `Core.md`. `contradicts` and `derived_from` are used by more than one ontology in the gallery, so they are declared once there, without restricting their ends. Each ontology then says which of its own types may use them. (The [composable ontologies](blog-composable-ontologies.html) article tells the story of how that rule was found: by putting five ontologies in one folder and reading the clashes.)
+The shared words live in `core-types.md`. `contradicts` and `derived_from` are used by more than one ontology in the gallery, so they are declared once there, without restricting their ends. Each ontology then says which of its own types may use them. (The [composable ontologies](blog-composable-ontologies.html) article tells the story of how that rule was found: by putting five ontologies in one folder and reading the clashes.)
 
 ### One book, two roles
 
@@ -342,7 +342,7 @@ highlighted_in:: [[Dune]]
 about:: [[Attention]]
 ```
 
-You may notice that the author is linked twice, with `written_by` for the library and `authored_by` for the Zettelkasten. Each ontology requires its own edge, so a note with both labels carries both. This is the honest cost of composing two ontologies you did not write together: a line of duplication instead of a merged schema. If it starts to bother you, move one author edge into `Core.md` and have both types allow it. That is exactly the rule for shared words.
+You may notice that the author is linked twice, with `written_by` for the library and `authored_by` for the Zettelkasten. Each ontology requires its own edge, so a note with both labels carries both. This is the honest cost of composing two ontologies you did not write together: a line of duplication instead of a merged schema. If it starts to bother you, move one author edge into `core-types.md` and have both types allow it. That is exactly the rule for shared words.
 
 ### The composed vault checks clean
 
@@ -608,7 +608,7 @@ Keep the roles straight, though. An agent is good at finding: paths, gaps, neigh
 
 ## Build your own
 
-1. Download [zettelkasten.zip](ontologies/zettelkasten.zip) and [library.zip](ontologies/library.zip) from the [ontology gallery](ontologies.html), or [all.zip](ontologies/all.zip) for every ontology composed. Each one includes the shared `Core.md`.
+1. Download [zettelkasten.zip](ontologies/zettelkasten.zip) and [library.zip](ontologies/library.zip) from the [ontology gallery](ontologies.html), or [all.zip](ontologies/all.zip) for every ontology composed. Each one includes the shared `core-types.md`.
 2. Put the `Types/` notes in one schema folder of your vault (the plugin's default is `Types/`), and install the Typed Graph plugin in Obsidian.
 3. For every book you think with, add `BookSource` to its labels and `authored_by` next to `written_by`. Do the same for its author with `Writer`.
 4. Write one literature note in your own words, then one permanent note that `derived_from` it.

@@ -279,12 +279,12 @@ edgeTypes:
 <p>You could merge the two ontologies into one big schema, and you would regret it. The Zettelkasten would grow fields about shelves and formats it does not care about. The library would learn about literature notes it does not need. Every update to either would become a manual merge.</p>
 <p>Instead, keep both as they are and compose them. Composition in Typed Graph is deliberately simple: put the schema notes in the same schema folder. Three notes make up the vault in this article:</p>
 <pre>Types/
-  Core.md           edge types shared by several ontologies
+  core-types.md     edge types shared by several ontologies
   Zettelkasten.md
   Library.md</pre>
 <h3>Why the names do not collide</h3>
 <p>Look at the Zettelkasten&#39;s source types: <code>BookSource</code> and <code>Writer</code>, not <code>Book</code> and <code>Author</code>. That is on purpose. The two ontologies were designed to meet, so the Zettelkasten avoids the library&#39;s names. Its README says: <em>&quot;Writers are <code>Writer</code> here so the ontology composes with the library&#39;s <code>Author</code>.&quot;</em></p>
-<p>The shared words live in <code>Core.md</code>. <code>contradicts</code> and <code>derived_from</code> are used by more than one ontology in the gallery, so they are declared once there, without restricting their ends. Each ontology then says which of its own types may use them. (The <a href="blog-composable-ontologies.html">composable ontologies</a> article tells the story of how that rule was found: by putting five ontologies in one folder and reading the clashes.)</p>
+<p>The shared words live in <code>core-types.md</code>. <code>contradicts</code> and <code>derived_from</code> are used by more than one ontology in the gallery, so they are declared once there, without restricting their ends. Each ontology then says which of its own types may use them. (The <a href="blog-composable-ontologies.html">composable ontologies</a> article tells the story of how that rule was found: by putting five ontologies in one folder and reading the clashes.)</p>
 <h3>One book, two roles</h3>
 <p class="note"><em>Dune</em> is a book on your shelf and a source for your slip box. Do not make two notes. Give one note both labels:</p>
 <pre>---
@@ -319,7 +319,7 @@ I must not fear. Fear is the mind-killer.
 quoted_from:: [[Dune]]
 highlighted_in:: [[Dune]]
 about:: [[Attention]]</pre>
-<p>You may notice that the author is linked twice, with <code>written_by</code> for the library and <code>authored_by</code> for the Zettelkasten. Each ontology requires its own edge, so a note with both labels carries both. This is the honest cost of composing two ontologies you did not write together: a line of duplication instead of a merged schema. If it starts to bother you, move one author edge into <code>Core.md</code> and have both types allow it. That is exactly the rule for shared words.</p>
+<p>You may notice that the author is linked twice, with <code>written_by</code> for the library and <code>authored_by</code> for the Zettelkasten. Each ontology requires its own edge, so a note with both labels carries both. This is the honest cost of composing two ontologies you did not write together: a line of duplication instead of a merged schema. If it starts to bother you, move one author edge into <code>core-types.md</code> and have both types allow it. That is exactly the rule for shared words.</p>
 <h3>The composed vault checks clean</h3>
 <p>The vault for this article has the Zettelkasten and Library examples, plus a few notes connecting them: <em>Dune</em>, <em>Frank Herbert</em> and <em>How to Take Smart Notes</em> with two labels each, the quote as a highlight, a literature note on the litany against fear, a permanent note that grew out of it, and an <code>Attention</code> topic. With all three schema notes loaded:</p>
 <pre>notes=37 schemas=15 edgeTypes=22 diagnostics=0</pre>
@@ -458,7 +458,7 @@ Write for your future self  Writing is how thinking happens</pre>
 </ul>
 <h2>Build your own</h2>
 <ol>
-<li>Download <a href="ontologies/zettelkasten.zip">zettelkasten.zip</a> and <a href="ontologies/library.zip">library.zip</a> from the <a href="ontologies.html">ontology gallery</a>, or <a href="ontologies/all.zip">all.zip</a> for every ontology composed. Each one includes the shared <code>Core.md</code>.</li>
+<li>Download <a href="ontologies/zettelkasten.zip">zettelkasten.zip</a> and <a href="ontologies/library.zip">library.zip</a> from the <a href="ontologies.html">ontology gallery</a>, or <a href="ontologies/all.zip">all.zip</a> for every ontology composed. Each one includes the shared <code>core-types.md</code>.</li>
 <li>Put the <code>Types/</code> notes in one schema folder of your vault (the plugin&#39;s default is <code>Types/</code>), and install the Typed Graph plugin in Obsidian.</li>
 <li>For every book you think with, add <code>BookSource</code> to its labels and <code>authored_by</code> next to <code>written_by</code>. Do the same for its author with <code>Writer</code>.</li>
 <li>Write one literature note in your own words, then one permanent note that <code>derived_from</code> it.</li>

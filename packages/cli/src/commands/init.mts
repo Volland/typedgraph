@@ -7,6 +7,7 @@ import { unifiedDiff } from '../diff.mjs';
 import { DOCS_DIRS, existingDocsDir, type DocsDir } from '../root.mjs';
 import type { SpecFrameworkId } from '@obsigraph/core';
 import { AGENT_IDS, AGENTS, detectAgents, parseAgents, type Agent } from './agents.mjs';
+import { CORE_ONTOLOGY_FILE, moveToCore } from '../core-ontology.mjs';
 import { ONTOLOGY_TEMPLATES, OPENSPEC_PATCHES, SKILLS, SPEC_TEMPLATES, STAGE_PATCHES, TEMPLATES } from './gen.mjs';
 import { withOpenspecRules } from './openspec-config.mjs';
 import { offerUpdate } from '../update.mjs';
@@ -305,6 +306,14 @@ function planOntology(root: string, docs: DocsDir, add: (rel: string, after: str
     ...Object.entries(ONTOLOGY_TEMPLATES).map(([type, text]): [string, string] => [`Templates/${type}.md`, text]),
   ];
   for (const [rel, text] of files) if (!existsSync(join(root, rel))) add(rel, text);
+  // The shared core is tool-owned and always current. A code ontology from before 0.30 declares `contradicts`
+  // itself; it moves to the core unless the project changed it, so no name is declared twice.
+  const mine = read(join(root, ONTOLOGY_SCHEMA));
+  const moved = mine === null ? null : moveToCore(mine);
+  if (moved?.text) add(ONTOLOGY_SCHEMA, moved.text);
+  if (moved?.kept.length) {
+    notes.push(`${ONTOLOGY_SCHEMA} declares its own ${moved.kept.map((k) => `'${k}'`).join(', ')} with changes of yours, so ${CORE_ONTOLOGY_FILE} was not written; move your changes into a schema note of your own and run tg upgrade again to use the shared core.`);
+  } else add(CORE_ONTOLOGY_FILE, TEMPLATES.coreSchema);
   if (existsSync(join(root, LEGACY_ONTOLOGY_SCHEMA)) && !existsSync(join(root, ONTOLOGY_SCHEMA))) {
     notes.push(`${LEGACY_ONTOLOGY_SCHEMA} is from an older tg init; tools read schemas from Types/, so delete it once you have moved any edits into ${ONTOLOGY_SCHEMA}.`);
   }

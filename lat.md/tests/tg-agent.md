@@ -79,17 +79,29 @@ Skills shipped with the package.
 
 `tg init --write` for Claude Code creates the seven skills (`tg-docs`, `tg-graph`, `tg-trace`, `tg-impact`, `tg-audit`, `tg-migrate`, `tg-team`) under `.claude/skills/`.
 
+## Shared core ontology
+
+The edge types several ontologies share, written by `tg init` as `Types/core-types.md`.
+
+### Core installed
+
+`tg init --write` writes the shared core identical to the gallery's, the code ontology declares no `contradicts`, and a project with gallery types and two-label sections passes `tg ontology check`.
+
+### Contradicts moves to the core
+
+`tg upgrade` on a 0.29 `code-types.md` moves its unchanged `contradicts` to the core, and keeps one with a property of the project's own, with a note.
+
 ## Team ontology
 
 The opt-in team ontology that `tg gen team-types.md` prints for the `tg-team` skill.
 
 ### Team ontology printed
 
-`tg gen team-types.md` prints a schema declaring `Person`, `Team` and `Agent`, and `tg init --write` writes no `Types/team-types.md`.
+`tg gen team-types.md` prints a schema declaring `Member`, `Team` and `TeamAgent`, and `tg init --write` writes no `Types/team-types.md`.
 
 ### Only people decide
 
-With the printed schema saved, `tg ontology check` reports a `decided_by` edge that ends at an `Agent` section and passes once it points at a `Person`.
+With the printed schema saved, `tg ontology check` reports a `decided_by` edge that ends at a `TeamAgent` section and passes once it points at a `Member`.
 
 ## OpenSpec skill patching
 

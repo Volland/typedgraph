@@ -76,15 +76,26 @@ The system SHALL ship the skills `tg-docs` (docs maintenance), `tg-graph` (graph
 - **THEN** all seven skills exist under the project's skills directory
 
 ### Requirement: Team ontology template
-`tg gen team-types.md` SHALL print the team ontology, a schema note declaring the types `Person`, `Team` and `Agent` and the edge types `member_of`, `owns`, `knows_about`, `decided_by`, `proposed_by`, `acts_for` and `hands_off_to`, whose `decided_by` ends only at `Person`. `tg init` SHALL NOT write it, so a project adds the team map only by choice.
+`tg gen team-types.md` SHALL print the team ontology, a schema note declaring the types `Member`, `Team` and `TeamAgent` and the edge types `member_of`, `owns`, `knows_about`, `decided_by`, `proposed_by`, `acts_for` and `hands_off_to`, whose `decided_by` ends only at `Member`. Its type names SHALL NOT be ones another gallery ontology declares, so it composes with OKF's `Person` and the agents ontology's `Agent` through notes with two labels. `tg init` SHALL NOT write it, so a project adds the team map only by choice.
 
 #### Scenario: Team ontology printed
 - **WHEN** `tg gen team-types.md` runs
-- **THEN** it prints a schema note declaring `Person`, `Team` and `Agent`, and `tg init --write` in a new project writes no `Types/team-types.md`
+- **THEN** it prints a schema note declaring `Member`, `Team` and `TeamAgent`, and `tg init --write` in a new project writes no `Types/team-types.md`
 
 #### Scenario: Only people decide
-- **WHEN** a project saves that output as `Types/team-types.md` and a decision has `decided_by:: [[agents#Bot]]` where `agents.md` is typed `Agent`
-- **THEN** `tg ontology check` reports that `decided_by` ends at Person, not Agent, and passes once the edge points at a person
+- **WHEN** a project saves that output as `Types/team-types.md` and a decision has `decided_by:: [[agents#Bot]]` where `agents.md` is typed `TeamAgent`
+- **THEN** `tg ontology check` reports that `decided_by` ends at Member, not TeamAgent, and passes once the edge points at a member
+
+### Requirement: Shared core ontology
+`tg init --write` SHALL write the shared core `Types/core-types.md`, the edge types several ontologies share (`contradicts`, `derived_from`, `cites`), identical to the gallery's core and rewritten by later runs, and the code ontology SHALL NOT declare those edge types itself. A `Types/code-types.md` from an earlier version that declares `contradicts` unchanged SHALL lose that declaration to the core on `tg init` or `tg upgrade`; one the project changed SHALL be kept, with a note, and the core then left out.
+
+#### Scenario: Core installed
+- **WHEN** `tg init --write` runs in a new project
+- **THEN** `Types/core-types.md` equals the gallery core, `Types/code-types.md` declares no `contradicts` edge type, and gallery types with sections labelled from two ontologies pass `tg ontology check`
+
+#### Scenario: Contradicts moves to the core
+- **WHEN** `tg upgrade` runs on a project whose `Types/code-types.md` is the 0.29 file
+- **THEN** its `contradicts` edge type is removed, `Types/core-types.md` is written, and a `contradicts` declaration with a property of the project's own is kept with a note
 
 ### Requirement: Code ontology install
 `tg init --write` SHALL install the code ontology guide `lat.md/code-ontology.md`, its schema `Types/code-types.md` and one template note per type under `Templates/`, each only when absent, SHALL link each type to its template, SHALL list the guide in the `lat.md` index so `tg check` stays clean, SHALL note an `ontology/code-types.md` left by an older version, and SHALL skip all of them when the `ontology` part is not selected.

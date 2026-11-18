@@ -2,6 +2,21 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## 0.30.0 — 2026-11-18
+
+Every ontology composes with every other, and with what `tg init` writes.
+
+### Changed
+
+- **One owner per name.** Putting the gallery ontologies in one folder with the schemas `tg init` writes found clashes: the requirements ontology declared the code ontology's six types and nine of its edges again, the code ontology declared `contradicts` a second time, and the 0.29 team map declared `Person` and `Agent`, which OKF and the agents ontology already declare. Each name now has exactly one owner, and two tests keep it that way: one composes all eight gallery ontologies with notes labelled from two at once, and one composes the core, code, every spec framework's ontology and the team map with every gallery schema note. Both report no diagnostic.
+- **Shared core in tg projects.** `tg init` writes `Types/core-types.md` (`contradicts`, `derived_from`, `cites`), byte-identical to the gallery's core, and the code ontology no longer declares `contradicts`. `tg init` and `tg upgrade` move an unchanged `contradicts` out of an existing `Types/code-types.md`. One you changed is kept, with a note, and the core is then not written, so nothing is declared twice. The core's `contradicts` takes `reason`, `until` and `ticket`; the gallery core's former `why` is now `reason`.
+- **Code types are open to other ontologies.** The six code types no longer close their outgoing edges with an `edges` list, so other ontologies can add edges to them (`ships_in` from a Requirement, `decided_by` from a Decision). Each edge type's `from` and `to` still say where it may start and end; `introduced_by` now starts only at a Requirement, and `changed_by` only at a Decision or Requirement. The code ontology also gains a MoSCoW `priority` on Requirement. The agents ontology's `Agent` is open in the same way.
+- **Team map types are `Member`, `Team` and `TeamAgent`** (they were `Person`, `Team` and `Agent` in 0.29). A note that belongs to both ontologies takes both labels: `type: [Person, Member]` with OKF, `type: [Agent, TeamAgent]` with the agents ontology. The `tg-team` skill and `tg gen team-types.md` use the new names. If you saved the 0.29 team ontology, run `tg gen team-types.md > Types/team-types.md` again and rename `type: Person` to `Member` and `type: Agent` to `TeamAgent` in your docs.
+
+### Added
+
+- **`code` and `team` in the ontology gallery**, as the same files `tg init` and `tg gen team-types.md` write, with payment-team examples. `requirements` is now only the product layer (stakeholders, releases, risks) built on `code`. `ontologies/requires.json` lists what each ontology builds on, and its download includes it. The gallery page has tabs and cards for both, and the [team map article](https://typedgraph.org/blog-team-map.html) and [composable ontologies](https://typedgraph.org/blog-composable-ontologies.html) explain the rules.
+
 ## 0.29.0 — 2026-11-18
 
 The team map: who owns, knows and decided what, and which agent acts for whom.

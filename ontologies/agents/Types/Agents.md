@@ -19,13 +19,6 @@ schemas:
       model: text
       status: {values: [idea, prototype, production, retired], default: idea}
       autonomy: {values: [suggest, ask-first, autonomous]}
-    edges:
-      uses_prompt: Prompt
-      calls_tool: Tool
-      has_skill: Skill
-      reads: Knowledge
-      delegates_to: Agent
-      evaluated_by: Eval
     visualization: {color: "#0ea5e9", shape: hexagon, icon: bot}
   Tool:
     properties:
@@ -67,3 +60,5 @@ The prompt and agent ontology: a gallery of prompts, the agents that use them, t
 `autonomy` says how far an agent may act alone, and a tool's `side_effects` says what a call can break, so a query can find every autonomous agent that can reach a destructive tool.
 
 `derived_from` is declared once in the shared `core` ontology; here each type only says what it may derive from.
+
+`Agent` declares no `edges` list, so other ontologies can build on it: the team ontology's `acts_for` reaches a note labelled `[Agent, TeamAgent]`. Each edge type's `from` and `to` still say where it starts and ends.

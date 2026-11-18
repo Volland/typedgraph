@@ -12,4 +12,4 @@ derived_from:: [[Folders are enough]] {transform: "rejected: structure from plac
 cites:: [[How to Take Smart Notes]] {page: "63"}
 about:: [[Note-taking]]
 supports:: [[Write for your future self]] {how: "same reason, different scale"}
--contradicts:: [[Folders are enough]] {why: "structure from place, not from links"}
+-contradicts:: [[Folders are enough]] {reason: "structure from place, not from links"}

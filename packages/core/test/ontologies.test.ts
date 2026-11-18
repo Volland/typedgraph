@@ -7,7 +7,11 @@ import { BuiltinEngine, checkOkf, exportOkf, Graph, planNewNote, schemasFromGrap
 import { exportShacl } from '../src/shacl.js';
 
 const ROOT = join(__dirname, '../../../ontologies');
-const ALL = readdirSync(ROOT).filter((f) => statSync(join(ROOT, f)).isDirectory()).sort();
+const ALL = readdirSync(ROOT).filter((f) => !f.startsWith('.') && statSync(join(ROOT, f)).isDirectory()).sort();
+/** Ontologies another one builds on; their notes ship in its download. */
+const REQUIRES = JSON.parse(readFileSync(join(ROOT, 'requires.json'), 'utf8')) as Record<string, string[]>;
+/** The schema notes and templates `tg init` and `tg gen` write, which the gallery must carry unchanged. */
+const CLI = join(__dirname, '../../cli/templates/ontology');
 /** The ontologies you pick from; `core` is the shared base they build on. */
 const IDS = ALL.filter((id) => id !== 'core');
 const validateJson = new Ajv({ strict: true, allowUnionTypes: true }).compile(JSON.parse(readFileSync(join(__dirname, '../../../spec/tgs/tgs.schema.json'), 'utf8')));
@@ -30,6 +34,11 @@ function load(id: string): NoteInput[] {
     });
 }
 
+/** An ontology with the ontologies it builds on, as its download has them. */
+function withDeps(id: string): NoteInput[] {
+  return [...(REQUIRES[id] ?? []).flatMap((dep) => load(dep)), ...load(id)];
+}
+
 function build(notes: NoteInput[]): Graph {
   const paths = [...new Set(notes.map((n) => n.path))];
   const graph = new Graph((l) => paths.find((p) => p === l || ['.md', '.adoc'].some((ext) => p === `${l}${ext}` || p.endsWith(`/${l}${ext}`))) ?? null, undefined, { parseYaml });
@@ -44,15 +53,27 @@ function check(notes: NoteInput[]) {
 }
 
 describe('ontology gallery', () => {
-  it('has the six ontologies and the shared core', () => {
-    expect(ALL).toEqual(['agents', 'core', 'library', 'manuscript', 'okf', 'requirements', 'zettelkasten']);
+  it('has the eight ontologies and the shared core', () => {
+    expect(ALL).toEqual(['agents', 'code', 'core', 'library', 'manuscript', 'okf', 'requirements', 'team', 'zettelkasten']);
+  });
+
+  // @tg: verifies:: [[tests/ontology-gallery#Same files as tg]] {since: "2026-11-18", level: unit}
+  // @lat: [[tests/ontology-gallery#Same files as tg]]
+  // @tg: verifies:: [[openspec:ontology-gallery#Gallery and tg share their files#Same bytes]]
+  it('carries the core, code and team schemas and the code templates exactly as tg writes them', () => {
+    const same = (gallery: string, cli: string) => expect(readFileSync(join(ROOT, gallery), 'utf8'), gallery).toBe(readFileSync(join(CLI, cli), 'utf8'));
+    same('core/Types/core-types.md', 'core-types.md');
+    same('code/Types/code-types.md', 'code-types.md');
+    same('team/Types/team-types.md', 'team-types.md');
+    for (const f of readdirSync(join(CLI, 'templates'))) same(`code/Templates/${f}`, `templates/${f}`);
+    for (const [id, deps] of Object.entries(REQUIRES)) for (const d of deps) expect(ALL, `${id} requires ${d}`).toContain(d);
   });
 
   // @tg: verifies:: [[tests/ontology-gallery#Each ontology stands alone]] {since: "2026-10-06", level: unit}
   // @lat: [[tests/ontology-gallery#Each ontology stands alone]]
   // @tg: verifies:: [[openspec:ontology-gallery#Each ontology stands alone#Ontology checked alone]]
   it.each(IDS)('%s reads, validates its examples, exports to SHACL and matches the JSON Schema', (id) => {
-    const notes = load(id);
+    const notes = withDeps(id);
     const { set, diagnostics } = check(notes);
     expect(diagnostics).toEqual([]);
     expect(set.schemas.size).toBeGreaterThanOrEqual(3);
@@ -146,7 +167,18 @@ describe('ontology gallery', () => {
       text: '---\ntype: PermanentNote\n---\n## Links\n\ncites:: [[Thinking in Systems]] {page: "145"}\n',
       frontmatter: { type: 'PermanentNote' },
     };
-    const { set, diagnostics } = check([...merged, both, author, zettel]);
+    // The team map meets OKF's Person and the agents ontology's Agent through two labels, not a second declaration.
+    const owner: NoteInput = {
+      path: 'Shared/Priya Shah.md',
+      text: '---\ntype: [Person, Member]\ndescription: Analytics engineer on the payments team.\n---\n## Links\n\nmember_of:: [[Payments]]\nknows_about:: [[Idempotency key]] {depth: working}\n',
+      frontmatter: { type: ['Person', 'Member'], description: 'Analytics engineer on the payments team.' },
+    };
+    const agent: NoteInput = {
+      path: 'Shared/Release notes agent.md',
+      text: '---\ntype: [Agent, TeamAgent]\nrole: Drafts release notes\nautonomy: ask-first\n---\n## Links\n\nacts_for:: [[Priya Shah]] {scope: "release notes"}\nhas_skill:: [[Summarize changes]]\n',
+      frontmatter: { type: ['Agent', 'TeamAgent'], role: 'Drafts release notes', autonomy: 'ask-first' },
+    };
+    const { set, diagnostics } = check([...merged, both, author, zettel, owner, agent]);
     expect(diagnostics).toEqual([]);
     expect(set.schemas.size).toBe(IDS.reduce((n, id) => n + check(load(id)).set.schemas.size, 0));
     expect(set.edgeTypes.has('contradicts')).toBe(true);
@@ -172,17 +204,17 @@ describe('ontology gallery', () => {
     const merged = ALL.flatMap((id) => load(id).map((n) => ({ ...n, path: n.path.startsWith('Types/') ? n.path : `${id}/${n.path}` })));
     const bridge: NoteInput = {
       path: 'Types/Bridge.md',
-      text: '---\nschemas:\n  Traceable:\n    edges:\n      implements: Requirement\nedgeTypes:\n  implements: {to: Requirement}\n---\n',
-      frontmatter: { schemas: { Traceable: { edges: { implements: 'Requirement' } } }, edgeTypes: { implements: { to: 'Requirement' } } },
+      text: '---\nschemas:\n  Traceable:\n    edges:\n      fulfills: Requirement\nedgeTypes:\n  fulfills: {from: Traceable, to: Requirement}\n---\n',
+      frontmatter: { schemas: { Traceable: { edges: { fulfills: 'Requirement' } } }, edgeTypes: { fulfills: { from: 'Traceable', to: 'Requirement' } } },
     };
     const prompt = (types: string[]): NoteInput => ({
       path: 'Shared/Expiry prompt.md',
-      text: `---\ntype: [${types.join(', ')}]\npurpose: Explain token expiry\n---\n## Links\n\nimplements:: [[Tokens expire after 15 minutes]]\n`,
+      text: `---\ntype: [${types.join(', ')}]\npurpose: Explain token expiry\n---\n## Links\n\nfulfills:: [[Tokens expire after 15 minutes]]\n`,
       frontmatter: { type: types, purpose: 'Explain token expiry' },
     });
     expect(check([...merged, bridge, prompt(['Prompt', 'Traceable'])]).diagnostics).toEqual([]);
     const without = check([...merged, bridge, prompt(['Prompt'])]).diagnostics;
-    expect(without.some((d) => /'implements' is not allowed for/.test(d))).toBe(true);
+    expect(without.some((d) => /'fulfills' is not allowed for/.test(d))).toBe(true);
   });
 
   // @tg: verifies:: [[tests/ontology-gallery#OKF ontology exports conformant]] {since: "2026-10-06", level: unit}

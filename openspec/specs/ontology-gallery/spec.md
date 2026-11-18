@@ -1,7 +1,7 @@
 # ontology-gallery Specification
 
 ## Purpose
-Ships ready-made Typed Graph ontologies (`zettelkasten`, `library`, `manuscript`, `requirements`, `agents`, `okf` and the shared `core`) as plain Markdown vaults that load on their own, compose with each other and are offered for download on the website.
+Ships ready-made Typed Graph ontologies (`zettelkasten`, `library`, `manuscript`, `code`, `requirements`, `team`, `agents`, `okf` and the shared `core`) as plain Markdown vaults that load on their own, compose with each other and are offered for download on the website.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ Every ontology in `ontologies/` SHALL read without schema diagnostics, SHALL val
 - **THEN** there are no diagnostics and the SHACL export succeeds
 
 ### Requirement: Ontologies compose
-All ontologies placed in one schema folder SHALL produce no diagnostics, with a combined type count equal to the sum of the parts, and declaring a shared edge type a second time outside `core` SHALL be reported as a duplicate declaration.
+Each type and edge type SHALL be declared by exactly one ontology; an ontology that needs another's types SHALL build on it (listed in `ontologies/requires.json`, shipped in its download) instead of declaring them again, and a type that other ontologies build on SHALL leave its outgoing `edges` open so their edge types can start at it. All ontologies placed in one schema folder SHALL produce no diagnostics, with a combined type count equal to the sum of the parts, and declaring a shared edge type a second time outside `core` SHALL be reported as a duplicate declaration.
 
 #### Scenario: All composed
 - **WHEN** every ontology is placed in one schema folder with a note labelled by two ontologies at once
@@ -27,8 +27,8 @@ All ontologies placed in one schema folder SHALL produce no diagnostics, with a 
 A mixin type that allows an edge to a type from another ontology SHALL grant that edge to notes labelled with both types, and the edge SHALL be reported as not allowed on notes without the mixin.
 
 #### Scenario: Edge granted by mixin
-- **WHEN** a mixin `Traceable` allows `implements: Requirement` and an agents-ontology note typed `[Prompt, Traceable]` has `implements:: [[Tokens expire after 15 minutes]]` to a requirements-ontology note
-- **THEN** no diagnostic is reported, while the same note typed only `Prompt` is reported for a disallowed `implements` edge
+- **WHEN** a mixin `Traceable` allows `fulfills: Requirement` and an agents-ontology note typed `[Prompt, Traceable]` has `fulfills:: [[Tokens expire after 15 minutes]]` to a requirements-ontology note
+- **THEN** no diagnostic is reported, while the same note typed only `Prompt` is reported for a disallowed `fulfills` edge
 
 ### Requirement: Zettelkasten ontology
 The Zettelkasten ontology SHALL give every note type a time-ordered `uid`, SHALL let permanent notes take an optional Luhmann id, SHALL give each note type a template that produces a valid note, and SHALL require a source on literature notes and highlights. Every note the website walkthrough names SHALL be an example note of the ontology appearing in one step only, and each step SHALL have text.
@@ -55,9 +55,20 @@ The example notes of the `okf` ontology SHALL export as an Open Knowledge Format
 - **WHEN** the `okf` examples are exported to an OKF bundle and checked
 - **THEN** the check reports no errors and edge lines link with `/`-rooted paths
 
+### Requirement: Gallery and tg share their files
+The gallery's `core`, `code` and `team` schema notes and the code ontology's templates SHALL be byte-identical to the files `tg init` and `tg gen` write, under the same names (`Types/core-types.md`, `Types/code-types.md`, `Types/team-types.md`), so copying a gallery ontology into a tg project replaces a file instead of declaring a name twice. Everything tg writes (the core, code, spec ontology for every framework and team schemas) SHALL compose with every gallery ontology with no diagnostic.
+
+#### Scenario: Same bytes
+- **WHEN** the gallery's `core/Types/core-types.md`, `code/Types/code-types.md`, `team/Types/team-types.md` and `code/Templates/*` are compared with the CLI's templates
+- **THEN** they are identical
+
+#### Scenario: Everything composes
+- **WHEN** the core, code, spec and team schemas tg writes are placed in one schema folder with every gallery schema note
+- **THEN** no diagnostic is reported, and a tg project with gallery types and sections labelled `[Person, Member]` and `[Agent, TeamAgent]` passes `tg ontology check`
+
 ### Requirement: Gallery downloads
-The website build SHALL write one zip per ontology containing its `Types/`, `Examples/`, README and the shared `Core.md`, an `all.zip` with every ontology composed into one vault, and each schema note as a single downloadable file.
+The website build SHALL write one zip per ontology containing its `Types/`, `Examples/`, README, the shared `core-types.md` and the ontologies it builds on, an `all.zip` with every ontology composed into one vault, and each schema note as a single downloadable file.
 
 #### Scenario: Per-ontology zip
 - **WHEN** the gallery build runs
-- **THEN** `site/ontologies/zettelkasten.zip` exists and contains `Types/Core.md`
+- **THEN** `site/ontologies/zettelkasten.zip` exists and contains `Types/core-types.md`, and `requirements.zip` also contains `Types/code-types.md`

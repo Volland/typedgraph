@@ -1,6 +1,6 @@
 # Who knows, who decides, what the agent may do: a team map in tg
 
-*A practical companion to "From Islands to Archipelago". How to write your team's transactive memory down as a typed graph next to the code: who owns what, who decided what, which agent acts for whom. Then how to teach your agents to route people to each other instead of around each other. Every file and query here was run with tg 0.28.1. Since tg 0.29.0, the team ontology is one command away (`tg gen team-types.md`) and `tg init` installs the `tg-team` skill.*
+*A practical companion to "From Islands to Archipelago". How to write your team's transactive memory down as a typed graph next to the code: who owns what, who decided what, which agent acts for whom. Then how to teach your agents to route people to each other instead of around each other. Every file and query here was run with tg 0.28.1. Since tg 0.29.0, the team ontology is one command away (`tg gen team-types.md`) and `tg init` installs the `tg-team` skill; since 0.30.0 its types are `Member`, `Team` and `TeamAgent`, so it composes with every ontology in the gallery.*
 
 ---
 
@@ -38,28 +38,31 @@ The order matters. Agents inherit only what people agreed and wrote down. If cha
 ---
 tgs: "0.6"
 schemas:
-  Person:
+  Member:
     description: "Someone on the team. A section per person, titled with the name people use; its first sentence gives their handle and role."
+    visualization: {color: "#e11d48", shape: ellipse}
   Team:
     description: "A group that owns things together and answers for them as one; its first sentence says where to ask it."
-  Agent:
+    visualization: {color: "#9333ea", shape: round-rectangle}
+  TeamAgent:
     description: "A coding agent or automation that does work in this repository on someone's behalf; its first sentence names the product."
+    visualization: {color: "#0ea5e9", shape: hexagon}
 edgeTypes:
   member_of:
     description: A person belongs to a team.
-    from: Person
+    from: Member
     to: Team
     properties:
       since: {kind: text, description: Date they joined.}
   owns:
     description: Answers for this decision, requirement, term or code; the first person to ask, and the one who says yes to a change.
-    from: [Person, Team]
+    from: [Member, Team]
     to: [Decision, Requirement, Concept, Constraint, CodeFile, CodeSymbol]
     properties:
       since: {kind: text, description: Date ownership started.}
   knows_about:
     description: Can explain this without looking it up. The who-knows-what map, kept beside what it points at.
-    from: [Person, Agent]
+    from: [Member, TeamAgent]
     to: [Decision, Requirement, Concept, Constraint, CodeFile, CodeSymbol]
     properties:
       depth: {values: [expert, working, aware], description: How far you can rely on them.}
@@ -67,7 +70,7 @@ edgeTypes:
   decided_by:
     description: Who made this decision, and in what role. An agent can propose; only people decide.
     from: Decision
-    to: Person
+    to: Member
     properties:
       role: {values: [driver, approver, consulted], description: "RACI-style part in the decision."}
       date: {kind: date, description: When they took that part.}
@@ -75,34 +78,36 @@ edgeTypes:
   proposed_by:
     description: Who first wrote this down, a person or an agent.
     from: [Decision, Requirement, Change]
-    to: [Person, Agent]
+    to: [Member, TeamAgent]
     properties:
       session: {kind: text, description: A link to the agent session or pull request where it started.}
   acts_for:
     description: An agent works on this person's or team's behalf and inherits their permissions and accountability.
-    from: Agent
-    to: [Person, Team]
+    from: TeamAgent
+    to: [Member, Team]
     properties:
       scope: {kind: text, description: "What it may touch, such as a folder or a kind of task."}
       autonomy: {values: [suggest, ask-first, autonomous], description: How far it may act without the person.}
   hands_off_to:
     description: One agent passes work to another, through a document both can read.
-    from: Agent
-    to: Agent
+    from: TeamAgent
+    to: TeamAgent
     properties:
       via: {kind: text, description: The section or spec the work passes through.}
       when: {kind: text, description: The trigger for the hand-off.}
 ---
-The team ontology: who is here, what each person and agent answers for or knows, and who decided what.
-It extends the code ontology in `code-types.md`; it adds no types the code ontology already has.
+The team ontology: who is here, what each person and agent answers for or knows, and who decided what. It builds on the code ontology in `code-types.md` and adds no type that the code ontology or another gallery ontology already declares.
+
+The names are specific on purpose, so the team map composes with other ontologies instead of clashing with them: `Member` rather than `Person`, and `TeamAgent` rather than `Agent`. When a vault also uses OKF's `Person` or the agents ontology's `Agent`, give a note both labels, such as `type: [Person, Member]` or `type: [Agent, TeamAgent]`, and it gets the properties and edges of each.
 ```
 
 The design choices are the useful part. Each one is a rule you can reuse:
 
+- **Pick names that compose.** The types are `Member` and `TeamAgent`, not `Person` and `Agent`. Those generic words belong to other ontologies in the [gallery](https://typedgraph.org/ontologies.html) (OKF declares `Person`, the agents ontology `Agent`), and TGS lets a name be declared only once. When a vault uses both, one note carries both labels: `type: [Person, Member]` for a data owner who is also on your team, `type: [Agent, TeamAgent]` for an agent you also catalogue with prompts and tools. Since tg 0.30.0 the gallery, the code ontology and this file compose with no conflict, and a test keeps it that way.
 - **Separate the layers.** People change faster than code types. Keeping them in their own file means a reorganization touches one file. It also means `tg upgrade`, which refreshes what `tg init` installed, never touches it. I checked: after adding this file and a custom skill, `tg upgrade --dry-run` reports nothing to change.
 - **Point at the code ontology instead of copying it.** `owns` ends at `Decision`, `Requirement`, `CodeFile` and `CodeSymbol`, types that already exist. The team layer adds edges *into* the intent graph; it doesn't add a parallel vocabulary.
-- **Put accountability in the endpoints.** `decided_by` runs from `Decision` to `Person` and nothing else. That one line is the rule "an agent can propose; only people decide", and `tg ontology check` enforces it (see below).
-- **Put facts on edges, not on sections.** In a tg project a section node has a title, a summary (its leading paragraph), a file and lines, but no properties of its own. A frontmatter key such as `source:` doesn't reach the sections below it. So everything you want to query goes on an edge: `autonomy` sits on `acts_for`, `role` and `date` on `decided_by`. Contact details go in the first sentence, which queries return as `summary`. My first draft declared `handle` and `autonomy` as properties of `Person` and `Agent`. The check accepted that, and every query returned `null`.
+- **Put accountability in the endpoints.** `decided_by` runs from `Decision` to `Member` and nothing else. That one line is the rule "an agent can propose; only people decide", and `tg ontology check` enforces it (see below).
+- **Put facts on edges, not on sections.** In a tg project a section node has a title, a summary (its leading paragraph), a file and lines, but no properties of its own. A frontmatter key such as `source:` doesn't reach the sections below it. So everything you want to query goes on an edge: `autonomy` sits on `acts_for`, `role` and `date` on `decided_by`. Contact details go in the first sentence, which queries return as `summary`. My first draft declared `handle` and `autonomy` as properties of the person and agent types. The check accepted that, and every query returned `null`.
 - **Make disclosure a property, not a confession.** The essay's third habit is "make disclosure boring". `assisted_by` on `decided_by` turns "AI-assisted" into one more field on the edge, as routine as a date.
 - **Separate owning from knowing.** `owns` names the one person who says yes to a change. `knows_about` with a `depth` is the transactive memory itself: many people, graded. Most teams mix the two up, and that's how "ask Alice" becomes the answer to everything.
 - **Describe every name.** `tg ontology` prints each description, and the `tg-docs` skill tells agents to read it before writing. A description is the definition both people and agents get.
@@ -115,7 +120,7 @@ People, teams and agents are sections, like everything else in `lat.md/`. Give e
 
 ```markdown
 ---
-type: Person
+type: Member
 ---
 # People
 
@@ -143,7 +148,7 @@ Agents get the same treatment, with whom they act for and how far they may go:
 
 ```markdown
 ---
-type: Agent
+type: TeamAgent
 ---
 # Agents
 
@@ -213,7 +218,7 @@ Everything above is now one graph that `tg cypher` can query. Agents get the sam
 **Who should I ask about the retry policy?** Owners first, then people who can explain it:
 
 ```
-tg cypher 'MATCH (p:Person)-[r:owns|knows_about]->(d:Decision {title: "Retry a failed charge three times"})
+tg cypher 'MATCH (p:Member)-[r:owns|knows_about]->(d:Decision {title: "Retry a failed charge three times"})
            RETURN p.title AS ask, type(r) AS because, r.depth AS depth ORDER BY because DESC'
 
 ask              | because     | depth
@@ -225,7 +230,7 @@ Bogdan Kovalenko | knows_about | working
 **Who decided, in what role, and with what help?**
 
 ```
-tg cypher 'MATCH (d:Decision)-[r:decided_by]->(p:Person)
+tg cypher 'MATCH (d:Decision)-[r:decided_by]->(p:Member)
            RETURN d.title, p.title, r.role, r.date, r.assisted_by'
 
 d.title                           | p.title      | r.role    | r.date     | r.assisted_by
@@ -237,7 +242,7 @@ Retry a failed charge three times | Chen Wei     | consulted | 2026-02-09 | null
 **I'm about to change this function. Whom do I talk to?** This walks from code through the decision it implements to the person who owns it, the "collision check" from the essay as a query:
 
 ```
-tg cypher --code annotated 'MATCH (c:CodeSymbol)-[:implements]->(d:Decision)<-[:owns]-(p:Person)
+tg cypher --code annotated 'MATCH (c:CodeSymbol)-[:implements]->(d:Decision)<-[:owns]-(p:Member)
                             RETURN c.name AS code, d.title AS decision, p.title AS owner'
 
 code            | decision                          | owner
@@ -248,7 +253,7 @@ chargeWithRetry | Retry a failed charge three times | Alice Moreau
 **Where does only one person hold the knowledge?** This is the bus-factor view of transactive memory:
 
 ```
-tg cypher 'MATCH (p:Person)-[:owns|knows_about]->(x)
+tg cypher 'MATCH (p:Member)-[:owns|knows_about]->(x)
            WITH x, count(DISTINCT p) AS people, collect(p.title) AS who WHERE people < 2
            RETURN x.title AS topic, who'
 
@@ -263,8 +268,8 @@ Each row is a pairing waiting to happen. The essay's fifth habit is to pair acro
 **What did an agent propose that no person has decided yet?**
 
 ```
-tg cypher 'MATCH (d:Decision)-[:proposed_by]->(a:Agent)
-           OPTIONAL MATCH (d)-[r:decided_by]->(p:Person)
+tg cypher 'MATCH (d:Decision)-[:proposed_by]->(a:TeamAgent)
+           OPTIONAL MATCH (d)-[r:decided_by]->(p:Member)
            WITH d, a, count(p) AS deciders WHERE deciders = 0
            RETURN d.title AS waiting_for_a_person, a.title AS proposed_by'
 
@@ -278,7 +283,7 @@ This is the most important query in the article. An agent can write a perfectly 
 **Which agents act for whom, and how far may they go?**
 
 ```
-tg cypher 'MATCH (a:Agent)-[r:acts_for]->(x)
+tg cypher 'MATCH (a:TeamAgent)-[r:acts_for]->(x)
            RETURN a.title AS agent, x.title AS on_behalf_of, r.scope AS scope, r.autonomy AS autonomy'
 
 agent               | on_behalf_of | scope                             | autonomy
@@ -296,7 +301,7 @@ tg refs "people#Alice Moreau"
 * Section: [[lat.md/decisions#Decisions#Retry a failed charge three times]] (wiki link)
 ```
 
-What she owns and knows sits on her own section's outgoing edges: `MATCH (p:Person {title: "Alice Moreau"})-[r]->(x) RETURN type(r), x.title`.
+What she owns and knows sits on her own section's outgoing edges: `MATCH (p:Member {title: "Alice Moreau"})-[r]->(x) RETURN type(r), x.title`.
 
 ## The ontology is the guardrail
 
@@ -306,7 +311,7 @@ Writing the rules into the schema pays off the first time someone, or something,
 - decided_by:: [[agents#Alice's Claude Code]] {role: driver}
 
 $ tg ontology check
-- lat.md/decisions.md:35: 'decided_by' ends at Person, not Agent
+- lat.md/decisions.md:36: 'decided_by' ends at Member, not TeamAgent
 
 1 finding. Run tg ontology to see the declared types and edges.
 ```
@@ -314,10 +319,10 @@ $ tg ontology check
 And here is what it said about my own first draft, where the review bot acted for a team while `acts_for` was only declared for people:
 
 ```
-- lat.md/agents.md:20: 'acts_for' ends at Person, not Team
+- lat.md/agents.md:20: 'acts_for' ends at Member, not Team
 ```
 
-I decided an agent may act for a team, and widened the endpoint to `[Person, Team]`. That's the right response to a finding: either the data is wrong or the rule is. Either way, the change goes through review as a diff to `Types/team-types.md`, where the team can argue about it.
+I decided an agent may act for a team, and widened the endpoint to `[Member, Team]`. That's the right response to a finding: either the data is wrong or the rule is. Either way, the change goes through review as a diff to `Types/team-types.md`, where the team can argue about it.
 
 **Tip: put `tg ontology check` in CI next to `tg check`.** The Stop hook that `tg init` installs for Claude Code blocks an agent from finishing in two cases: when `tg check` finds errors, or when code changed and `lat.md/` didn't. It doesn't run the ontology check. Two lines in CI close that gap for people and agents alike:
 
@@ -330,7 +335,7 @@ I decided an agent may act for a team, and widened the endpoint to `[Person, Tea
 
 An ontology tells an agent what the words mean. It doesn't tell the agent how to behave with them. That's the skills' job, and it's the half people forget.
 
-The `tg-docs` skill that `tg init` installs already tells agents to read `tg ontology` once per session and to "prefer a fitting domain type over a generic one". So the moment `Types/team-types.md` exists, an agent writing docs knows `Person`, `decided_by` and `assisted_by`. What it doesn't know is the *routing* behavior the essay asks for: *ask humans "why", ask agents "how".* Since tg 0.29.0, `tg init` installs that behavior as the bundled `tg-team` skill, and `tg upgrade` adds it to projects set up earlier. Here is the core of it, as you'd write it for a project of your own:
+The `tg-docs` skill that `tg init` installs already tells agents to read `tg ontology` once per session and to "prefer a fitting domain type over a generic one". So the moment `Types/team-types.md` exists, an agent writing docs knows `Member`, `decided_by` and `assisted_by`. What it doesn't know is the *routing* behavior the essay asks for: *ask humans "why", ask agents "how".* Since tg 0.29.0, `tg init` installs that behavior as the bundled `tg-team` skill, and `tg upgrade` adds it to projects set up earlier. Here is the core of it, as you'd write it for a project of your own:
 
 ```markdown
 ---
@@ -348,7 +353,7 @@ Types/team-types.md. Read `tg ontology` for the edge meanings before using them.
 1. Find the decision: `tg search`, then follow `implements` from the code if you started there.
 2. Answer with what the decision says and its `motivated_by` reasons, quoted, not paraphrased.
 3. Name who decided it and who knows it; their section's first sentence (`summary`) has their handle:
-   MATCH (p:Person)-[r:owns|knows_about|decided_by]-(d:Decision {title: "<decision title>"})
+   MATCH (p:Member)-[r:owns|knows_about|decided_by]-(d:Decision {title: "<decision title>"})
    RETURN p.title, p.summary, type(r), r.role
 4. If the record does not answer the question, say so and suggest asking the owner. Never invent a reason.
 
@@ -412,7 +417,7 @@ The next part of the series takes this further with Promise Theory as the vocabu
 
 1. **Say *transactive*, model it as `knows_about` with `depth`.** Keep it separate from `owns`.
 2. **Put team types in their own `Types/` file.** `tg upgrade` will never touch it.
-3. **Write accountability rules as edge endpoints**, such as `decided_by: Decision → Person`, so `tg ontology check` enforces them.
+3. **Write accountability rules as edge endpoints**, such as `decided_by: Decision → Member`, so `tg ontology check` enforces them.
 4. **Put facts on edges:** `role`, `date`, `since`, `assisted_by`, `scope`, `autonomy`, `via`. A section has no properties of its own. Its first sentence comes back as `summary`, so contact details go there.
 5. **Quote any YAML description with a comma** in a `{…}` map.
 6. **Run `tg ontology check` in CI.** The agent Stop hook runs `tg check` only.
@@ -438,7 +443,7 @@ tg init                        # code ontology, agent instructions, hooks, skill
 tg gen team-types.md > Types/team-types.md
 # add lat.md/people.md, teams.md, agents.md as above, or ask your agent: the tg-team skill knows how
 tg check && tg ontology check  # links resolve, edges fit the ontology
-tg cypher 'MATCH (p:Person)-[:owns|knows_about]->(x) RETURN p.title, collect(x.title)'
+tg cypher 'MATCH (p:Member)-[:owns|knows_about]->(x) RETURN p.title, collect(x.title)'
 ```
 
 Then do the part no tool does: pick one habit from the essay, run the "waiting for a person" query at your next retro, and talk about each row.

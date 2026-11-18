@@ -6,6 +6,7 @@ import { EXIT_OK, register, VERSION, type Command, type Ctx } from '../cli.mjs';
 import { unifiedDiff } from '../diff.mjs';
 import { existingDocsDir, type DocsDir } from '../root.mjs';
 import { detectSpecs, SPEC_ONTOLOGY_FILE } from '../specs.mjs';
+import { CORE_ONTOLOGY_FILE } from '../core-ontology.mjs';
 import { offerUpdate } from '../update.mjs';
 import { AGENTS, detectAgents, type Agent } from './agents.mjs';
 import { SKILLS, TEMPLATES } from './gen.mjs';
@@ -137,7 +138,7 @@ export function enrichOntology(existing: string, bundled: string): { text: strin
 export function planUpgrade(root: string, setup: Setup): { changes: Change[]; notes: string[]; ontology: string[] } {
   const { changes, notes } = planInit(root, setup.agents, false, { parts: setup.parts, docs: setup.docs, specs: setup.specs });
   const skillDirs = new Set(setup.agents.map((a) => a.skills));
-  const owned = (c: Change) => c.before !== null || c.path === SPEC_ONTOLOGY_FILE || [...skillDirs].some((d) => Object.keys(SKILLS).some((s) => c.path === `${d}/${s}/SKILL.md`));
+  const owned = (c: Change) => c.before !== null || c.path === SPEC_ONTOLOGY_FILE || c.path === CORE_ONTOLOGY_FILE || [...skillDirs].some((d) => Object.keys(SKILLS).some((s) => c.path === `${d}/${s}/SKILL.md`));
   const kept = changes.filter(owned);
   // A note about a file upgrade does not create (a proposed `.tg/config.json`, a docs index) would only confuse.
   const dropped = changes.filter((c) => !owned(c)).map((c) => c.path);
@@ -146,10 +147,14 @@ export function planUpgrade(root: string, setup: Setup): { changes: Change[]; no
   notes.push(...keptNotes);
   let ontology: string[] = [];
   if (setup.parts.includes('ontology')) {
+    // Enrichment builds on the plan's own change to the schema (edge types moved to the shared core), if any.
+    const planned = kept.find((c) => c.path === ONTOLOGY_SCHEMA);
     const existing = read(join(root, ONTOLOGY_SCHEMA));
-    const r = existing === null ? null : enrichOntology(existing, forDocs(TEMPLATES.ontologySchema, setup.docs));
+    const base = planned?.after ?? existing;
+    const r = base === null ? null : enrichOntology(base, forDocs(TEMPLATES.ontologySchema, setup.docs));
     if (r) {
-      kept.push({ path: ONTOLOGY_SCHEMA, before: existing, after: r.text });
+      if (planned) planned.after = r.text;
+      else kept.push({ path: ONTOLOGY_SCHEMA, before: existing, after: r.text });
       ontology = r.added;
     }
     const guide = `${setup.docs}/code-ontology.md`;

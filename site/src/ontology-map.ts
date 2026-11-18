@@ -10,6 +10,8 @@ import { nodeElement, type EdgeElement, type NodeElement } from '../../packages/
 import { STEPS } from './trail-steps';
 
 declare const __ONTOLOGIES__: Record<string, { path: string; text: string }[]>;
+/** Ontologies another one builds on, from `ontologies/requires.json`. */
+declare const __REQUIRES__: Record<string, string[]>;
 
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const theme = () => {
@@ -17,9 +19,9 @@ const theme = () => {
   return dark ? { text: '#e8e6f3', muted: '#8d88a8', background: '#14121f' } : { text: '#1f1b2e', muted: '#8a86a0', background: '#ffffff' };
 };
 
-/** The graph and schemas of one ontology, with the shared `core` types so edge styles match. */
+/** The graph and schemas of one ontology, with the shared `core` and the ontologies it builds on, as its download has them. */
 function load(id: string): { graph: Graph; set: SchemaSet } {
-  const notes = [...(__ONTOLOGIES__.core ?? []), ...(__ONTOLOGIES__[id] ?? [])];
+  const notes = [...(__ONTOLOGIES__.core ?? []), ...(__REQUIRES__[id] ?? []).flatMap((dep) => __ONTOLOGIES__[dep] ?? []), ...(__ONTOLOGIES__[id] ?? [])];
   const graph = new Graph(pathResolver(() => notes.map((n) => n.path)));
   for (const n of notes) {
     const { yaml } = splitFrontmatter(n.text);
@@ -99,7 +101,9 @@ function schemaElements(set: SchemaSet): { nodes: NodeElement[]; edges: EdgeElem
 const NOTES: Record<string, string> = {
   zettelkasten: 'Notes move from fleeting to literature to permanent; sources have writers and highlights.',
   library: 'Books have authors, series and genres, and quotes point back to the book they came from.',
-  requirements: 'Requirements are refined by scenarios, motivated by decisions and tied to changes and releases.',
+  code: 'Decisions are motivated by constraints, requirements are refined by scenarios, and code implements both.',
+  requirements: 'Built on the code ontology: requirements are requested by stakeholders, ship in releases and are threatened by risks.',
+  team: 'Built on the code ontology: members own and know decisions and decide them, and agents propose and act for people.',
   agents: 'Agents use prompts, tools and skills, read knowledge and are scored by evals.',
   okf: 'Tables feed metrics, metrics appear on dashboards, and terms and runbooks explain them.',
 };

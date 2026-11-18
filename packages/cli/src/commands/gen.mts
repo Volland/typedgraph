@@ -14,6 +14,7 @@ import openspecExplore from '../../templates/openspec/explore.md';
 import ontologyGuide from '../../templates/ontology/code-ontology.md';
 import ontologySchema from '../../templates/ontology/code-types.md';
 import teamSchema from '../../templates/ontology/team-types.md';
+import coreSchema from '../../templates/ontology/core-types.md';
 import decisionTemplate from '../../templates/ontology/templates/Decision.md';
 import requirementTemplate from '../../templates/ontology/templates/Requirement.md';
 import scenarioTemplate from '../../templates/ontology/templates/Scenario.md';
@@ -32,7 +33,7 @@ import { detectSpecs, forSpecs, forStage, SPEC_SETUPS, SPEC_STAGES, specOntology
 import { EXIT_ERROR, EXIT_OK, register, type Command } from '../cli.mjs';
 
 // @tg: implements:: [[openspec:tg-agent-integration#Bundled skills]]
-export const TEMPLATES = { agents, cursor, docsSkill, graphSkill, traceSkill, impactSkill, auditSkill, ontologyGuide, ontologySchema };
+export const TEMPLATES = { agents, cursor, docsSkill, graphSkill, traceSkill, impactSkill, auditSkill, ontologyGuide, ontologySchema, coreSchema };
 
 /** Skills installed for Claude Code, by folder name under `.claude/skills/`. */
 // @tg: implements:: [[openspec:tg-agent-integration#Bundled skills]]
@@ -78,6 +79,7 @@ const TARGETS: Record<string, string> = {
   'ontology.md': ontologyGuide,
   'ontology-schema.md': ontologySchema,
   'team-types.md': teamSchema,
+  'core-types.md': coreSchema,
   'openspec-rules.md': openspecRules,
   ...Object.fromEntries(Object.entries(ONTOLOGY_TEMPLATES).map(([type, text]) => [`template-${type.toLowerCase()}.md`, text])),
   'kiro-steering.md': kiroSteering,

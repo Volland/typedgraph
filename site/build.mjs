@@ -16,7 +16,7 @@ await build({
 
 // The ontology gallery visuals read the real ontology notes (types and examples) at build time.
 const ontologies = {};
-for (const id of readdirSync('ontologies').filter((f) => statSync(join('ontologies', f)).isDirectory())) {
+for (const id of readdirSync('ontologies').filter((f) => !f.startsWith('.') && statSync(join('ontologies', f)).isDirectory())) {
   ontologies[id] = ['Types', 'Examples'].flatMap((dir) => {
     try {
       return readdirSync(join('ontologies', id, dir)).filter((f) => f.endsWith('.md')).sort().map((f) => ({ path: `${dir}/${f}`, text: readFileSync(join('ontologies', id, dir, f), 'utf8') }));
@@ -32,7 +32,7 @@ await build({
   platform: 'browser',
   target: 'es2020',
   minify: true,
-  define: { __ONTOLOGIES__: JSON.stringify(ontologies) },
+  define: { __ONTOLOGIES__: JSON.stringify(ontologies), __REQUIRES__: readFileSync('ontologies/requires.json', 'utf8') },
   outfile: 'site/assets/ontology-map.js',
   logLevel: 'info',
 });

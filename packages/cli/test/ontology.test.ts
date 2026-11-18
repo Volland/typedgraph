@@ -102,7 +102,9 @@ it('lists the ontology tg init installs', async () => {
   const o = JSON.parse(r.out) as { types: { type: string; properties: { name: string }[] }[]; edgeTypes: { type: string; from: string[]; to: string[] }[] };
   expect(o.types).toHaveLength(6);
   expect(o.types.find((t) => t.type === 'Decision')!.properties.map((p) => p.name)).toContain('status');
-  expect(o.edgeTypes).toHaveLength(11);
+  // Ten from the code ontology, three (contradicts, derived_from, cites) from the shared core.
+  expect(o.edgeTypes).toHaveLength(13);
+  expect(o.edgeTypes.find((e) => e.type === 'contradicts')).toMatchObject({ from: null, to: null });
   expect(o.edgeTypes.find((e) => e.type === 'motivated_by')).toMatchObject({ from: ['Decision'], to: ['Constraint', 'Concept', 'Decision'] });
   const text = await tg(dir, ['ontology']);
   expect(text.out).toContain('motivated_by: Decision → Constraint|Concept|Decision');

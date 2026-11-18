@@ -201,7 +201,7 @@ it('installs all seven skills for Claude Code', async () => {
 it('prints the team ontology on request and never writes it on init', async () => {
   const r = await tg(project(), ['gen', 'team-types.md']);
   expect(r.code).toBe(0);
-  for (const type of ['Person:', 'Team:', 'Agent:', 'decided_by:', 'knows_about:', 'acts_for:']) expect(r.out).toContain(type);
+  for (const type of ['Member:', 'Team:', 'TeamAgent:', 'decided_by:', 'knows_about:', 'acts_for:']) expect(r.out).toContain(type);
   const dir = project();
   await tg(dir, ['init', '--write']);
   expect(existsSync(join(dir, 'Types/team-types.md'))).toBe(false);
@@ -214,13 +214,13 @@ it('lets only a person be the one who decided', async () => {
   const dir = project();
   await tg(dir, ['init', '--write']);
   writeFileSync(join(dir, 'Types/team-types.md'), (await tg(dir, ['gen', 'team-types.md'])).out);
-  writeFileSync(join(dir, 'lat.md/people.md'), '---\ntype: Person\n---\n# People\n\nThe team.\n\n## Alice\n\n@alice, tech lead.\n');
-  writeFileSync(join(dir, 'lat.md/agents.md'), '---\ntype: Agent\n---\n# Agents\n\nThe agents.\n\n## Bot\n\nA coding agent.\n\n- acts_for:: [[people#Alice]] {autonomy: ask-first}\n');
+  writeFileSync(join(dir, 'lat.md/people.md'), '---\ntype: Member\n---\n# People\n\nThe team.\n\n## Alice\n\n@alice, tech lead.\n');
+  writeFileSync(join(dir, 'lat.md/agents.md'), '---\ntype: TeamAgent\n---\n# Agents\n\nThe agents.\n\n## Bot\n\nA coding agent.\n\n- acts_for:: [[people#Alice]] {autonomy: ask-first}\n');
   const decision = (who: string) => `---\ntype: Decision\n---\n# Decisions\n\nChoices.\n\n## Retry three times\n\nRetry a failed charge three times.\n\n- decided_by:: [[${who}]] {role: driver}\n- proposed_by:: [[agents#Bot]]\n`;
   writeFileSync(join(dir, 'lat.md/decisions.md'), decision('agents#Bot'));
   const bad = await tg(dir, ['ontology', 'check']);
   expect(bad.code).toBe(1);
-  expect(bad.out).toContain("'decided_by' ends at Person, not Agent");
+  expect(bad.out).toContain("'decided_by' ends at Member, not TeamAgent");
   writeFileSync(join(dir, 'lat.md/decisions.md'), decision('people#Alice'));
   expect((await tg(dir, ['ontology', 'check'])).code).toBe(0);
 });
@@ -329,7 +329,8 @@ it('installs the ontology note, schema in Types/ and templates, and the project 
   expect(checked.code).toBe(0);
   const exported = await tg(dir, ['schema', 'export', 'shapes.ttl', '--json']);
   const report = JSON.parse(exported.out) as { types: number; edgeTypes: number; diagnostics: unknown[] };
-  expect(report).toMatchObject({ types: 6, edgeTypes: 11, diagnostics: [] });
+  // Ten edge types of the code ontology and three of the shared core it uses.
+  expect(report).toMatchObject({ types: 6, edgeTypes: 13, diagnostics: [] });
 });
 
 // @tg: verifies:: [[tests/tg-agent#Code ontology#Ontology kept on re-run]] {since: "2026-10-06", level: unit}
