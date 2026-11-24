@@ -2,6 +2,21 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## 0.31.0 — 2026-11-24
+
+OpenFlow joins the spec frameworks `tg` traces.
+
+### Added
+
+- **OpenFlow as a spec framework.** [OpenFlow](https://github.com/fastknifes/openflow) is the OpenCode governance plugin. `tg` now reads its specs:
+  - `docs/current/<capability>/spec.md`: each frontmatter scenario is a `BehaviorScenario` with its criticality and given/when/then, addressed as `openflow:<capability>#SC-001`.
+  - `requirements.md`: each id row (`R1`, `US-001`, `FR-001`) becomes a requirement with its priority and acceptance, addressed as `openflow:<capability>#R1`.
+  - Folders under `docs/changes/` count as pending; `docs/archive/` is never read.
+  - OpenFlow's `docs/decisions/ADR-NNN-*.md` records were already read as ADRs.
+- **Setup.** `tg init` detects OpenFlow from `.openflow/` or `openflow.jsonc`, and `--spec openflow` chooses it. The wizard offers `npm install --save-dev @fastknife/openflow`.
+- **tg steps in OpenFlow's skills.** Project copies of `openflow-feature`, `openflow-brainstorm`, `openflow-writing-plan`, `openflow-tdd` and `openflow-quality-gate`, and the `openflow-feature` and `openflow-implement` commands, get the tg block for their stage. The instruction block gives the rules for each phase: stable `SC-` ids, `tg trace --gaps` as quality-gate evidence, and links re-pointed when a change is archived.
+- **`BehaviorScenario`** in `Types/spec-types.md` when OpenFlow is chosen. `Capability` is now described for both OpenSpec and OpenFlow.
+
 ## 0.30.0 — 2026-11-18
 
 Every ontology composes with every other, and with what `tg init` writes.
