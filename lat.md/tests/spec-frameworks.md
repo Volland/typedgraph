@@ -59,6 +59,18 @@ A MADR record with `status: accepted` is an active decision whose text is the de
 
 A `Supersedes [...]` line becomes a `supersedes` edge, the superseded record is retired, and the node is labelled `Decision` and `ADR`.
 
+## OpenFlow reader
+
+How OpenFlow's `docs/current/<capability>/` and `docs/changes/<change>/` files become requirements.
+
+### Scenarios and requirement rows
+
+Frontmatter scenarios become `BehaviorScenario` requirements with criticality and name alias; table id rows carry priority and acceptance, and template rows are skipped.
+
+### Open change is pending
+
+Change folders are pending in their change, and `docs/archive/` is never read.
+
 ## Framework ids
 
 Schemes, aliases and misses across frameworks.
@@ -103,7 +115,7 @@ The folder named in `.adr-dir` is read.
 
 The registry the wizard and usage text are built from.
 
-### Registry lists six frameworks
+### Registry lists seven frameworks
 
 `tg init --help` lists every framework id for `--spec`.
 
@@ -194,6 +206,10 @@ tg blocks in other frameworks' skills and commands.
 ### Command file of another agent
 
 OpenCode's `speckit.tasks.md` command gains the tasks block.
+
+### OpenFlow skill patched
+
+OpenFlow's quality-gate skill and feature command gain tg blocks with `openflow:` ids, `AGENTS.md` names OpenFlow, and `tg trace openflow:auth` finds the annotated code.
 
 ### Re-run is stable
 

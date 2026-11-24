@@ -152,16 +152,17 @@ A `@tg:` comment directly above a test call (`it`, `test`, `describe`, with `.ea
 
 ## Spec frameworks
 
-`tg` reads six spec-driven development frameworks — OpenSpec, Spec Kit, Kiro-format specs, BMAD, GSD and ADRs — and `tg init` chooses, installs and wires the ones a project uses.
+`tg` reads seven spec-driven development frameworks — OpenSpec, Spec Kit, Kiro-format specs, BMAD, GSD, OpenFlow and ADRs — and `tg init` chooses, installs and wires the ones a project uses.
 
 [[packages/core/src/openspec/frameworks.ts#locateSpecFile]] places a file and [[packages/core/src/openspec/frameworks.ts#parseSpecFile]] hands it to a reader. The readers cover:
 - Spec Kit: `specs/<feature>/spec.md`, giving `USN` stories with numbered scenarios and `FR-`/`SC-` items.
 - Kiro, cc-sdd and spec-workflow-mcp: `requirements.md`, giving `Requirement N` and `N.M` criteria with their EARS pattern.
 - BMAD: the PRD's `FR-1` and `Story 1.2` files with `ACn` criteria.
 - GSD: `.planning/REQUIREMENTS.md`, giving `CAT-NN` items.
+- OpenFlow: `docs/current/<capability>/spec.md` frontmatter scenarios (`SC-001`) and `requirements.md` id rows (`R1`, `US-001`), with `docs/changes/<change>/` pending. Its stage blocks go into OpenFlow's skills and commands when they exist as project copies.
 - ADRs: numbered MADR, Nygard and log4brains records, with status, date and `Supersedes`/`Amends` relations.
 
-[[packages/core/src/openspec/index.ts#SpecIndex]] keys them by scheme (`speckit:`, `kiro:`, `bmad:`, `gsd:`, `adr:`), resolves aliases and returns the requirements a frontmatter entry names through `entries()`. `packages/cli/src/specs.mts` holds the CLI side:
+[[packages/core/src/openspec/index.ts#SpecIndex]] keys them by scheme (`speckit:`, `kiro:`, `bmad:`, `gsd:`, `openflow:`, `adr:`), resolves aliases and returns the requirements a frontmatter entry names through `entries()`. `packages/cli/src/specs.mts` holds the CLI side:
 - Detection by the folders each tool creates.
 - File discovery, including `.adr-dir`.
 - Install options.

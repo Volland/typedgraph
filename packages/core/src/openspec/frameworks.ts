@@ -6,7 +6,7 @@ import { parseSpec, type SpecRequirement, type SpecScenario } from './index.js';
  * `speckit:001-auth#FR-001`, `kiro:auth#Requirement 1#1.2` and `adr:0003`
  * live side by side in one project and never collide with lat.md section ids.
  */
-export type SpecFrameworkId = 'openspec' | 'speckit' | 'kiro' | 'bmad' | 'gsd' | 'adr';
+export type SpecFrameworkId = 'openspec' | 'speckit' | 'kiro' | 'bmad' | 'gsd' | 'openflow' | 'adr';
 
 export interface SpecFrameworkInfo {
   id: SpecFrameworkId;
@@ -23,6 +23,7 @@ export const SPEC_FRAMEWORKS: readonly SpecFrameworkInfo[] = [
   { id: 'kiro', name: 'Kiro specs', scheme: 'kiro:', flat: false },
   { id: 'bmad', name: 'BMAD Method', scheme: 'bmad:', flat: false },
   { id: 'gsd', name: 'Get Shit Done', scheme: 'gsd:', flat: false },
+  { id: 'openflow', name: 'OpenFlow', scheme: 'openflow:', flat: false },
   { id: 'adr', name: 'Architecture decision records', scheme: 'adr:', flat: true },
 ];
 
@@ -58,6 +59,9 @@ export function locateSpecFile(path: string): SpecLocation | null {
   const kiro = /^(?:\.kiro|\.spec-workflow)\/specs\/([^/]+)\/requirements\.md$/.exec(path);
   if (kiro) return { framework: 'kiro', group: kiro[1]!, change: null };
   if (path === '.planning/REQUIREMENTS.md') return { framework: 'gsd', group: 'requirements', change: null };
+  // OpenFlow: current facts per capability, and the unarchived change folders that will update them.
+  const flow = /^docs\/(current|changes)\/([^/]+)\/(?:spec|requirements)\.md$/.exec(path);
+  if (flow) return { framework: 'openflow', group: flow[2]!, change: flow[1] === 'changes' ? flow[2]! : null };
   const bmad = bmadLocation(path);
   if (bmad) return bmad;
   for (const dir of ADR_DIRS) {
@@ -97,6 +101,8 @@ export function parseSpecFile(path: string, text: string, at: SpecLocation): Par
       return { requirements: parseBmad(path, text, at.group), removed: [] };
     case 'gsd':
       return { requirements: parseGsd(path, text), removed: [] };
+    case 'openflow':
+      return { requirements: parseOpenFlow(path, text, at.group, at.change), removed: [] };
     case 'adr':
       return { requirements: parseAdr(path, text), removed: [] };
   }
@@ -349,6 +355,103 @@ export function parseGsd(path: string, text: string): SpecRequirement[] {
     out.push(requirement('gsd', 'requirements', m[2]!, path, i + 1, { text: strip(m[3]!), status: out_of_scope ? 'retired' : 'active', props: { ...(category ? { category } : {}), ...(scope ? { scope } : {}), done: m[1] && m[1] !== ' ' ? 'true' : 'false' } }));
   }
   return out;
+}
+
+const OPENFLOW_LABELS: Record<string, string> = { US: 'UserStory', R: 'FunctionalRequirement', FR: 'FunctionalRequirement', REQ: 'FunctionalRequirement', NFR: 'NonFunctionalRequirement', SC: 'BehaviorScenario', AC: 'AcceptanceCriterion' };
+
+/** An OpenFlow id cell or bold item: `R1`, `US-001`, `FR-002`, `NFR-1`. */
+const OPENFLOW_ID = /^([A-Z]{1,5})-?\d+$/;
+
+/**
+ * OpenFlow `docs/current/<capability>/` (and the change folders under
+ * `docs/changes/`): `spec.md` keeps its behaviour scenarios as JSON (or YAML)
+ * frontmatter, each `{id: "SC-001", name, given, when, then, criticality}` a
+ * requirement of that id; `requirements.md` keeps table rows whose first cell is
+ * an id (`R1`, `US-001`, `FR-001`) and `- **FR-001**:` items. Template rows that
+ * still hold `{{placeholders}}` are skipped. Change folders are pending.
+ */
+// @tg: implements:: [[openspec:spec-frameworks#OpenFlow reader]]
+export function parseOpenFlow(path: string, text: string, group: string, change: string | null = null): SpecRequirement[] {
+  const out: SpecRequirement[] = [];
+  const lines = text.split(/\r?\n/);
+  const pending = change ? { status: 'pending' as const, change } : {};
+  const labelOf = (id: string): string[] => {
+    const l = OPENFLOW_LABELS[OPENFLOW_ID.exec(id)![1]!];
+    return l ? [l] : [];
+  };
+  const seen = new Set<string>();
+  const push = (r: SpecRequirement) => {
+    if (seen.has(r.name)) return;
+    seen.add(r.name);
+    out.push(r);
+  };
+  if (/(?:^|\/)spec\.md$/.test(path)) {
+    const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+    if (!fm) return out;
+    const lineOf = (id: string): number => {
+      const at = lines.findIndex((l) => new RegExp(`["']?id["']?\\s*:\\s*["']?${id}["']?`).test(l));
+      return at === -1 ? 1 : at + 1;
+    };
+    for (const sc of openflowScenarios(fm[1]!)) {
+      const list = (v: unknown): string => (Array.isArray(v) ? v.map(String).join('; ') : v ? String(v) : '');
+      const parts = [['Given', list(sc.given)], ['When', list(sc.when)], ['Then', list(sc.then)]].filter(([, v]) => v).map(([k, v]) => `${k} ${v}`);
+      const name = String(sc.id);
+      const title = sc.name ? strip(String(sc.name)) : '';
+      push(requirement('openflow', group, name, path, lineOf(name), { ...pending, labels: labelOf(name), text: strip(parts.join(' ')), aliases: title ? [title] : [], props: { ...(title ? { title } : {}), ...(sc.criticality ? { criticality: String(sc.criticality) } : {}) } }));
+    }
+    return out;
+  }
+  let header: string[] = [];
+  for (const [line, i] of prose(text)) {
+    const row = /^\s*\|(.*)\|\s*$/.exec(line);
+    if (!row) {
+      header = [];
+      const item = /^\s*[-*]\s+\*\*([A-Z]{1,5}-?\d+)\*\*\s*:?\s*(.*)$/.exec(line);
+      if (item && !item[2]!.includes('{{')) push(requirement('openflow', group, item[1]!, path, i + 1, { ...pending, labels: labelOf(item[1]!), text: strip(item[2]!) }));
+      continue;
+    }
+    const cells = row[1]!.split('|').map((c) => strip(c));
+    if (cells.every((c) => /^:?-+:?$/.test(c) || !c)) continue;
+    const id = cells[0]!;
+    if (!OPENFLOW_ID.test(id)) {
+      header = cells.map((c) => c.toLowerCase());
+      continue;
+    }
+    if (cells.some((c) => c.includes('{{'))) continue;
+    const props: Record<string, string> = {};
+    const body: string[] = [];
+    cells.slice(1).forEach((c, k) => {
+      const h = header[k + 1] ?? '';
+      if (!c) return;
+      if (/优先级|priority/.test(h) && /^P\d$/i.test(c)) props.priority = c.toUpperCase();
+      else if (/验收|acceptance/.test(h)) props.acceptance = c;
+      else body.push(c);
+    });
+    push(requirement('openflow', group, id, path, i + 1, { ...pending, labels: labelOf(id), text: body.join(' — '), props }));
+  }
+  return out;
+}
+
+/** The `scenarios` list of an OpenFlow spec's frontmatter: JSON as OpenFlow writes it, or YAML `- id: SC-001` blocks. */
+function openflowScenarios(fm: string): Record<string, unknown>[] {
+  try {
+    const data = JSON.parse(fm) as { scenarios?: unknown };
+    return Array.isArray(data.scenarios) ? data.scenarios.filter((s): s is Record<string, unknown> => !!s && typeof s === 'object' && typeof (s as { id?: unknown }).id === 'string' && OPENFLOW_ID.test((s as { id: string }).id)) : [];
+  } catch {
+    const out: Record<string, unknown>[] = [];
+    let cur: Record<string, unknown> | null = null;
+    for (const line of fm.split(/\r?\n/)) {
+      const start = /^\s*-\s+id:\s*["']?([A-Z]{1,5}-?\d+)["']?\s*$/.exec(line);
+      if (start) {
+        cur = { id: start[1]! };
+        out.push(cur);
+        continue;
+      }
+      const kv = /^\s+(name|when|criticality|given|then):\s*(.+)$/.exec(line);
+      if (cur && kv) cur[kv[1]!] = kv[2]!.trim().replace(/^["']|["']$/g, '');
+    }
+    return out;
+  }
 }
 
 /** ADR statuses by lifecycle: proposed records are pending, superseded, deprecated and rejected ones retired. */

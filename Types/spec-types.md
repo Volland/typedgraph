@@ -2,7 +2,7 @@
 tgs: "0.4"
 schemas:
   Capability:
-    description: "An OpenSpec capability: the folder of requirements under openspec/specs/ for one area of behaviour."
+    description: "A capability: the folder of requirements for one area of behaviour (openspec/specs/<capability>/ in OpenSpec, docs/current/<capability>/ in OpenFlow)."
     properties:
       status: {values: [draft, stable, deprecated], default: draft}
       owner: text

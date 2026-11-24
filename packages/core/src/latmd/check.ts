@@ -28,7 +28,7 @@ export interface CheckInput {
   /** Verify a source link on disk: an error message, or null when file and symbol exist (or cannot be judged). */
   checkSourceLink(file: string, symbol: string | null): string | null;
   /**
-   * Spec requirements for `openspec:`, `speckit:`, `kiro:`, `bmad:` and `adr:` targets and
+   * Spec requirements for `openspec:`, `speckit:`, `kiro:`, `bmad:`, `gsd:`, `openflow:` and `adr:` targets and
    * frontmatter; null when the project has no spec framework. Left out, spec references are not checked.
    */
   specs?: SpecIndex | null;

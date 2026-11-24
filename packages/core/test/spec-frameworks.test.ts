@@ -122,6 +122,40 @@ const GSD = `# Requirements
 - [ ] **AUTH-09**: Single sign-on
 `;
 
+const OPENFLOW_SPEC = `---
+{
+  "scenarios": [
+    {
+      "id": "SC-001",
+      "name": "each harden run uses an isolated DAG",
+      "given": ["A harden request is ready to run"],
+      "when": "the workflow reaches the trigger point",
+      "then": ["a new DAG harden-<uuid> is created"],
+      "criticality": "critical"
+    }
+  ]
+}
+---
+
+# Harden - Observable Behavior
+`;
+
+const OPENFLOW_REQUIREMENTS = `# drg-task-scheduler - Requirements
+
+## 1. 功能需求
+
+| ID | 需求 | 优先级 | 验收标准 |
+|---|---|---|---|
+| R1 | 创建任务 | P0 | 调用 submit 后任务进入 \`pending\` |
+| R2 | 依赖调度 | P1 | 依赖任务全部 succeeded 后进入 ready |
+
+## 2. 用户故事
+
+| ID | 角色 | 需求 | 目的 |
+|----|------|------|------|
+| US-001 | {{role}} | {{need}} | {{goal}} |
+`;
+
 const MADR = `---
 status: accepted
 date: 2026-01-02
@@ -258,6 +292,40 @@ it('reads GSD requirements with category and checkbox, retiring out-of-scope ite
   expect(r.kind === 'requirement' && r.requirement.props).toMatchObject({ category: 'Authentication', done: 'true' });
   const out = idx.resolve('gsd:requirements#AUTH-09');
   expect(out.kind === 'requirement' && out.requirement.status).toBe('retired');
+});
+
+describe('OpenFlow reader', () => {
+  // @lat: [[tests/spec-frameworks#OpenFlow reader#Scenarios and requirement rows]]
+  // @tg: verifies:: [[openspec:spec-frameworks#OpenFlow reader#Scenarios and requirement rows]] {level: unit}
+  it('reads spec.md frontmatter scenarios and requirements.md id rows, skipping template rows', () => {
+    const idx = new SpecIndex([
+      { path: 'docs/current/drift-guardian/spec.md', text: OPENFLOW_SPEC },
+      { path: 'docs/current/drift-guardian/requirements.md', text: OPENFLOW_REQUIREMENTS },
+    ]);
+    const sc = idx.resolve('openflow:drift-guardian#SC-001');
+    expect(sc.kind === 'requirement' && sc.requirement.labels).toEqual(['BehaviorScenario']);
+    expect(sc.kind === 'requirement' && sc.requirement.props).toMatchObject({ criticality: 'critical', title: 'each harden run uses an isolated DAG' });
+    expect(sc.kind === 'requirement' && sc.requirement.text).toContain('Given A harden request is ready to run');
+    expect(sc.kind === 'requirement' && sc.requirement.line).toBe(5);
+    expect(idx.resolve('openflow:drift-guardian#each harden run uses an isolated DAG').kind).toBe('requirement');
+    const r1 = idx.resolve('openflow:drift-guardian#R1');
+    expect(r1.kind === 'requirement' && r1.requirement.props).toMatchObject({ priority: 'P0', acceptance: '调用 submit 后任务进入 pending' });
+    expect(r1.kind === 'requirement' && r1.requirement.text).toBe('创建任务');
+    expect(idx.resolve('openflow:drift-guardian#US-001').kind).toBe('missing');
+  });
+
+  // @lat: [[tests/spec-frameworks#OpenFlow reader#Open change is pending]]
+  // @tg: verifies:: [[openspec:spec-frameworks#OpenFlow reader#Open change is pending]] {level: unit}
+  it('reads open change folders as pending and ignores the archive', () => {
+    const idx = new SpecIndex([
+      { path: 'docs/changes/2026-05-21-drg-task-scheduler/requirements.md', text: OPENFLOW_REQUIREMENTS },
+      { path: 'docs/archive/2026-05-08-openflow-init/requirements.md', text: OPENFLOW_REQUIREMENTS },
+    ]);
+    const r = idx.resolve('openflow:2026-05-21-drg-task-scheduler#R2');
+    expect(r.kind === 'requirement' && r.requirement.status).toBe('pending');
+    expect(r.kind === 'requirement' && r.requirement.change).toBe('2026-05-21-drg-task-scheduler');
+    expect(idx.resolve('openflow:2026-05-08-openflow-init#R2').kind).toBe('missing');
+  });
 });
 
 describe('ADR reader', () => {

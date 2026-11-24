@@ -136,11 +136,11 @@ describe('Framework detection', () => {
   });
 });
 
-// @lat: [[tests/spec-frameworks#Framework registry#Registry lists six frameworks]]
-// @tg: verifies:: [[openspec:spec-frameworks#Framework registry#Registry lists six frameworks]] {level: unit}
+// @lat: [[tests/spec-frameworks#Framework registry#Registry lists seven frameworks]]
+// @tg: verifies:: [[openspec:spec-frameworks#Framework registry#Registry lists seven frameworks]] {level: unit}
 it('lists every framework in the init usage', async () => {
   const r = await tg(project(), ['init', '--help']);
-  expect(r.out + r.err).toContain('--spec openspec|speckit|kiro|bmad|gsd|adr');
+  expect(r.out + r.err).toContain('--spec openspec|speckit|kiro|bmad|gsd|openflow|adr');
 });
 
 // @lat: [[tests/spec-frameworks#Framework nodes in the graph#Implements a user story]]
@@ -226,7 +226,7 @@ describe('Framework choice', () => {
     const dir = project();
     const r = await tg(dir, ['init', '--spec', 'specflow']);
     expect(r.code).toBe(2);
-    expect(r.err).toContain('openspec, speckit, kiro, bmad, gsd, adr');
+    expect(r.err).toContain('openspec, speckit, kiro, bmad, gsd, openflow, adr');
     expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
   });
 
@@ -326,6 +326,29 @@ describe('Framework skill patching', () => {
     const dir = project({ '.specify/x.md': '', '.opencode/command/speckit.tasks.md': '# Tasks\n' });
     await tg(dir, ['init', '--agent', 'opencode', '--write']);
     expect(read(dir, '.opencode/command/speckit.tasks.md')).toContain('verifies:: [[speckit:<feature>#US1#Scenario 1]]');
+  });
+
+  // @lat: [[tests/spec-frameworks#Framework skill patching#OpenFlow skill patched]]
+  // @tg: verifies:: [[openspec:spec-frameworks#Framework skill patching#OpenFlow skill patched]] {level: integration}
+  it('appends stage blocks with OpenFlow ids to its skills and commands', async () => {
+    const dir = project({
+      '.openflow/feature/active.json': '{}',
+      '.opencode/skills/openflow-quality-gate/SKILL.md': '---\nname: openflow-quality-gate\n---\n# Quality gate\n',
+      '.opencode/commands/openflow-feature.md': '---\ndescription: feature\n---\n',
+      'docs/current/auth/spec.md': '---\n{"scenarios": [{"id": "SC-001", "name": "login", "given": ["a user"], "when": "they log in", "then": ["a session starts"]}]}\n---\n# Auth\n',
+      'src/a.ts': `// ${TG} implements:: [[openflow:auth#SC-001]]\nexport const a = 1;\n`,
+    });
+    const r = await tg(dir, ['init', '--agent', 'opencode', '--json']);
+    expect(json(r.out).specs).toContain('openflow');
+    await tg(dir, ['init', '--agent', 'opencode', '--write']);
+    const gate = read(dir, '.opencode/skills/openflow-quality-gate/SKILL.md');
+    expect(gate.startsWith('---\nname: openflow-quality-gate\n---\n# Quality gate\n')).toBe(true);
+    expect(gate).toContain('verifies:: [[openflow:<capability>#SC-001]]');
+    expect(read(dir, '.opencode/commands/openflow-feature.md')).toContain('<!-- tg:begin -->');
+    expect(read(dir, 'AGENTS.md')).toContain('**OpenFlow**');
+    expect(read(dir, 'Types/spec-types.md')).toContain('BehaviorScenario');
+    const t = await tg(dir, ['trace', 'openflow:auth']);
+    expect(t.out).toContain('implements  src/a.ts');
   });
 
   // @lat: [[tests/spec-frameworks#Framework skill patching#Re-run is stable]]

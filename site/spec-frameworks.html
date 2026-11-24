@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Spec frameworks — OpenSpec, Spec Kit, Kiro, BMAD, GSD and ADRs with Typed Graph</title>
-  <meta name="description" content="The spec-driven development frameworks tg traces to code, tests and docs: OpenSpec, GitHub Spec Kit, Kiro-style specs, BMAD, Get Shit Done and architecture decision records. How to choose one, install it with tg init, and add your own.">
+  <title>Spec frameworks — OpenSpec, Spec Kit, Kiro, BMAD, GSD, OpenFlow and ADRs with Typed Graph</title>
+  <meta name="description" content="The spec-driven development frameworks tg traces to code, tests and docs: OpenSpec, GitHub Spec Kit, Kiro-style specs, BMAD, Get Shit Done, OpenFlow and architecture decision records. How to choose one, install it with tg init, and add your own.">
   <meta property="og:title" content="Spec frameworks with Typed Graph">
-  <meta property="og:description" content="OpenSpec, Spec Kit, Kiro-style specs, BMAD, Get Shit Done and ADRs: traced to code, tests and docs by tg. Choose, install, or add your own.">
+  <meta property="og:description" content="OpenSpec, Spec Kit, Kiro-style specs, BMAD, Get Shit Done, OpenFlow and ADRs: traced to code, tests and docs by tg. Choose, install, or add your own.">
   <meta property="og:image" content="https://typedgraph.org/assets/og.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
@@ -48,6 +48,7 @@
         <tr><td>Kiro-style specs (<a href="https://kiro.dev">Kiro</a>, <a href="https://github.com/gotalab/cc-sdd">cc-sdd</a>, <a href="https://github.com/Pimzino/spec-workflow-mcp">spec-workflow-mcp</a>)</td><td><code>.kiro/</code>, <code>.spec-workflow/</code></td><td><code>.kiro/specs/&lt;feature&gt;/requirements.md</code>, <code>.spec-workflow/specs/&lt;feature&gt;/requirements.md</code></td><td><code>kiro:reports#Requirement 2</code>, <code>#Requirement 2#2.1</code></td></tr>
         <tr><td><a href="https://github.com/bmad-code-org/BMAD-METHOD">BMAD Method</a></td><td><code>_bmad/</code>, <code>.bmad-core/</code>, <code>_bmad-output/</code></td><td>The PRD (<code>_bmad-output/planning-artifacts/prd.md</code>, <code>docs/prd.md</code>) and story files</td><td><code>bmad:prd#FR-1</code>, <code>bmad:epic-1#Story 1.2#AC1</code></td></tr>
         <tr><td><a href="https://github.com/gsd-build/get-shit-done">Get Shit Done</a></td><td><code>.planning/</code></td><td><code>.planning/REQUIREMENTS.md</code></td><td><code>gsd:requirements#AUTH-01</code></td></tr>
+        <tr><td><a href="https://github.com/fastknifes/openflow">OpenFlow</a></td><td><code>.openflow/</code>, <code>openflow.jsonc</code></td><td><code>docs/current/&lt;capability&gt;/spec.md</code> (frontmatter scenarios) and <code>requirements.md</code> (id rows), plus open changes in <code>docs/changes/</code></td><td><code>openflow:drift-guardian#SC-001</code>, <code>openflow:drift-guardian#R1</code></td></tr>
         <tr><td>Architecture decision records (<a href="https://adr.github.io/madr/">MADR</a>, Nygard / adr-tools, log4brains)</td><td>A numbered record in <code>docs/adr</code>, <code>doc/adr</code>, <code>docs/decisions</code>, …; <code>.adr-dir</code>; <code>.log4brains.yml</code></td><td><code>NNNN-title.md</code> in that folder</td><td><code>adr:0003</code> (also <code>adr:3</code>, the slug or the title)</td></tr>
       </tbody>
     </table>
@@ -94,7 +95,7 @@ specs: ["speckit:001-checkout", "adr:0002"]
     <p><code>tg init</code> declares these labels in <code>Types/spec-types.md</code>, for the frameworks you chose only, and rewrites the file on every run. Your own vocabulary stays in <code>Types/code-types.md</code>, which tg never overwrites.</p>
 
     <h2 id="choose">Choose and install with <code>tg init</code></h2>
-    <p>Run <code>tg init</code> in a terminal. After the agents and the parts, it shows a checklist of the six frameworks:</p>
+    <p>Run <code>tg init</code> in a terminal. After the agents and the parts, it shows a checklist of the seven frameworks:</p>
     <ul>
       <li><strong>Detects:</strong> the frameworks it finds are ticked and marked <em>found</em>.</li>
       <li><strong>Recommends:</strong> if it finds none, it ticks one and shows why. A project with existing code gets OpenSpec, because change proposals with deltas suit an evolving codebase. A new project gets Spec Kit, because feature specs, plans and tasks suit greenfield work. Tick ADRs as well if you want decision records next to either.</li>
@@ -109,6 +110,7 @@ specs: ["speckit:001-checkout", "adr:0002"]
         <tr><td>Kiro-style specs</td><td><code>npx -y cc-sdd@latest --claude-skills</code> (in the Kiro IDE, create specs from its Specs panel instead)</td></tr>
         <tr><td>BMAD</td><td><code>npx -y bmad-method@latest install</code></td></tr>
         <tr><td>Get Shit Done</td><td><code>npx -y get-shit-done-cc@latest</code>, in a terminal only, because it asks questions</td></tr>
+        <tr><td>OpenFlow</td><td><code>npm install --save-dev @fastknife/openflow</code>; then add it to <code>plugins</code> in <code>opencode.json</code> and run <code>/openflow-init</code> in OpenCode</td></tr>
         <tr><td>ADRs</td><td>No tool: tg writes <code>docs/adr/0001-record-architecture-decisions.md</code> and <code>docs/adr/template.md</code></td></tr>
       </tbody>
     </table>

@@ -268,6 +268,7 @@ function legacyCheck() {}</pre>
           <button type="button" role="tab" id="spec-tab-kiro" aria-controls="spec-panel-kiro" data-spec="kiro" aria-selected="false">Kiro</button>
           <button type="button" role="tab" id="spec-tab-bmad" aria-controls="spec-panel-bmad" data-spec="bmad" aria-selected="false">BMAD</button>
           <button type="button" role="tab" id="spec-tab-gsd" aria-controls="spec-panel-gsd" data-spec="gsd" aria-selected="false">GSD</button>
+          <button type="button" role="tab" id="spec-tab-openflow" aria-controls="spec-panel-openflow" data-spec="openflow" aria-selected="false">OpenFlow</button>
           <button type="button" role="tab" id="spec-tab-adr" aria-controls="spec-panel-adr" data-spec="adr" aria-selected="false">ADRs</button>
         </div>
         <div class="spec-panel" role="tabpanel" id="spec-panel-openspec" aria-labelledby="spec-tab-openspec">
@@ -314,6 +315,15 @@ function legacyCheck() {}</pre>
 <pre>tg init --spec gsd
 # in a terminal it offers: npx -y get-shit-done-cc@latest</pre>
 <pre>// @<span></span>tg: implements:: [[gsd:requirements#AUTH-01]]</pre>
+          </div>
+        </div>
+        <div class="spec-panel" role="tabpanel" id="spec-panel-openflow" aria-labelledby="spec-tab-openflow" hidden>
+          <p>OpenFlow: an OpenCode governance plugin with behaviour scenarios per capability, a quality gate and an archive step.</p>
+          <div class="two-col">
+<pre>tg init --spec openflow --agent opencode
+# offers: npm install --save-dev @fastknife/openflow</pre>
+<pre>// @<span></span>tg: implements:: [[openflow:drift-guardian#R1]]
+// @<span></span>tg: verifies:: [[openflow:drift-guardian#SC-001]]</pre>
           </div>
         </div>
         <div class="spec-panel" role="tabpanel" id="spec-panel-adr" aria-labelledby="spec-tab-adr" hidden>
@@ -381,7 +391,7 @@ function legacyCheck() {}</pre>
         <div class="grid">
           <a class="post-card" href="blog-explainable-blocks.html"><div class="meta">Blog · Ontology</div><h2>Explainable blocks</h2><p>An ontology for the inside of your documents: blocks an agent understands, code can point at and tg checks.</p></a>
           <a class="post-card" href="blog-declaring-elements.html"><div class="meta">Blog · Guide</div><h2>Declaring document elements</h2><p>One shape, one reading: attributes, nesting and scope, and the normal form of TGS 0.5, with a checklist.</p></a>
-          <a class="post-card" href="blog-spec-frameworks.html"><div class="meta">Blog · Developers</div><h2>Bring your own spec framework</h2><p>OpenSpec, Spec Kit, Kiro-style specs, BMAD, GSD and ADRs, traced to code and tests by one command.</p></a>
+          <a class="post-card" href="blog-spec-frameworks.html"><div class="meta">Blog · Developers</div><h2>Bring your own spec framework</h2><p>OpenSpec, Spec Kit, Kiro-style specs, BMAD, GSD, OpenFlow and ADRs, traced to code and tests by one command.</p></a>
           <a class="post-card" href="blog-shared-space.html"><div class="meta">Blog · Manifesto</div><h2>A shared space for agents and humans</h2><p>Why coding agents need the same documented, checked knowledge as people, in plain files.</p></a>
           <a class="post-card" href="blog-claude-code-memory.html"><div class="meta">Blog · Tutorial</div><h2>Give Claude Code a memory in five minutes</h2><p>Install tg, run tg init, write a typed link, and let the agent search, query and check.</p></a>
           <a class="post-card" href="compare.html"><div class="meta">Comparison</div><h2>Typed Graph and the alternatives</h2><p>Next to lat.md, plain Obsidian and vector-only memory, including where each is better.</p></a>

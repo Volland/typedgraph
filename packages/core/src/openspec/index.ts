@@ -77,7 +77,7 @@ export type SpecResolution =
 
 export const SPEC_SCHEME = 'openspec:';
 
-/** True for targets in a spec framework's scheme (`openspec:`, `speckit:`, `kiro:`, `bmad:`, `adr:`), which the spec index resolves instead of the lattice. */
+/** True for targets in a spec framework's scheme (`openspec:`, `speckit:`, `kiro:`, `bmad:`, `gsd:`, `openflow:`, `adr:`), which the spec index resolves instead of the lattice. */
 export function isSpecTarget(target: string): boolean {
   return frameworkOfTarget(target) !== undefined;
 }

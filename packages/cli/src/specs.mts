@@ -8,6 +8,7 @@ import speckitSection from '../templates/specs/speckit.md';
 import kiroSection from '../templates/specs/kiro.md';
 import bmadSection from '../templates/specs/bmad.md';
 import gsdSection from '../templates/specs/gsd.md';
+import openflowSection from '../templates/specs/openflow.md';
 import adrSection from '../templates/specs/adr.md';
 
 /**
@@ -86,6 +87,18 @@ export const SPEC_SETUPS: readonly SpecSetup[] = [
     },
   },
   {
+    id: 'openflow',
+    name: 'OpenFlow',
+    blurb: 'OpenFlow — OpenCode governance plugin: docs/current/<capability>/spec.md with SC-### scenarios, requirements tables, quality gate and archive',
+    ids: { requirement: 'openflow:<capability>#R1', scenario: 'openflow:<capability>#SC-001', file: 'docs/current/<capability>/spec.md and requirements.md', frontmatter: 'specs: ["openflow:<capability>"]' },
+    // OpenFlow writes these to OpenCode's global skills and commands on every start; project copies get the blocks.
+    patches: {
+      author: { skills: ['openflow-feature', 'openflow-brainstorm'], commands: ['openflow-feature'] },
+      plan: { skills: ['openflow-writing-plan'], commands: [] },
+      implement: { skills: ['openflow-tdd', 'openflow-quality-gate'], commands: ['openflow-implement'] },
+    },
+  },
+  {
     id: 'adr',
     name: 'ADRs',
     blurb: 'Architecture decision records (MADR, Nygard, adr-tools, log4brains) — docs/adr/NNNN-title.md; pairs with any of the above',
@@ -144,6 +157,7 @@ export function detectSpecs(root: string): SpecFrameworkId[] {
     kiro: isDir(root, '.kiro/specs') || isDir(root, '.spec-workflow') || (isDir(root, '.kiro') && subdirs(root, '.kiro').length > 0),
     bmad: isDir(root, '_bmad') || isDir(root, '.bmad-core') || isDir(root, '_bmad-output'),
     gsd: isDir(root, '.planning/REQUIREMENTS.md') || isDir(root, '.planning/PROJECT.md'),
+    openflow: isDir(root, '.openflow') || isDir(root, 'openflow.jsonc') || isDir(root, 'openflow.json'),
     adr: adrDirs(root).length > 0 || isDir(root, '.adr-dir') || isDir(root, '.log4brains.yml'),
   };
   return SPEC_IDS.filter((id) => found[id]);
@@ -172,6 +186,8 @@ export function specFiles(root: string, id: SpecFrameworkId): Omit<SpecFile, 'te
       ].map((path) => ({ path }));
     case 'gsd':
       return [{ path: '.planning/REQUIREMENTS.md' }];
+    case 'openflow':
+      return ['docs/current', 'docs/changes'].flatMap((d) => subdirs(root, d).flatMap((g) => ['spec.md', 'requirements.md'].map((f) => ({ path: `${d}/${g}/${f}` }))));
     case 'adr':
       return adrDirs(root).flatMap((d) => mdFiles(root, d).filter((f) => ADR_NAME.test(f.slice(d.length + 1))).map((path) => ({ path, at: { framework: 'adr' as const, group: 'adr', change: null } })));
   }
@@ -238,6 +254,12 @@ export function installOptions(id: SpecFrameworkId, agents: readonly Agent[], en
       // Its installer asks where to install, so it only runs for a person at the terminal.
       if (onPath('npx', env) && interactive) options.push(opt('once', [['npx', '-y', 'get-shit-done-cc@latest']], 'Run the GSD installer with npx'));
       return { options, note: options.length ? null : 'Install GSD with `npx get-shit-done-cc@latest` in a terminal, then run its new-project command.' };
+    case 'openflow': {
+      // An OpenCode plugin: installed as a package, then listed under `plugins` in opencode.json.
+      const enable = 'Add "@fastknife/openflow" to "plugins" in opencode.json, start OpenCode and run /openflow-init.';
+      if (onPath('npm', env)) options.push(opt('global', [['npm', 'install', '--save-dev', '@fastknife/openflow']], 'Install the OpenFlow plugin with npm'));
+      return { options, note: options.length ? `${enable} OpenFlow rewrites its skills in OpenCode's global folder on every start, so tg's steps reach it through AGENTS.md.` : `OpenFlow needs Node.js (npm) and OpenCode: https://opencode.ai. ${enable}` };
+    }
     case 'adr':
       return { options, note: null };
   }
@@ -253,7 +275,7 @@ export function specBullet(s: SpecSetup): string {
   return `- **${s.name}** (\`${s.ids.file}\`): point code at ${what} with \`// ${TG} implements:: [[${s.ids.requirement}]]\`${scen}. List what a lat.md file explains as \`${s.ids.frontmatter}\` in its frontmatter.`;
 }
 
-const SECTIONS: Record<SpecFrameworkId, string> = { openspec: openspecSection, speckit: speckitSection, kiro: kiroSection, bmad: bmadSection, gsd: gsdSection, adr: adrSection };
+const SECTIONS: Record<SpecFrameworkId, string> = { openspec: openspecSection, speckit: speckitSection, kiro: kiroSection, bmad: bmadSection, gsd: gsdSection, openflow: openflowSection, adr: adrSection };
 
 /** Framework sections of the tg-trace skill: the id grammar and conventions of each framework the project uses. */
 export function specSection(id: SpecFrameworkId): string {
@@ -305,9 +327,12 @@ interface EdgeDecl {
  * base `Requirement`, `Scenario` or `Decision`, and the edges between them.
  * Composed into one schema note, so frameworks never declare a name twice.
  */
+/** One area of behaviour with its own requirements folder: `openspec/specs/<capability>/`, or OpenFlow's `docs/current/<capability>/`. */
+const CAPABILITY: TypeDecl = { description: 'A capability: the folder of requirements for one area of behaviour (openspec/specs/<capability>/ in OpenSpec, docs/current/<capability>/ in OpenFlow).', properties: { status: { values: ['draft', 'stable', 'deprecated'], default: 'draft' }, owner: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } };
+
 const FRAGMENTS: Record<SpecFrameworkId, { types: Record<string, TypeDecl>; edges: Record<string, EdgeDecl> }> = {
   openspec: {
-    types: { Capability: { description: 'An OpenSpec capability: the folder of requirements under openspec/specs/ for one area of behaviour.', properties: { status: { values: ['draft', 'stable', 'deprecated'], default: 'draft' }, owner: 'text' }, visualization: { color: '#0284c7', shape: 'barrel' } } },
+    types: { Capability: CAPABILITY },
     edges: { part_of: { description: 'This requirement, decision or concept belongs to that group.', from: ['Requirement', 'Decision', 'Concept'], to: ['Capability'] } },
   },
   speckit: {
@@ -343,6 +368,16 @@ const FRAGMENTS: Record<SpecFrameworkId, { types: Record<string, TypeDecl>; edge
   gsd: {
     types: { Phase: { description: 'A GSD roadmap phase that delivers a set of requirements.', properties: { status: { values: ['planned', 'in-progress', 'done'] } }, visualization: { color: '#7c3aed', shape: 'barrel' } } },
     edges: { delivered_in: { description: 'The roadmap phase that delivers this requirement.', from: ['Requirement'], to: ['Phase'], properties: { note: 'text' } } },
+  },
+  openflow: {
+    types: {
+      Capability: CAPABILITY,
+      BehaviorScenario: { description: 'An OpenFlow behaviour scenario (SC-001) from a spec.md frontmatter: given, when, then, with how critical it is.', properties: { criticality: { values: ['critical', 'high', 'normal', 'low'] }, title: 'text' }, visualization: { color: '#14b8a6', shape: 'round-rectangle' } },
+      UserStory: { description: 'A user story with its priority; its acceptance scenarios are Scenarios.', properties: { priority: { values: ['P1', 'P2', 'P3', 'P4', 'P5'] }, title: 'text' }, visualization: { color: '#22c55e', shape: 'round-rectangle' } },
+      FunctionalRequirement: { description: 'A numbered functional requirement (FR-001); clarification is needed while it still holds a NEEDS CLARIFICATION marker.', properties: { clarification: { values: ['needed'] } } },
+      NonFunctionalRequirement: { description: 'A quality the system must have, such as speed, security or availability (NFR).' },
+    },
+    edges: { part_of: { description: 'This requirement, decision or concept belongs to that group.', from: ['Requirement', 'Decision', 'Concept'], to: ['Capability'] } },
   },
   adr: {
     types: {

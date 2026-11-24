@@ -19,7 +19,7 @@ function gaps(r: RequirementTrace): string[] {
 // @tg: implements:: [[openspec:spec-frameworks#Trace across frameworks]]
 export const trace: Command = {
   name: 'trace',
-  summary: 'Show which code implements, which tests verify and which lat.md files explain each requirement of the project\'s spec frameworks (OpenSpec, Spec Kit, Kiro, BMAD, GSD, ADRs)',
+  summary: 'Show which code implements, which tests verify and which lat.md files explain each requirement of the project\'s spec frameworks (OpenSpec, Spec Kit, Kiro, BMAD, GSD, OpenFlow, ADRs)',
   usage: 'trace [capability...] [--gaps] [--strict]',
   flags: { gaps: 'bool', strict: 'bool' },
   run(ctx, args, flags) {

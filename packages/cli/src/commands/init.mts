@@ -119,7 +119,7 @@ export const PARTS = [
   { id: 'instructions', name: 'Agent instructions (CLAUDE.md, AGENTS.md, Cursor rules)' },
   { id: 'hooks', name: 'Claude Code hooks and the tg MCP server' },
   { id: 'skills', name: 'tg skills for each agent' },
-  { id: 'specs', name: 'Spec frameworks: choose and install OpenSpec, Spec Kit, Kiro, BMAD, GSD or ADRs; tg steps in their skills and commands' },
+  { id: 'specs', name: 'Spec frameworks: choose and install OpenSpec, Spec Kit, Kiro, BMAD, GSD, OpenFlow or ADRs; tg steps in their skills and commands' },
   { id: 'ontology', name: 'Code ontology: code-ontology.md in the docs, Types/, Templates/' },
 ] as const;
 
@@ -414,7 +414,7 @@ async function chooseSpecs(ctx: Ctx, root: string, flag: string | true | undefin
 
 /**
  * Set up each chosen framework the project does not use yet by running its own
- * installer (`openspec init`, `specify init`, cc-sdd, BMAD, GSD), so its skills
+ * installer (`openspec init`, `specify init`, cc-sdd, BMAD, GSD, OpenFlow), so its skills
  * exist before tg patches them. A person picks how (the installed tool, a
  * one-off npx or uvx run, or a global install first) or skips; scripts run the
  * first way only with `--install-spec`. Otherwise, and in a dry run, the
@@ -490,7 +490,7 @@ async function chooseDocs(ctx: Ctx, root: string, flag: string | true | undefine
 // @tg: implements:: [[openspec:spec-frameworks#Framework choice]]
 export const init: Command = {
   name: 'init',
-  summary: 'Set up the docs folder (lat.md/ or tg.md/), the code ontology, agent instructions, hooks, MCP, skills and your spec framework (OpenSpec, Spec Kit, Kiro, BMAD, GSD, ADRs) for your coding agents (asks in a terminal; --dry-run only prints the diff)',
+  summary: 'Set up the docs folder (lat.md/ or tg.md/), the code ontology, agent instructions, hooks, MCP, skills and your spec framework (OpenSpec, Spec Kit, Kiro, BMAD, GSD, OpenFlow, ADRs) for your coding agents (asks in a terminal; --dry-run only prints the diff)',
   usage: `init [dir] [--agent ${AGENT_IDS.join('|')}[,...]] [--only|--skip ${PART_IDS.join('|')}[,...]] [--spec ${SPEC_IDS.join('|')}[,...]|none] [--install-spec] [--docs ${DOCS_DIRS.join('|')}] [--dry-run] [--yes] [--migrate] [--no-ontology] [--no-openspec] [--skills-only] [--no-update-check]`,
   flags: { docs: 'string', 'dry-run': 'bool', write: 'bool', yes: 'bool', 'no-update-check': 'bool', migrate: 'bool', agent: 'string', only: 'string', skip: 'string', spec: 'string', 'install-spec': 'bool', 'no-ontology': 'bool', 'no-openspec': 'bool', 'skills-only': 'bool' },
   noProject: true,
