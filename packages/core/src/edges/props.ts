@@ -1,6 +1,13 @@
 export type PropValue = string | number | boolean | null | PropValue[];
 export type Props = Record<string, PropValue>;
 
+/**
+ * A wikilink as Obsidian highlights it: `[[`, then no bracket or line break, then `]]`.
+ * Sticky, so it only matches where `lastIndex` points.
+ */
+// @lat: [[edge-syntax#Links in property values]]
+export const PROPERTY_LINK = /\[\[[^[\]\r\n]*\]\]/y;
+
 // @tg: implements:: [[openspec:edge-parsing#Malformed property blocks]]
 export class PropsSyntaxError extends Error {
   constructor(
@@ -13,11 +20,13 @@ export class PropsSyntaxError extends Error {
 
 /**
  * Parse a tolerant JSON5-like property block such as
- * `{since: 2020, label: "met at conf", tags: [a, b],}`.
+ * `{since: 2020, label: "met at conf", tags: [a, b], place: [[Paris]],}`.
+ * An unquoted wikilink is a string, so a nested list holding one word is `[[a],]` or `[ [a] ]`.
  * Returns the props and the offset just past the closing brace.
  */
 // @tg: implements:: [[openspec:edge-parsing#Inline edge form]]
 // @tg: implements:: [[openspec:edge-parsing#Weight is independent of sign]]
+// @tg: implements:: [[openspec:edge-parsing#Links in property values]]
 export function parseProps(src: string, start = 0): { props: Props; end: number } {
   let i = start;
 
@@ -66,6 +75,13 @@ export function parseProps(src: string, start = 0): { props: Props; end: number 
     if (ch === undefined) fail('unexpected end of property block');
     if (ch === '"' || ch === "'") return parseString();
     if (ch === '[') {
+      // An unquoted [[Wikilink]] is treated as a string instead of a nested array
+      PROPERTY_LINK.lastIndex = i;
+      const link = PROPERTY_LINK.exec(src)?.[0];
+      if (link) {
+        i += link.length;
+        return link;
+      }
       i++;
       const items: PropValue[] = [];
       ws();

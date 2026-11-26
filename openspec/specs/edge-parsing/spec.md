@@ -71,11 +71,22 @@ The system SHALL accept standard markdown links to notes as edge targets in an e
 - **THEN** no edge is produced
 
 ### Requirement: Property value types
-The system SHALL read edge property values as JSON5-like literals: bare numbers as numbers, `true` and `false` as booleans, `null` as null, `[...]` as lists, quoted strings with escapes as strings and unquoted words as strings, allowing a trailing comma.
+The system SHALL read edge property values as JSON5-like literals: bare numbers as numbers, `true` and `false` as booleans, `null` as null, `[...]` as lists, quoted strings with escapes as strings, unquoted words as strings and unquoted wikilinks as strings, allowing a trailing comma.
 
 #### Scenario: Typed values
 - **WHEN** an edge line ends with `{since: 2020, active: true, tags: [a, "b c"], note: null,}`
 - **THEN** the edge has `since` 2020 as a number, `active` true as a boolean, `tags` as the list `a`, `b c`, and `note` null
+
+### Requirement: Links in property values
+The system SHALL read an unquoted property value that Obsidian highlights as a wikilink (`[[`, then no bracket or line break, then `]]`) as the string it looks like, exactly as if it were quoted, so a nested list holding one item is written `[[X],]` or `[ [X] ]`.
+
+#### Scenario: Unquoted link in a property
+- **WHEN** an edge line ends with `{location: [[Location B]], at: [[[Hall]], [[Lobby]]]}`
+- **THEN** `location` is the string `[[Location B]]`, `at` is the list `[[Hall]]`, `[[Lobby]]`, and no finding is reported
+
+#### Scenario: Nested lists
+- **WHEN** an edge line ends with `{b: [[X],], c: [ [X] ], d: [[1, 2], [3]]}`
+- **THEN** `b` and `c` are the nested list `[["X"]]` and `d` is `[[1, 2], [3]]`
 
 ### Requirement: Edge lines in lists and quotes
 The system SHALL recognize an edge line whose type is preceded by a list-item marker or a blockquote prefix, and SHALL produce no edge and no diagnostic for a `type::` line that contains no link.

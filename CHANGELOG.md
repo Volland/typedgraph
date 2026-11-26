@@ -2,6 +2,12 @@
 
 All notable changes to the Typed Graph plugin, the `tg` CLI, the core library and the sidecar. The VS Code extension keeps its own [changelog](packages/vscode/CHANGELOG.md).
 
+## Unreleased
+
+### Changed
+
+- **An unquoted `[[link]]` in an edge property is a link.** `met_with:: [[Person A]] {location: [[Location B]]}` now gives `location` the string `"[[Location B]]"`, as if it were quoted and as Obsidian highlights it. Before, it was the nested list `[["Location B"]]`. A value counts as a link when it is `[[`, then no bracket or line break, then `]]`. To write a nested list holding one item, use `[[X],]` or `[ [X] ]`. `[[1, 2], [3]]` is still a list of lists.
+
 ## 0.31.0 — 2026-11-24
 
 OpenFlow joins the spec frameworks `tg` traces.

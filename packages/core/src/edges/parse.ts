@@ -64,6 +64,7 @@ const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
  */
 // @lat: [[edge-syntax#Inline edge form]]
 // @tg: implements:: [[openspec:edge-parsing#Inline edge form]]
+// @tg: implements:: [[openspec:edge-parsing#Links in property values]]
 // @tg: implements:: [[openspec:edge-parsing#Malformed property blocks]]
 // @tg: implements:: [[openspec:edge-parsing#Markdown link targets]]
 // @tg: implements:: [[openspec:edge-parsing#Non-edge text is ignored]]
