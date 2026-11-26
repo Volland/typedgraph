@@ -12,6 +12,14 @@ An edge is a single line `type:: [[Target]] {props}` where the property block is
 
 Implemented by [[packages/core/src/edges/parse.ts#parseEdges]], with property blocks parsed by [[packages/core/src/edges/props.ts#parseProps]]. Example: `knows:: [[Bob]] {since: 2020, label: "met at conf"}`. List items and comma-separated links are accepted; YAML frontmatter and fenced code are skipped. Source heading is recorded as edge metadata so sub-note nodes can be added later without breaking edges.
 
+## Links in property values
+
+An unquoted `[[X]]` in a property block is the string `"[[X]]"`, as Obsidian's highlighting suggests, so a nested list holding one item is written `[[X],]` or `[ [X] ]`.
+
+A value counts as a link when [[packages/core/src/edges/props.ts#PROPERTY_LINK]] matches it, the same shape Obsidian highlights: `[[`, then no bracket or line break, then `]]`, so subpaths and aliases count. [[packages/core/src/edges/props.ts#parseProps]] tries it before reading a list, so `[[[A]], [[B]]]` is a list of two links, while `[[X],]`, `[[X] ]` and `[[1, 2], [3]]` are nested lists. The value is only text: nothing resolves it or makes it an edge.
+
+Up to 0.31 the parser read `[[X]]` as the nested list `[["X"]]`. One release warned about it with an `edge-property-link` finding; that warning is gone because the value now means what it looks like.
+
 ## Markdown link targets
 
 A standard markdown link to a note works as an edge target, alone or mixed with wikilinks: `knows:: [Bob](/people/bob.md) {since: 2020}`.

@@ -102,4 +102,22 @@ describe('edge parsing', () => {
     expect(edges[0]!.props).not.toBe(edges[1]!.props);
     expect(parseEdges('- -distrusts:: [[Eve]]').edges[0]).toMatchObject({ type: 'distrusts', sign: -1 });
   });
+
+  // @tg: verifies:: [[tests/edge-parsing#Unquoted link in a property]] {since: "2026-11-26", level: unit}
+  // @lat: [[tests/edge-parsing#Unquoted link in a property]]
+  // @tg: verifies:: [[openspec:edge-parsing#Links in property values#Unquoted link in a property]]
+  it('reads a property value written like a wikilink as that link text', () => {
+    const { edges, diagnostics } = parseEdges('met_with:: [[Person A]] {location: [[Location B]], at: [[[Hall]], [[Lobby#Desk|desk]]], q: "[[Q]]"}', 'Alice.md');
+    expect(diagnostics).toEqual([]);
+    expect(edges[0]!.props).toEqual({ location: '[[Location B]]', at: ['[[Hall]]', '[[Lobby#Desk|desk]]'], q: '[[Q]]' });
+  });
+
+  // @tg: verifies:: [[tests/edge-parsing#Nested lists that are not links]] {since: "2026-11-26", level: unit}
+  // @lat: [[tests/edge-parsing#Nested lists that are not links]]
+  // @tg: verifies:: [[openspec:edge-parsing#Links in property values#Nested lists]]
+  it('keeps nested lists that do not look like links', () => {
+    const { edges, diagnostics } = parseEdges('knows:: [[Bob]] {b: [[X],], c: [ [X] ], d: [[1, 2], [3]], e: [[X] ], f: [[[X],]]}');
+    expect(diagnostics).toEqual([]);
+    expect(edges[0]!.props).toEqual({ b: [['X']], c: [['X']], d: [[1, 2], [3]], e: [['X']], f: [[['X']]] });
+  });
 });

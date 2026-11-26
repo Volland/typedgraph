@@ -1,6 +1,6 @@
 export { FRONTMATTER_EDGE_SKIP, LINK_EDGE_TYPE, frontmatterEdges, markdownTarget, parseEdges } from './edges/parse.js';
 export type { ParsedEdge, Diagnostic, ParseOptions, ParseResult, Sign } from './edges/parse.js';
-export { parseProps, PropsSyntaxError } from './edges/props.js';
+export { parseProps, PropsSyntaxError, PROPERTY_LINK } from './edges/props.js';
 export type { Props, PropValue } from './edges/props.js';
 export { Graph, isEdgeNote, labelsOf, titleOf } from './graph/graph.js';
 export type { GraphNode, GraphEdge, GraphOptions, NoteInput, NoteOutline, LinkResolver, SubpathResolver } from './graph/graph.js';
