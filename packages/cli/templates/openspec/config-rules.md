@@ -22,6 +22,6 @@
 - For each scenario, include a task to annotate the test that proves it with a comment `@tg: verifies:: [[openspec:<capability>#<Requirement>#<Scenario>]]` directly above the test call.
 - Include a task to record the design's decisions and constraints in lat.md as typed sections (`type: Decision`, `type: Constraint`) with typed edge lines such as `- motivated_by:: [[constraints#<Constraint>]]` and `- constrains:: [[openspec:<capability>#<Requirement>]] {strength: must}`, using only edge names `tg ontology` lists.
 - Include a task to update the lat.md section that explains each capability and list the capability in that file's `openspec:` frontmatter.
-- End with a task to run `tg check`, `tg ontology check` and `tg trace <capability> --gaps` and close every gap they report.
+- End with a task to run `tg check`, {{if:lat-integration}}`lat check`, {{end}}`tg ontology check` and `tg trace <capability> --gaps` and close every gap they report.
 
 <!-- Write annotation examples without a comment marker in front of the at-sign: tg check scans openspec/config.yaml as code and would read them as real annotations. -->

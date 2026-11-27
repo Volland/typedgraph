@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { expect, it } from 'vitest';
 import { run, type Io } from '../src/cli.mjs';
 import '../src/commands/index.mjs';
-import { TG_RULES } from '../src/commands/openspec-config.mjs';
+import { getRules } from '../src/commands/openspec-config.mjs';
 
 function project(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'tg-onto-'));
@@ -180,7 +180,8 @@ it('teaches the ontology in the generated instructions and skills', async () => 
 // @lat: [[tests/tg-ontology#Ontology-aware guidance#OpenSpec rules teach typed records]]
 // @tg: verifies:: [[openspec:tg-agent-integration#Ontology-aware guidance#OpenSpec rules teach typed records]]
 it('asks OpenSpec for Decision sections with motivated_by edges and an ontology check', () => {
-  expect(TG_RULES.design!.join(' ')).toContain('`Decision` section');
-  expect(TG_RULES.design!.join(' ')).toContain('motivated_by');
-  expect(TG_RULES.tasks!.join(' ')).toContain('tg ontology check');
+  const rules = getRules([]);
+  expect(rules.design!.join(' ')).toContain('`Decision` section');
+  expect(rules.design!.join(' ')).toContain('motivated_by');
+  expect(rules.tasks!.join(' ')).toContain('tg ontology check');
 });

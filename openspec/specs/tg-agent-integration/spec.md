@@ -204,6 +204,25 @@ When OpenSpec skills exist in a selected agent's skills folder, or OpenSpec comm
 - **WHEN** an interactive `tg init` runs in a project without `openspec/`
 - **THEN** the parts checklist shows every part ticked, including `specs`
 
+### Requirement: Integrations
+`tg init` SHALL fit the generated instructions, skills, spec framework steps and OpenSpec config rules to other tools the project uses, chosen with `--integrations` (comma-separated ids, or `none`). The `lat` integration SHALL make them ask for `lat check` wherever they ask for `tg check`. Without the flag, an interactive setup that writes instructions, skills or spec steps SHALL show an integrations checklist after the spec frameworks, with the integrations the project's generated files already use ticked; otherwise those integrations SHALL be used, which is none for a new project. An unknown integration SHALL be an error. With no integration, no generated file SHALL ask for `lat check`. `tg upgrade`, `tg gen` and the agent hooks SHALL follow the integrations the generated instructions and skills record, and `tg gen` SHALL also take `--integrations`. The templates SHALL mark the text an integration adds as `{{if:lat-integration}}...{{end}}`, with an optional `{{else}}` text for its absence.
+
+#### Scenario: No integration by default
+- **WHEN** `tg init --yes` runs in a project with an OpenSpec skill and `openspec/config.yaml`
+- **THEN** no generated file asks for `lat check`; with `--integrations lat` `CLAUDE.md`, the tg skills, the OpenSpec block and rules do, a re-run keeps them, `--integrations none` takes them out and `--integrations nope` exits with an error
+
+#### Scenario: Conditional sections
+- **WHEN** a bundled template holds `{{if:lat-integration}}...{{end}}` or `{{if:lat-integration}}...{{else}}...{{end}}`
+- **THEN** the first text is kept only with the `lat` integration, the `{{else}}` text only without it, a line holding only a marker is removed, and an unknown condition, a stray marker or a nested condition is an error
+
+#### Scenario: Integrations checklist
+- **WHEN** an interactive `tg init` runs
+- **THEN** an integrations checklist offers `lat` unticked, not as a part, and ticking it adds `lat check` to the generated files; once they ask for it, `lat` is offered ticked
+
+#### Scenario: Choice kept
+- **WHEN** `tg upgrade` or a hook runs in a project set up with or without the `lat` integration
+- **THEN** upgraded files and hook messages ask for `lat check` exactly when the setup did
+
 ### Requirement: Interactive setup
 `tg init` SHALL treat a run as interactive when it has a terminal on standard input and output and neither `--json` nor `--yes` is given. An interactive run SHALL show its checklists, then write the files and list each one as created or updated, without a further question, and write nothing when every agent or every part is left unticked; with `--dry-run` it SHALL print the diff instead. A non-interactive run SHALL never prompt.
 

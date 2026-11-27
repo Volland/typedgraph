@@ -11,5 +11,5 @@ alwaysApply: true
 {{spec-bullets}}
 - A relation the ontology lacks is a schema change: add it to `Types/` instead of a one-off name.
 - Mark a part of a section as an XML element the type declares (`<option id="redis">`) only when something links to it as `[[file#^id]]`, queries it or checks it; leave the rest as prose.
-- After every task, update `lat.md/` for any changed behavior or decision, then run `tg check` and `tg ontology check` until both pass.
+- After every task, update `lat.md/` for any changed behavior or decision, then run `tg check`{{if:lat-integration}}, `lat check`{{end}} and `tg ontology check` until {{if:lat-integration}}all three{{else}}both{{end}} pass.
 - Every `lat.md/` section needs a leading paragraph of at most 250 characters, before any edge list.
