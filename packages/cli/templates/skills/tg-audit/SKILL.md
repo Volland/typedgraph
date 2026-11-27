@@ -54,6 +54,9 @@ From the recorded `code` and `scenarios`, add `// @tg: implements::` above each 
 
 ```bash
 tg check            # every new link resolves
+{{if:lat-integration}}
+lat check           # lat.md's own validator passes too
+{{end}}
 tg ontology check   # every typed edge fits the ontology
 tg trace --gaps     # what is left, honestly
 ```

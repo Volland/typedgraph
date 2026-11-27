@@ -48,6 +48,9 @@ specs: ["speckit:001-user-auth", "adr:0003"]
 
 ```bash
 tg check                       # broken spec targets and frontmatter entries fail here
+{{if:lat-integration}}
+lat check                      # lat.md's own validator must pass too
+{{end}}
 tg trace                       # every capability: implements, verifies, docs per requirement
 tg trace auth billing --gaps   # only requirements still unimplemented or unverified
 tg trace speckit:001-user-auth adr   # one Spec Kit feature, every ADR

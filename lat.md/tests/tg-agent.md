@@ -209,6 +209,28 @@ Choosing which parts `tg init` sets up or updates.
 
 In a terminal the parts checklist lists all five parts (the spec frameworks part named `specs`) with every part ticked, and only the ticked parts are written.
 
+## Integrations
+
+Fitting the generated files to other tools with `--integrations`; `lat` asks for `lat check` wherever they ask for `tg check`.
+
+### No integration by default
+
+By default no generated file asks for `lat check`, and leaving it out of a bundled template keeps the rest of its text.
+
+With `--integrations lat`, `CLAUDE.md`, the skills and the OpenSpec block and rules ask for it; a re-run keeps it, `--integrations none` removes it and an unknown name exits 2.
+
+### Conditional sections
+
+`{{if:lat-integration}}` text is kept only with the `lat` integration and `{{else}}` text only without it; marker-only lines vanish, and unknown, stray or nested markers are errors.
+
+### Integrations checklist
+
+In a terminal an integrations checklist offers `lat` unticked, apart from the parts; ticking it adds `lat check`, and once the project asks for it `lat` is offered ticked.
+
+### Choice kept
+
+`tg upgrade` and the Claude Code hooks ask for `lat check` only in a project whose generated instructions or skills do.
+
 ## Interactive setup
 
 The confirmation step of `tg init` in a terminal.

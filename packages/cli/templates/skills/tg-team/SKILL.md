@@ -19,7 +19,7 @@ If they are missing and the person wants a team map, ask first, then:
 2. Create `lat.md/people.md` (`type: Member`), `lat.md/teams.md` (`type: Team`) and `lat.md/agents.md` (`type: TeamAgent`), each with a leading paragraph, and list them in the `lat.md` index.
 3. Add a section for each person, titled with the name people use. Its first sentence gives their handle and role: `@alice, tech lead for payments; owns the retry policy.`
 4. Let people write their own `knows_about` edges. Don't guess what someone knows from `git blame`. Suggest it and let them confirm.
-5. `tg check` and `tg ontology check` until both pass.
+5. `tg check`{{if:lat-integration}}, `lat check`{{end}} and `tg ontology check` until {{if:lat-integration}}all three{{else}}both{{end}} pass.
 
 The names are specific so the map composes with other ontologies: if the project also uses OKF's `Person` or the agents ontology's `Agent`, give a note both labels (`type: [Person, Member]`, `type: [Agent, TeamAgent]`) instead of declaring a type twice.
 

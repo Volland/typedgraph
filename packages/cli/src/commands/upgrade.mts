@@ -10,6 +10,7 @@ import { CORE_ONTOLOGY_FILE } from '../core-ontology.mjs';
 import { offerUpdate } from '../update.mjs';
 import { AGENTS, detectAgents, type Agent } from './agents.mjs';
 import { SKILLS, TEMPLATES } from './gen.mjs';
+import { detectIntegrations, type IntegrationId } from '../integrations.mjs';
 import { BEGIN, forDocs, planInit, type Change, type Part } from './init.mjs';
 
 const ONTOLOGY_SCHEMA = 'Types/code-types.md';
@@ -29,6 +30,8 @@ export interface Setup {
   parts: Part[];
   docs: DocsDir;
   specs: SpecFrameworkId[];
+  /** The integrations the instructions and skills are fitted to. */
+  integrations: IntegrationId[];
 }
 
 /**
@@ -52,7 +55,7 @@ export function detectSetup(root: string): Setup {
   if (specs.length) parts.push('specs');
   const docs = existingDocsDir(root) ?? 'lat.md';
   if (existsSync(join(root, ONTOLOGY_SCHEMA)) || existsSync(join(root, docs, 'code-ontology.md'))) parts.push('ontology');
-  return { agents, parts, docs, specs };
+  return { agents, parts, docs, specs, integrations: detectIntegrations(root) };
 }
 
 const SHORT = 40;
@@ -136,7 +139,7 @@ export function enrichOntology(existing: string, bundled: string): { text: strin
 /** Changes that refresh what the project has; new files only for tg skills and the spec ontology tg owns. */
 // @tg: implements:: [[openspec:tg-upgrade#Project refresh]]
 export function planUpgrade(root: string, setup: Setup): { changes: Change[]; notes: string[]; ontology: string[] } {
-  const { changes, notes } = planInit(root, setup.agents, false, { parts: setup.parts, docs: setup.docs, specs: setup.specs });
+  const { changes, notes } = planInit(root, setup.agents, false, { parts: setup.parts, integrations: setup.integrations, docs: setup.docs, specs: setup.specs });
   const skillDirs = new Set(setup.agents.map((a) => a.skills));
   const owned = (c: Change) => c.before !== null || c.path === SPEC_ONTOLOGY_FILE || c.path === CORE_ONTOLOGY_FILE || [...skillDirs].some((d) => Object.keys(SKILLS).some((s) => c.path === `${d}/${s}/SKILL.md`));
   const kept = changes.filter(owned);

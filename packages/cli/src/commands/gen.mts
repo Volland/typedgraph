@@ -31,6 +31,7 @@ import adrTemplate from '../../templates/specs/adr-template.md';
 import adrFirst from '../../templates/specs/adr-first.md';
 import { detectSpecs, forSpecs, forStage, SPEC_SETUPS, SPEC_STAGES, specOntology, specSection, type SpecStage } from '../specs.mjs';
 import { EXIT_ERROR, EXIT_OK, register, type Command } from '../cli.mjs';
+import { detectIntegrations, forIntegrations, INTEGRATION_IDS, parseIntegrations } from '../integrations.mjs';
 
 // @tg: implements:: [[openspec:tg-agent-integration#Bundled skills]]
 export const TEMPLATES = { agents, cursor, docsSkill, graphSkill, traceSkill, impactSkill, auditSkill, ontologyGuide, ontologySchema, coreSchema };
@@ -93,9 +94,10 @@ const TARGETS: Record<string, string> = {
 export const gen: Command = {
   name: 'gen',
   summary: 'Print agent instructions, skills, spec framework patch blocks and the spec ontology (tg gen <target>; an unknown target lists them all)',
-  usage: 'gen <target>',
+  usage: `gen <target> [--integrations ${INTEGRATION_IDS.join('|')}[,...]|none]`,
+  flags: { integrations: 'string' },
   noProject: true,
-  run(ctx, args) {
+  run(ctx, args, flags) {
     // Text that names spec frameworks is filled for the ones this folder uses (OpenSpec when none).
     const specs = detectSpecs(ctx.cwd);
     const target = (args[0] ?? '').toLowerCase();
@@ -104,7 +106,14 @@ export const gen: Command = {
       ctx.err(`unknown target "${args[0] ?? ''}"; supported: ${[...Object.keys(TARGETS), 'spec-ontology.md'].join(', ')}\n`);
       return EXIT_ERROR;
     }
-    ctx.out(forSpecs(text, specs));
+    // Conditional sections follow `--integrations`, else the ones this folder uses.
+    const flag = flags.get('integrations');
+    const chosen = flag === undefined ? { ids: detectIntegrations(ctx.cwd) } : parseIntegrations(flag);
+    if ('error' in chosen) {
+      ctx.err(`${chosen.error}\n`);
+      return EXIT_ERROR;
+    }
+    ctx.out(forIntegrations(forSpecs(text, specs), chosen.ids));
     return EXIT_OK;
   },
 };

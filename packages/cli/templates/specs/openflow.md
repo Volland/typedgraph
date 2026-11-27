@@ -14,6 +14,6 @@ openflow:<change>#SC-002         a scenario still in an open change, shown as pe
   - `/openflow-feature` and brainstorm keep `SC-` and `R` ids stable.
   - `writing-plan` cites the ids each task covers.
   - `/openflow-implement` and the TDD skill annotate code and tests.
-  - `openflow-quality-gate` counts `tg check`, `tg ontology check` and `tg trace openflow:<capability> --gaps` as readiness evidence.
+  - `openflow-quality-gate` counts `tg check`, {{if:lat-integration}}`lat check`, {{end}}`tg ontology check` and `tg trace openflow:<capability> --gaps` as readiness evidence.
 - `/openflow-archive` promotes a change into `docs/current/<capability>/`, so re-point any `openflow:<change>#...` link to `openflow:<capability>#...` when it archives.
 - Docs name what they explain as `specs: ["openflow:<capability>"]` in frontmatter.

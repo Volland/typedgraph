@@ -10,6 +10,7 @@ import { AGENT_IDS, AGENTS, detectAgents, parseAgents, type Agent } from './agen
 import { CORE_ONTOLOGY_FILE, moveToCore } from '../core-ontology.mjs';
 import { ONTOLOGY_TEMPLATES, OPENSPEC_PATCHES, SKILLS, SPEC_TEMPLATES, STAGE_PATCHES, TEMPLATES } from './gen.mjs';
 import { withOpenspecRules } from './openspec-config.mjs';
+import { detectIntegrations, forIntegrations, INTEGRATION_IDS, INTEGRATIONS, parseIntegrations, type IntegrationId } from '../integrations.mjs';
 import { offerUpdate } from '../update.mjs';
 import { adrDirs, detectSpecs, forSpecs, forStage, installOptions, showCommand, SPEC_IDS, SPEC_ONTOLOGY_FILE, SPEC_SETUPS, SPEC_STAGES, specOntology, specSetup } from '../specs.mjs';
 
@@ -24,7 +25,7 @@ export interface Change {
   after: string;
 }
 
-const block = (docs: DocsDir, specs: readonly SpecFrameworkId[]): string => `${BEGIN}\n${forDocs(forSpecs(TEMPLATES.agents, specs), docs).trimEnd()}\n${END}\n`;
+const block = (docs: DocsDir, specs: readonly SpecFrameworkId[], integrations: readonly IntegrationId[]): string => `${BEGIN}\n${forIntegrations(forDocs(forSpecs(TEMPLATES.agents, specs), docs), integrations).trimEnd()}\n${END}\n`;
 
 /** Template text for a project whose docs folder is `docs`: the bundled text names `lat.md/`. */
 // @tg: implements:: [[openspec:tg-agent-integration#Docs folder choice]]
@@ -40,11 +41,11 @@ function between(text: string, begin: string, end: string): { start: number; sto
 
 /** Put the managed block into an instruction file, replacing a previous tg block and, with `migrate`, a lat block. */
 // @tg: implements:: [[openspec:tg-agent-integration#Migration from lat]]
-export function withBlock(existing: string | null, migrate: boolean, docs: DocsDir = 'lat.md', specs: readonly SpecFrameworkId[] = []): { text: string; hadLat: boolean } {
+export function withBlock(existing: string | null, migrate: boolean, docs: DocsDir = 'lat.md', specs: readonly SpecFrameworkId[] = [], integrations: readonly IntegrationId[] = []): { text: string; hadLat: boolean } {
   const text = existing ?? '';
   const mine = between(text, BEGIN, END);
   const lat = between(text, LAT_BEGIN, LAT_END);
-  const managed = block(docs, specs).trimEnd();
+  const managed = block(docs, specs, integrations).trimEnd();
   if (mine) {
     const updated = `${text.slice(0, mine.start)}${managed}${text.slice(mine.stop)}`;
     // A file that already has a tg block (from an earlier init without --migrate) can still hold the lat block: drop it.
@@ -131,6 +132,8 @@ const PART_ALIASES: Record<string, Part> = { openspec: 'specs' };
 export interface InitOptions {
   /** Parts to set up (default all). */
   parts?: Iterable<Part>;
+  /** Other tools the generated instructions, skills and spec steps are fitted to (default none). */
+  integrations?: readonly IntegrationId[];
   /** Docs folder to create when the project has none (default `lat.md`); an existing one always wins. */
   docs?: DocsDir;
   /** Spec frameworks to wire up (default: the ones the project already uses). */
@@ -172,7 +175,8 @@ export function planInit(root: string, agents: readonly Agent[], migrate: boolea
   const parts = new Set<Part>(options.parts ?? PART_IDS);
   const docs = existingDocsDir(root) ?? options.docs ?? 'lat.md';
   const specs = options.specs ?? detectSpecs(root);
-  const text = (t: string) => forDocs(forSpecs(t, specs), docs);
+  const integrations = options.integrations ?? [];
+  const text = (t: string) => forIntegrations(forDocs(forSpecs(t, specs), docs), integrations);
   const changes: Change[] = [];
   const notes: string[] = [];
   const add = (rel: string, after: string) => {
@@ -196,7 +200,7 @@ export function planInit(root: string, agents: readonly Agent[], migrate: boolea
         add(doc, text(TEMPLATES.cursor));
         continue;
       }
-      const r = withBlock(read(join(root, doc)), migrate, docs, specs);
+      const r = withBlock(read(join(root, doc)), migrate, docs, specs, integrations);
       if (r.hadLat && !migrate && !(read(join(root, doc)) ?? '').includes(BEGIN)) notes.push(`${doc} has a lat.md block; it is left in place. Re-run with --migrate to replace it with the tg block.`);
       add(doc, r.text);
     }
@@ -214,17 +218,17 @@ export function planInit(root: string, agents: readonly Agent[], migrate: boolea
       if (ids.has('claude')) paths.push(command);
       for (const rel of paths) {
         const text = read(join(root, rel));
-        if (text !== null) add(rel, withOpenspecBlock(text, OPENSPEC_PATCHES[stage]));
+        if (text !== null) add(rel, withOpenspecBlock(text, forIntegrations(OPENSPEC_PATCHES[stage], integrations)));
       }
     }
     const config = read(join(root, OPENSPEC_CONFIG));
     if (config !== null) {
-      const next = withOpenspecRules(config);
+      const next = withOpenspecRules(config, integrations);
       if (next === null) notes.push(`${OPENSPEC_CONFIG} is not a YAML mapping with a rules mapping; tg rules were not added.`);
       else add(OPENSPEC_CONFIG, next);
     }
-    planSpecPatches(root, agents, add);
-    planSpecScaffolds(root, specs, add);
+    planSpecPatches(root, agents, add, integrations);
+    planSpecScaffolds(root, specs, add, integrations);
   }
   planNotes(root, add, notes);
   return { changes, notes };
@@ -236,7 +240,7 @@ export function planInit(root: string, agents: readonly Agent[], migrate: boolea
  * there is in use, whatever was ticked.
  */
 // @tg: implements:: [[openspec:spec-frameworks#Framework skill patching]]
-function planSpecPatches(root: string, agents: readonly Agent[], add: (rel: string, after: string) => void): void {
+function planSpecPatches(root: string, agents: readonly Agent[], add: (rel: string, after: string) => void, integrations: readonly IntegrationId[]): void {
   const skillDirs = [...new Set(agents.map((a) => a.skills))];
   const commandDirs = [...new Set(agents.flatMap((a) => a.commands))];
   for (const setup of SPEC_SETUPS) {
@@ -249,7 +253,7 @@ function planSpecPatches(root: string, agents: readonly Agent[], add: (rel: stri
       ];
       for (const rel of paths) {
         const existing = read(join(root, rel));
-        if (existing !== null) add(rel, withOpenspecBlock(existing, forStage(STAGE_PATCHES[stage], setup)));
+        if (existing !== null) add(rel, withOpenspecBlock(existing, forIntegrations(forStage(STAGE_PATCHES[stage], setup), integrations)));
       }
     }
   }
@@ -261,8 +265,8 @@ function planSpecPatches(root: string, agents: readonly Agent[], add: (rel: stri
  * record and a template (written only when absent).
  */
 // @tg: implements:: [[openspec:spec-frameworks#Framework scaffolds]]
-function planSpecScaffolds(root: string, specs: readonly SpecFrameworkId[], add: (rel: string, after: string) => void): void {
-  if (specs.includes('kiro')) add('.kiro/steering/tg.md', SPEC_TEMPLATES.kiroSteering);
+function planSpecScaffolds(root: string, specs: readonly SpecFrameworkId[], add: (rel: string, after: string) => void, integrations: readonly IntegrationId[]): void {
+  if (specs.includes('kiro')) add('.kiro/steering/tg.md', forIntegrations(SPEC_TEMPLATES.kiroSteering, integrations));
   if (specs.includes('adr') && !adrDirs(root).length) {
     const first = 'docs/adr/0001-record-architecture-decisions.md';
     if (!existsSync(join(root, first))) add(first, SPEC_TEMPLATES.adrFirst.replace('{{date}}', new Date().toISOString().slice(0, 10)));
@@ -369,6 +373,29 @@ async function chooseParts(ctx: Ctx, flags: Map<string, string | true>, interact
   // Every part is offered ticked: the spec frameworks step that follows asks which framework, or none.
   const picked = await ctx.choose!('What to set up or update', PARTS.map((p) => ({ id: p.id, label: p.name, checked: true })));
   return PART_IDS.filter((p) => picked.includes(p));
+}
+
+/**
+ * Integrations from `--integrations` (`none` for none), else ticked in the terminal, else the ones the project's
+ * generated files already use, which is none for a new project; null after reporting a bad name.
+ */
+// @tg: implements:: [[openspec:tg-agent-integration#Integrations]]
+async function chooseIntegrations(ctx: Ctx, root: string, flag: string | true | undefined, interactive: boolean): Promise<IntegrationId[] | null> {
+  if (flag !== undefined) {
+    const r = parseIntegrations(flag);
+    if ('error' in r) {
+      ctx.err(`${r.error}\n`);
+      return null;
+    }
+    return r.ids;
+  }
+  const detected = detectIntegrations(root);
+  if (!interactive) return detected;
+  const picked = await ctx.choose!(
+    'Integrations to use',
+    INTEGRATIONS.map((i) => ({ id: i.id, label: `${i.name}${detected.includes(i.id) ? '  (found)' : ''}`, checked: detected.includes(i.id) })),
+  );
+  return INTEGRATION_IDS.filter((id) => picked.includes(id));
 }
 
 /**
@@ -491,8 +518,8 @@ async function chooseDocs(ctx: Ctx, root: string, flag: string | true | undefine
 export const init: Command = {
   name: 'init',
   summary: 'Set up the docs folder (lat.md/ or tg.md/), the code ontology, agent instructions, hooks, MCP, skills and your spec framework (OpenSpec, Spec Kit, Kiro, BMAD, GSD, OpenFlow, ADRs) for your coding agents (asks in a terminal; --dry-run only prints the diff)',
-  usage: `init [dir] [--agent ${AGENT_IDS.join('|')}[,...]] [--only|--skip ${PART_IDS.join('|')}[,...]] [--spec ${SPEC_IDS.join('|')}[,...]|none] [--install-spec] [--docs ${DOCS_DIRS.join('|')}] [--dry-run] [--yes] [--migrate] [--no-ontology] [--no-openspec] [--skills-only] [--no-update-check]`,
-  flags: { docs: 'string', 'dry-run': 'bool', write: 'bool', yes: 'bool', 'no-update-check': 'bool', migrate: 'bool', agent: 'string', only: 'string', skip: 'string', spec: 'string', 'install-spec': 'bool', 'no-ontology': 'bool', 'no-openspec': 'bool', 'skills-only': 'bool' },
+  usage: `init [dir] [--agent ${AGENT_IDS.join('|')}[,...]] [--only|--skip ${PART_IDS.join('|')}[,...]] [--spec ${SPEC_IDS.join('|')}[,...]|none] [--install-spec] [--docs ${DOCS_DIRS.join('|')}] [--dry-run] [--yes] [--migrate] [--no-ontology] [--no-openspec] [--skills-only] [--integrations ${INTEGRATION_IDS.join('|')}[,...]|none] [--no-update-check]`,
+  flags: { docs: 'string', 'dry-run': 'bool', write: 'bool', yes: 'bool', 'no-update-check': 'bool', migrate: 'bool', agent: 'string', only: 'string', skip: 'string', spec: 'string', 'install-spec': 'bool', 'no-ontology': 'bool', 'no-openspec': 'bool', 'skills-only': 'bool', integrations: 'string' },
   noProject: true,
   async run(ctx, args, flags) {
     // Init sets up the folder it is pointed at, never a parent: a stray docs folder higher up must not capture it.
@@ -514,14 +541,18 @@ export const init: Command = {
     if (!docs) return EXIT_ERROR;
     const specs = parts.includes('specs') ? await chooseSpecs(ctx, root, flags.get('spec'), interactive) : detectSpecs(root);
     if (!specs) return EXIT_ERROR;
+    // Integrations change only generated text: asked for when instructions, skills or spec steps are written.
+    const texts = parts.includes('instructions') || parts.includes('skills') || parts.includes('specs');
+    const integrations = await chooseIntegrations(ctx, root, flags.get('integrations'), interactive && texts);
+    if (!integrations) return EXIT_ERROR;
     const install = parts.includes('specs') ? await installSpecs(ctx, root, specs, agents, { interactive, run: flags.has('install-spec'), dryRun: flags.has('dry-run') }) : { notes: [], installed: [] };
-    const { changes, notes } = planInit(root, agents, flags.has('migrate'), { parts, docs: docs.dir, specs });
+    const { changes, notes } = planInit(root, agents, flags.has('migrate'), { parts, integrations, docs: docs.dir, specs });
     notes.unshift(...update.notes, ...docs.notes, ...install.notes);
     // Writing is the default; `--dry-run` only prints the diff. `--write` is accepted for older scripts and changes nothing.
     const write = !flags.has('dry-run');
     const files = `${changes.length} file${changes.length === 1 ? '' : 's'}`;
     if (ctx.json) {
-      ctx.out(`${JSON.stringify({ root, write, agents: agents.map((a) => a.id), parts, docs: docs.dir, specs, installed: install.installed, changes: changes.map((c) => ({ path: c.path, created: c.before === null })), notes })}\n`);
+      ctx.out(`${JSON.stringify({ root, write, agents: agents.map((a) => a.id), parts, integrations, docs: docs.dir, specs, installed: install.installed, changes: changes.map((c) => ({ path: c.path, created: c.before === null })), notes })}\n`);
     } else if (!changes.length) {
       ctx.out(`${basename(root)} is already set up; nothing to change.\n`);
     } else if (!write) {

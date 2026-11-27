@@ -7,4 +7,4 @@ This project traces {{name}} requirements to code with `tg` (see the `tg-trace`,
 - Put `// @tg: implements:: [[{{requirement}}]]` directly above each function or class you write that realizes a requirement (entry points only, 1 to 3 per requirement), with `{confidence: partial}` or `{since: "<version>"}` when they apply.
 - Put `// @tg: verifies:: [[{{scenario}}]]` directly above the test that proves each acceptance scenario or criterion, with `{level: unit}` or `integration`.
 - Code that knowingly departs from a requirement or decision gets `// @tg: -contradicts:: [[...]] {ticket: "...", until: "..."}`.
-- After each task: `tg check` and `tg ontology check` must pass. When all tasks are done, `tg trace --gaps` should list nothing this work was meant to cover; report anything left.
+- After each task: `tg check`{{if:lat-integration}}, `lat check`{{end}} and `tg ontology check` must pass. When all tasks are done, `tg trace --gaps` should list nothing this work was meant to cover; report anything left.
