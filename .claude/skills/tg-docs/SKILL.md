@@ -14,7 +14,7 @@ description: Write and maintain the lat.md/ documentation folder as a typed grap
 3. **Write typed.** Put new content in the file whose `type:` matches it (`decisions.md` for a Decision, `constraints.md` for a Constraint, ...); create the file with the right `type:` frontmatter if it does not exist, and list it in the index.
 4. **Name every relation** as a typed edge line after the section's leading paragraph, with the facts about the relation as properties.
 5. **Link the code**: `// @tg: implements:: [[...]]` above the declarations that realize the section or requirement.
-6. **Check**: `tg check` (links, structure) and `tg ontology check` (edge names, endpoints, properties) until both pass.
+6. **Check**: `tg check` (links, structure), `lat check` (lat.md's own validator) and `tg ontology check` (edge names, endpoints, properties) until all three pass.
 
 ## Typed files
 

@@ -154,6 +154,6 @@ This project traces OpenSpec requirements to code and records its intent as a ty
 - Requirement and scenario names become ids that code points at (`openspec:<capability>#<Requirement>#<Scenario>`). Choose short, stable, specific names. In MODIFIED deltas **keep every existing requirement and scenario name exactly**, and add scenarios instead of renaming them.
 - Give every requirement at least one scenario a test can prove; each scenario will get a `@tg: verifies::` line on its test.
 - In `design.md`, write each decision so it can become a `Decision` section: the choice, the alternatives rejected, and its reasons as named relations (motivated by which constraint or concept, superseding which earlier decision).
-- In `tasks.md`, add tasks to record the change's decisions and constraints in `lat.md/` as typed sections with typed edges, to annotate code with `@tg: implements::` and tests with `@tg: verifies::`, and a final task: "`tg check`, `tg ontology check` and `tg trace <capabilities> --gaps` show no new gaps."
+- In `tasks.md`, add tasks to record the change's decisions and constraints in `lat.md/` as typed sections with typed edges, to annotate code with `@tg: implements::` and tests with `@tg: verifies::`, and a final task: "`tg check`, `lat check`, `tg ontology check` and `tg trace <capabilities> --gaps` show no new gaps."
 - If the change adds a capability, plan which lat.md file will name it in its `openspec:` frontmatter.
 <!-- tg:end -->

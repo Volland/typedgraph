@@ -73,7 +73,7 @@ Read the requirement text itself in its spec file (the `file` and `line` propert
 ## 3. After the edit: prove nothing broke
 
 1. Run the tests listed in step 1, then the wider suite.
-2. `tg check`: every annotation still resolves. `tg ontology check`: every typed edge you added uses a declared name, direction and properties.
+2. `tg check` and `lat check`: every annotation still resolves. `tg ontology check`: every typed edge you added uses a declared name, direction and properties.
 3. `tg trace <capability> --gaps`: nothing became unimplemented or unverified.
 4. If behavior a requirement describes changed on purpose, update the spec the way its framework changes specs (an OpenSpec change, an edited Spec Kit or Kiro spec, a superseding ADR) and the lat.md section from step 1.
 
