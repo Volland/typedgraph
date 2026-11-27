@@ -13,8 +13,9 @@ After EVERY task, before responding to the user:
 
 - [ ] Update `lat.md/` if you added or changed any functionality, architecture, decisions, tests, or behavior — as typed sections with typed edges (see below), not only prose
 - [ ] Run `tg check` — all wiki links, code refs and annotations must pass
+- [ ] Run `lat check` — the project must also pass lat.md's own validator
 - [ ] Run `tg ontology check` — every typed edge you wrote must use a declared edge type with allowed endpoints and properties
-- [ ] Do not skip these steps. Do not consider your task done until all three pass.
+- [ ] Do not skip these steps. Do not consider your task done until all four pass.
 
 ---
 

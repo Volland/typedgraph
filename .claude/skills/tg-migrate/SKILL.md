@@ -13,6 +13,7 @@ description: Migrate a lat.md project to an ontology-aware tg project - run tg m
 git status            # start clean: the migration should be one reviewable diff
 tg ontology           # the types and edge types you may use, with each edge's properties
 tg check              # the project passes before you start
+lat check             # and passes lat.md's own validator
 ```
 
 Read `tg ontology` carefully. The project may declare its own types and edges beyond the bundled code ontology; use them where they fit.
@@ -67,6 +68,7 @@ A known disagreement is `-contradicts::` with `{ticket, until}`, never a positiv
 
 ```bash
 tg check            # links, structure, coverage
+lat check           # lat.md's own validator
 tg ontology check   # every edge uses a declared name, direction and properties
 tg trace --gaps     # if the project has a spec framework (OpenSpec, Spec Kit, Kiro, BMAD, GSD, ADRs)
 ```

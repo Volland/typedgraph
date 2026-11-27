@@ -13,7 +13,7 @@ rules:
     - "tg: For each scenario, include a task to annotate the test that proves it with a comment `@tg: verifies:: [[openspec:<capability>#<Requirement>#<Scenario>]]` directly above the test call."
     - "tg: Include a task to record the design's decisions and constraints in lat.md as typed sections (`type: Decision`, `type: Constraint`) with typed edge lines such as `- motivated_by:: [[constraints#<Constraint>]]` and `- constrains:: [[openspec:<capability>#<Requirement>]] {strength: must}`, using only edge names `tg ontology` lists."
     - "tg: Include a task to update the lat.md section that explains each capability and list the capability in that file's `openspec:` frontmatter."
-    - "tg: End with a task to run `tg check`, `tg ontology check` and `tg trace <capability> --gaps` and close every gap they report."
+    - "tg: End with a task to run `tg check`, `lat check`, `tg ontology check` and `tg trace <capability> --gaps` and close every gap they report."
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.

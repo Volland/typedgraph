@@ -83,6 +83,7 @@ From the recorded `code` and `scenarios`, add `// @tg: implements::` above each 
 
 ```bash
 tg check            # every new link resolves
+lat check           # lat.md's own validator passes too
 tg ontology check   # every typed edge fits the ontology
 tg trace --gaps     # what is left, honestly
 ```
